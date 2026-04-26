@@ -22,8 +22,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 import entity.KhachHang;
-import ui.TrangChu_UI;
-import dao.KhachHang_DAO;
+import dao_impl.KhachHang_DAO;
 
 public class CapNhatKhachHang_UI extends JPanel {
 

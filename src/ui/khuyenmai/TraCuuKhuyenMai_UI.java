@@ -15,9 +15,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import com.toedter.calendar.JDateChooser;
 import java.text.SimpleDateFormat;
 import connect.DBConnect;
-import dao.KhuyenMai_DAO;
+import dao_impl.KhuyenMai_DAO;
 import entity.KhuyenMai;
-import ui.TrangChu_UI;
 
 public class TraCuuKhuyenMai_UI extends JPanel {
     

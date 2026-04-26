@@ -1,6 +1,6 @@
 package ui.banan;
 
-import dao.LichSuHuyDatBan_DAO;
+import dao_impl.LichSuHuyDatBan_DAO;
 import entity.LichSuHuyDatBan;
 
 import com.toedter.calendar.JDateChooser;

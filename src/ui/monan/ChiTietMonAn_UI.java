@@ -1,6 +1,6 @@
 package ui.monan; 
 
-import dao.MonAn_DAO;
+import dao_impl.MonAn_DAO;
 import entity.LichSuGia;
 import entity.MonAn;
 
@@ -8,7 +8,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 
 import java.awt.*;
