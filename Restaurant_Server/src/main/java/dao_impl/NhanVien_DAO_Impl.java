@@ -21,17 +21,49 @@ public class NhanVien_DAO_Impl extends UnicastRemoteObject implements INhanVien_
 		super();
 	}
 
+	// ĐÃ SỬA: Hàm map thông minh, xử lý mọi kiểu dữ liệu (String, Long, Boolean) tránh lỗi Uncoercible
 	private NhanVien mapNhanVien(Record r) {
-		ChucVu chucVu = new ChucVu(r.get("maChucVu").asString(), r.get("tenChucVu").asString());
+		String maCV = r.get("maChucVu").isNull() ? "" : r.get("maChucVu").asString();
+		String tenCV = r.get("tenChucVu").isNull() ? "Chưa có chức vụ" : r.get("tenChucVu").asString();
+		ChucVu chucVu = new ChucVu(maCV, tenCV);
+
+		// Xử lý ngày sinh an toàn
+		Date ngaySinh = null;
+		if (!r.get("ngaySinh").isNull()) {
+			org.neo4j.driver.Value nsVal = r.get("ngaySinh");
+			if (nsVal.type().name().equals("STRING")) {
+				try { ngaySinh = Date.valueOf(nsVal.asString()); } catch (Exception e) {}
+			} else if (nsVal.type().name().equals("DATE")) {
+				ngaySinh = Date.valueOf(nsVal.asLocalDate());
+			} else {
+				ngaySinh = new Date(nsVal.asLong());
+			}
+		}
+
+		// Xử lý giới tính an toàn
+		boolean gioiTinh = true;
+		if (!r.get("gioiTinh").isNull()) {
+			if (r.get("gioiTinh").type().name().equals("STRING")) {
+				gioiTinh = r.get("gioiTinh").asString().equalsIgnoreCase("Nam");
+			} else {
+				gioiTinh = r.get("gioiTinh").asBoolean();
+			}
+		}
+
 		return new NhanVien(
-				r.get("maNhanVien").asString(), r.get("hoTen").asString(), r.get("gioiTinh").asBoolean(),
-				r.get("soDienThoai").asString(), r.get("email").isNull() ? null : r.get("email").asString(),
-				r.get("ngaySinh").isNull() ? null : new Date(r.get("ngaySinh").asLong()),
-				r.get("diaChi").isNull() ? null : r.get("diaChi").asString(), chucVu
+				r.get("maNhanVien").asString(),
+				r.get("hoTen").asString(),
+				gioiTinh,
+				r.get("soDienThoai").isNull() ? "" : r.get("soDienThoai").asString(),
+				r.get("email").isNull() ? null : r.get("email").asString(),
+				ngaySinh,
+				r.get("diaChi").isNull() ? null : r.get("diaChi").asString(),
+				chucVu
 		);
 	}
 
-	private final String CYPHER_SELECT_BASE = "MATCH (nv:NhanVien)-[:GIU_CHUC_VU]->(cv:ChucVu) ";
+	// ĐÃ SỬA: Dùng OPTIONAL MATCH để nhân viên chưa có chức vụ vẫn hiện ra
+	private final String CYPHER_SELECT_BASE = "MATCH (nv:NhanVien) OPTIONAL MATCH (nv)-[:GIU_CHUC_VU]->(cv:ChucVu) ";
 	private final String CYPHER_RETURN = "RETURN nv.maNhanVien AS maNhanVien, nv.hoTen AS hoTen, nv.gioiTinh AS gioiTinh, " +
 			"nv.soDienThoai AS soDienThoai, nv.email AS email, nv.ngaySinh AS ngaySinh, " +
 			"nv.diaChi AS diaChi, cv.maChucVu AS maChucVu, cv.tenChucVu AS tenChucVu ";
@@ -198,13 +230,11 @@ public class NhanVien_DAO_Impl extends UnicastRemoteObject implements INhanVien_
 
 	@Override
 	public NhanVien xacThucDangNhap(String taiKhoan, String matKhau) throws RemoteException {
-		// Đã đổi thành TaiKhoan_DAO_Impl
 		TaiKhoan_DAO_Impl taiKhoanDAO = new TaiKhoan_DAO_Impl();
 		String matKhauMaHoaTuDB = taiKhoanDAO.getMatKhauMaHoa(taiKhoan);
 
 		if (matKhauMaHoaTuDB == null) return null;
 
-		// Gọi hàm static từ TaiKhoan_DAO_Impl
 		if (TaiKhoan_DAO_Impl.kiemTraMatKhau(matKhau, matKhauMaHoaTuDB)) {
 			return getNhanVienByTaiKhoan(taiKhoan);
 		}
@@ -213,8 +243,8 @@ public class NhanVien_DAO_Impl extends UnicastRemoteObject implements INhanVien_
 
 	@Override
 	public NhanVien getNhanVienByTaiKhoan(String taiKhoan) throws RemoteException {
-		// Chuyển SQL JOIN thành việc tìm nhân viên thông qua Relationship [:CO_TAI_KHOAN] với TaiKhoan
-		String cypher = "MATCH (tk:TaiKhoan {taiKhoan: $tk})<-[:CO_TAI_KHOAN]-(nv:NhanVien)-[:GIU_CHUC_VU]->(cv:ChucVu) " +
+		String cypher = "MATCH (tk:TaiKhoan {taiKhoan: $tk})<-[:CO_TAI_KHOAN]-(nv:NhanVien) " +
+				"OPTIONAL MATCH (nv)-[:GIU_CHUC_VU]->(cv:ChucVu) " +
 				"WHERE nv.trangThai = 1 " + CYPHER_RETURN;
 		try (Session session = DBConnect.getSession()) {
 			Result result = session.run(cypher, Values.parameters("tk", taiKhoan));

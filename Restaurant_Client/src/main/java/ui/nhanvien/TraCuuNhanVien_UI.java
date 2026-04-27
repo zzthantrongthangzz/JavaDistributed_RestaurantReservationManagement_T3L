@@ -62,7 +62,11 @@ public class TraCuuNhanVien_UI extends JPanel {
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
         khoiTaoGiaoDien();
-        docDuLieuTuSQL();
+
+        // CHỈ tải dữ liệu nếu kết nối RMI thành công
+        if (nhanVienDAO != null) {
+            taiDuLieuLenBang();
+        }
     }
 
     private void khoiTaoGiaoDien() {
@@ -203,7 +207,8 @@ public class TraCuuNhanVien_UI extends JPanel {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 try {
-                    ImageIcon icon = new ImageIcon(getClass().getResource("/IMG/search.png"));
+                    // ĐÃ SỬA THÀNH CHỮ THƯỜNG /img/
+                    ImageIcon icon = new ImageIcon(getClass().getResource("/img/search.png"));
                     Image img = icon.getImage().getScaledInstance(KICH_THUOC_ICON, KICH_THUOC_ICON, Image.SCALE_SMOOTH);
                     Icon searchIcon = new ImageIcon(img);
                     int y = (getHeight() - searchIcon.getIconHeight()) / 2;
@@ -288,7 +293,8 @@ public class TraCuuNhanVien_UI extends JPanel {
             @Override
             protected JButton createArrowButton() {
                 try {
-                    ImageIcon icon = new ImageIcon(getClass().getResource("/IMG/muitenxuong_32px.png"));
+                    // ĐÃ SỬA THÀNH CHỮ THƯỜNG /img/
+                    ImageIcon icon = new ImageIcon(getClass().getResource("/img/muitenxuong_32px.png"));
                     Image img = icon.getImage().getScaledInstance(KICH_THUOC_ICON, KICH_THUOC_ICON, Image.SCALE_SMOOTH);
                     JButton btn = new JButton(new ImageIcon(img));
                     btn.setBackground(MAU_THANH_TIM_KIEM);
@@ -412,21 +418,35 @@ public class TraCuuNhanVien_UI extends JPanel {
         return panel;
     }
 
-    private void docDuLieuTuSQL() {
-        try {
-            List<NhanVien> danhSach = nhanVienDAO.getAllNhanVien();
-            hienThiDanhSach(danhSach);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+    private void taiDuLieuLenBang() {
+        // ĐÃ SỬA: Chặn lỗi NullPointerException nếu Server sập
+        if (nhanVienDAO == null) return;
+
+        SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                return nhanVienDAO.getAllNhanVien();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> danhSach = get();
+                    hienThiDanhSach(danhSach);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Lỗi tải dữ liệu!");
+                    JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Chi tiết lỗi: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDanhSach(List<NhanVien> danhSach) {
         tableModel.setRowCount(0);
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         for (NhanVien nv : danhSach) {
-            String ngaySinh = sdf.format(nv.getNgaySinh());
+            String ngaySinh = (nv.getNgaySinh() != null) ? sdf.format(nv.getNgaySinh()) : "";
             String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
             tableModel.addRow(new Object[]{
                     nv.getMaNhanVien(),
@@ -442,6 +462,9 @@ public class TraCuuNhanVien_UI extends JPanel {
     }
 
     private void thucHienSapXep(int loaiSapXep) {
+        // ĐÃ SỬA: Chặn lỗi NullPointerException
+        if (nhanVienDAO == null) return;
+
         List<NhanVien> ketQuaSapXep = null;
         try {
             switch (loaiSapXep) {
@@ -469,6 +492,9 @@ public class TraCuuNhanVien_UI extends JPanel {
     }
 
     private void thucHienLoc(String loaiLoc) {
+        // ĐÃ SỬA: Chặn lỗi NullPointerException
+        if (nhanVienDAO == null) return;
+
         List<NhanVien> ketQuaLoc = null;
 
         try {
@@ -496,7 +522,7 @@ public class TraCuuNhanVien_UI extends JPanel {
     }
 
     private void lamMoiGiaoDien() {
-        docDuLieuTuSQL();
+        taiDuLieuLenBang();
 
         txtTimKiemMa.setText("Tìm theo mã...");
         txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
@@ -511,60 +537,79 @@ public class TraCuuNhanVien_UI extends JPanel {
     }
 
     public void lamMoiBang() {
-        docDuLieuTuSQL();
+        taiDuLieuLenBang();
     }
 
     private void timKiemNhanVien() {
-        String tuKhoaMa = txtTimKiemMa.getText().trim();
-        String tuKhoaTen = txtTimKiemTen.getText().trim();
-        String tuKhoaSDT = txtTimKiemSDT.getText().trim();
+        // ĐÃ SỬA: Chặn lỗi NullPointerException
+        if (nhanVienDAO == null) {
+            JOptionPane.showMessageDialog(this, "Không có kết nối đến máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-        if (tuKhoaMa.equals("Tìm theo mã...")) tuKhoaMa = "";
-        if (tuKhoaTen.equals("Tìm theo tên...")) tuKhoaTen = "";
-        if (tuKhoaSDT.equals("Tìm theo SĐT...")) tuKhoaSDT = "";
+        // 1. Lấy dữ liệu thô từ giao diện
+        String rawMa = txtTimKiemMa.getText().trim();
+        String rawTen = txtTimKiemTen.getText().trim();
+        String rawSDT = txtTimKiemSDT.getText().trim();
 
+        // 2. Xử lý logic xóa placeholder và gán vào biến FINAL
+        // Việc dùng 'final' ở đây giúp Java chắc chắn rằng các biến này không bị đổi giá trị
+        final String tuKhoaMa = rawMa.equals("Tìm theo mã...") ? "" : rawMa;
+        final String tuKhoaTen = rawTen.equals("Tìm theo tên...") ? "" : rawTen;
+        final String tuKhoaSDT = rawSDT.equals("Tìm theo SĐT...") ? "" : rawSDT;
+
+        // Kiểm tra xem có nhập gì không
         if (tuKhoaMa.isEmpty() && tuKhoaTen.isEmpty() && tuKhoaSDT.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập thông tin tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        List<NhanVien> ketQua = null;
+        // 3. Bây giờ dùng các biến tuKhoa này trong SwingWorker sẽ không bị gạch đỏ nữa
+        SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                List<NhanVien> ketQua = null;
 
-        try {
-            if (!tuKhoaMa.isEmpty()) {
-                ketQua = nhanVienDAO.timKiemNhanVienTheoMa(tuKhoaMa);
+                if (!tuKhoaMa.isEmpty()) {
+                    ketQua = nhanVienDAO.timKiemNhanVienTheoMa(tuKhoaMa);
+                }
+
+                if (!tuKhoaTen.isEmpty()) {
+                    List<NhanVien> listTheoTen = nhanVienDAO.timKiemNhanVienTheoTen(tuKhoaTen);
+                    if (ketQua == null) {
+                        ketQua = listTheoTen;
+                    } else {
+                        ketQua.retainAll(listTheoTen);
+                    }
+                }
+
+                if (!tuKhoaSDT.isEmpty()) {
+                    List<NhanVien> listTheoSDT = nhanVienDAO.timKiemNhanVienTheoSDT(tuKhoaSDT);
+                    if (ketQua == null) {
+                        ketQua = listTheoSDT;
+                    } else {
+                        ketQua.retainAll(listTheoSDT);
+                    }
+                }
+                return ketQua;
             }
 
-            if (!tuKhoaTen.isEmpty()) {
-                List<NhanVien> listTheoTen = nhanVienDAO.timKiemNhanVienTheoTen(tuKhoaTen);
-
-                if (ketQua == null) {
-                    ketQua = listTheoTen;
-                } else {
-                    ketQua.retainAll(listTheoTen);
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> danhSachTimThay = get();
+                    if (danhSachTimThay == null || danhSachTimThay.isEmpty()) {
+                        JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Không tìm thấy nhân viên nào!", "Kết quả", JOptionPane.INFORMATION_MESSAGE);
+                        tableModel.setRowCount(0);
+                    } else {
+                        hienThiDanhSach(danhSachTimThay);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-
-            if (!tuKhoaSDT.isEmpty()) {
-                List<NhanVien> listTheoSDT = nhanVienDAO.timKiemNhanVienTheoSDT(tuKhoaSDT);
-
-                if (ketQua == null) {
-                    ketQua = listTheoSDT;
-                } else {
-                    ketQua.retainAll(listTheoSDT);
-                }
-            }
-
-            if (ketQua == null || ketQua.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên nào!", "Kết quả", JOptionPane.INFORMATION_MESSAGE);
-                tableModel.setRowCount(0);
-            } else {
-                hienThiDanhSach(ketQua);
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+        };
+        worker.execute();
     }
 
     public static void main(String[] args) {

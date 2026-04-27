@@ -42,6 +42,7 @@ public class TraCuuMonAn_UI extends JPanel {
     private List<MonAn> danhSachMonAnHienThi;
 
     public TraCuuMonAn_UI() {
+
         try {
             monAn_DAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
             loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");

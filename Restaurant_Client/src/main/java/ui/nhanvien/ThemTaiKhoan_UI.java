@@ -274,46 +274,66 @@ public class ThemTaiKhoan_UI extends JDialog {
     }
 
     private void xuLyThemTaiKhoan() {
+        // 1. Kiểm tra dữ liệu đầu vào trước (Chạy trên luồng giao diện)
         if (!kiemTraDuLieu()) {
             return;
         }
 
-        try {
-            String maNhanVien = txtMaNhanVien.getText().trim();
-            String tenDangNhap = txtTenDangNhap.getText().trim();
-            String matKhau = new String(txtMatKhau.getPassword());
-            String chucVu = txtChucVu.getText().trim();
+        // 2. Lấy dữ liệu và gán vào các biến FINAL để dùng trong luồng ngầm
+        final String maNhanVien = txtMaNhanVien.getText().trim();
+        final String tenDangNhap = txtTenDangNhap.getText().trim();
+        final String matKhau = new String(txtMatKhau.getPassword());
+        final String chucVu = txtChucVu.getText().trim();
 
-            boolean thanhCong = taiKhoanDAO.themTaiKhoan(maNhanVien, tenDangNhap, matKhau, chucVu);
+        // 3. Vô hiệu hóa nút bấm để tránh người dùng nhấn nhiều lần
+        btnThem.setEnabled(false);
+        btnThem.setText("Đang xử lý...");
 
-            if (thanhCong) {
-                this.themThanhCong=true;
-                JOptionPane.showMessageDialog(this,
-                        "Thêm tài khoản thành công!",
-                        "Thành công",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-                if (onAccountAdded != null) {
-                    onAccountAdded.run();
-                }
-
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this,
-                        "Không thể thêm tài khoản. Vui lòng kiểm tra lại!",
-                        "Lỗi",
-                        JOptionPane.ERROR_MESSAGE);
+        // 4. Sử dụng SwingWorker để gọi RMI ngầm
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                // Thực hiện thêm tài khoản qua mạng (RMI)
+                return taiKhoanDAO.themTaiKhoan(maNhanVien, tenDangNhap, matKhau, chucVu);
             }
 
-        } catch (RemoteException re) {
-            re.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Lỗi khi thêm tài khoản: " + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                // Khi luồng ngầm chạy xong, quay lại luồng giao diện để cập nhật UI
+                btnThem.setEnabled(true);
+                btnThem.setText("Thêm");
+
+                try {
+                    boolean thanhCong = get(); // Lấy kết quả từ doInBackground
+
+                    if (thanhCong) {
+                        themThanhCong = true;
+                        JOptionPane.showMessageDialog(ThemTaiKhoan_UI.this,
+                                "Thêm tài khoản thành công!",
+                                "Thành công",
+                                JOptionPane.INFORMATION_MESSAGE);
+
+                        if (onAccountAdded != null) {
+                            onAccountAdded.run();
+                        }
+                        dispose(); // Đóng cửa sổ
+                    } else {
+                        JOptionPane.showMessageDialog(ThemTaiKhoan_UI.this,
+                                "Không thể thêm tài khoản. Vui lòng kiểm tra lại dữ liệu!",
+                                "Lỗi",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(ThemTaiKhoan_UI.this,
+                            "Lỗi kết nối máy chủ: " + e.getMessage(),
+                            "Lỗi Hệ Thống",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+
+        worker.execute(); // Bắt đầu chạy luồng ngầm
     }
 
     private boolean kiemTraDuLieu() {

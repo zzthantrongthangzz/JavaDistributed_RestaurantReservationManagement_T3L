@@ -288,15 +288,21 @@ public class ThemNhanVien_UI extends JPanel {
     }
 
     private void taiDuLieuChucVu() {
-        try {
-            List<ChucVu> dsChucVu = chucVuDAO.docDanhSachChucVu();
-            cmbChucVu.removeAllItems();
-            for (ChucVu cv : dsChucVu) {
-                cmbChucVu.addItem(cv);
+        new SwingWorker<List<ChucVu>, Void>() {
+            @Override
+            protected List<ChucVu> doInBackground() throws Exception {
+                return chucVuDAO.docDanhSachChucVu();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<ChucVu> ds = get();
+                    cmbChucVu.removeAllItems();
+                    for (ChucVu cv : ds) cmbChucVu.addItem(cv);
+                } catch (Exception e) { e.printStackTrace(); }
+            }
+        }.execute();
     }
 
     private void hienThiDialogThemChucVu() {

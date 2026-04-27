@@ -756,26 +756,42 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void loadDataToTable() {
-        tableModel.setRowCount(0);
-        try {
-            List<NhanVien> danhSach = nhanVienDAO.getAllNhanVien();
-            for (NhanVien nv : danhSach) {
-                String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
-                tableModel.addRow(new Object[]{
-                        nv.getMaNhanVien(),
-                        nv.getHoTen(),
-                        gioiTinh,
-                        nv.getSoDienThoai(),
-                        nv.getEmail(),
-                        formatNgaySinh(nv.getNgaySinh()),
-                        nv.getDiaChi(),
-                        nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
-                });
+        // 1. Sử dụng SwingWorker để tránh treo giao diện khi tải danh sách lớn
+        SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                // Lấy dữ liệu từ Server Neo4j thông qua RMI
+                return nhanVienDAO.getAllNhanVien();
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> danhSach = get();
+
+                    // 2. Cập nhật dữ liệu lên bảng (Phải chạy trong luồng giao diện)
+                    tableModel.setRowCount(0);
+                    for (NhanVien nv : danhSach) {
+                        String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
+                        tableModel.addRow(new Object[]{
+                                nv.getMaNhanVien(),
+                                nv.getHoTen(),
+                                gioiTinh,
+                                nv.getSoDienThoai(),
+                                nv.getEmail(),
+                                formatNgaySinh(nv.getNgaySinh()), // Dùng hàm format có sẵn trong class
+                                nv.getDiaChi(),
+                                nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // Không hiển thị quá nhiều Dialog lỗi khi tải tự động để tránh phiền người dùng
+                    System.err.println("Lỗi khi tải dữ liệu nhân viên lên bảng.");
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiThongTinNhanVien(int row) {
@@ -846,106 +862,133 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void capNhatNhanVien() {
-        if (txtMaNV.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần cập nhật!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        // 1. Lấy mã nhân viên và kiểm tra xem đã chọn nhân viên từ bảng chưa
+        final String maNV = txtMaNV.getText().trim();
+        if (maNV.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần cập nhật từ danh sách!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String hoTen = txtHoTen.getText().trim();
-        String sdt = txtSDT.getText().trim();
-        String email = txtEmail.getText().trim();
-        String diaChi = txtDiaChi.getText().trim();
-        String ngaySinhText = txtNgaySinh.getText().trim();
-        ChucVu chucVu = (ChucVu) cboChucVu.getSelectedItem();
-        LocalDate ngaySinh;
+        // 2. Lấy dữ liệu thô từ các ô nhập liệu
+        String hoTenRaw = txtHoTen.getText().trim();
+        String sdtRaw = txtSDT.getText().trim();
+        String emailRaw = txtEmail.getText().trim();
+        String ngaySinhRaw = txtNgaySinh.getText().trim();
+        String diaChiRaw = txtDiaChi.getText().trim();
+        final ChucVu chucVu = (ChucVu) cboChucVu.getSelectedItem();
+        final boolean gioiTinh = cboGioiTinhForm.getSelectedItem().equals("Nam");
 
-        if (hoTen.isEmpty() || hoTen.equals("Nhập họ và tên...")) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập họ tên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        // 3. Hệ thống logic kiểm tra dữ liệu (Validation)
+
+        // Kiểm tra Họ tên
+        if (hoTenRaw.isEmpty() || hoTenRaw.equals("Nhập họ và tên...")) {
+            JOptionPane.showMessageDialog(this, "Họ tên không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtHoTen.requestFocus();
             return;
         }
-        if (!hoTen.matches("^[A-ZÀ-Ỹ][a-zà-ỹ]*(\\s[A-ZÀ-Ỹ][a-zà-ỹ]*)*$")) {
-            JOptionPane.showMessageDialog(this, "Tên nhân viên chỉ chứa chữ cái, phải viết hoa chữ cái đầu mỗi từ.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        if (!hoTenRaw.matches("^[A-ZÀ-Ỹ][a-zà-ỹ]*(\\s[A-ZÀ-Ỹ][a-zà-ỹ]*)*$")) {
+            JOptionPane.showMessageDialog(this, "Họ tên không hợp lệ! (Phải viết hoa chữ cái đầu mỗi từ)", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtHoTen.requestFocus();
             return;
         }
 
-        if (sdt.isEmpty() || sdt.equals("Nhập SĐT...")) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập số điện thoại!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        // Kiểm tra Số điện thoại
+        if (sdtRaw.isEmpty() || sdtRaw.equals("Nhập SĐT...")) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtSDT.requestFocus();
             return;
         }
-        if (!sdt.matches("^0\\d{9}$")) {
-            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ! (Phải có 10 số và bắt đầu bằng số 0)", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        if (!sdtRaw.matches("^0\\d{9}$")) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtSDT.requestFocus();
             return;
         }
 
-        if (email.isEmpty() || email.equals("Nhập email...")) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập email!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        // Kiểm tra Email
+        if (emailRaw.isEmpty() || emailRaw.equals("Nhập email...")) {
+            JOptionPane.showMessageDialog(this, "Email không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtEmail.requestFocus();
             return;
         }
-        if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
-            JOptionPane.showMessageDialog(this, "Địa chỉ email không hợp lệ.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        if (!emailRaw.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            JOptionPane.showMessageDialog(this, "Định dạng Email không hợp lệ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtEmail.requestFocus();
             return;
         }
 
-        if (ngaySinhText.isEmpty() || ngaySinhText.equals("dd-MM-yyyy")) {
+        // Kiểm tra Ngày sinh và Độ tuổi
+        if (ngaySinhRaw.isEmpty() || ngaySinhRaw.equals("dd-MM-yyyy")) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập ngày sinh!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtNgaySinh.requestFocus();
             return;
         }
+
+        final java.sql.Date sqlNgaySinh;
         try {
-            ngaySinh = LocalDate.parse(ngaySinhText, DATE_FORMATTER);
-            if (ngaySinh.plusYears(18).isAfter(LocalDate.now())) {
-                JOptionPane.showMessageDialog(this, "Nhân viên phải đủ 18 tuổi!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            LocalDate ngaySinhLD = LocalDate.parse(ngaySinhRaw, DATE_FORMATTER);
+            if (ngaySinhLD.plusYears(18).isAfter(LocalDate.now())) {
+                JOptionPane.showMessageDialog(this, "Nhân viên phải từ đủ 18 tuổi trở lên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
                 txtNgaySinh.requestFocus();
                 return;
             }
+            sqlNgaySinh = java.sql.Date.valueOf(ngaySinhLD);
         } catch (DateTimeParseException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi định dạng ngày sinh. Vui lòng nhập theo dd-MM-yyyy", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Định dạng ngày sinh không đúng (dd-MM-yyyy)!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtNgaySinh.requestFocus();
             return;
         }
 
-        if (diaChi.isEmpty() || diaChi.equals("Nhập địa chỉ...")) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập địa chỉ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+        // Kiểm tra Địa chỉ
+        if (diaChiRaw.isEmpty() || diaChiRaw.equals("Nhập địa chỉ...")) {
+            JOptionPane.showMessageDialog(this, "Địa chỉ không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtDiaChi.requestFocus();
             return;
         }
 
+        // Kiểm tra Chức vụ
         if (chucVu == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn chức vụ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn chức vụ cho nhân viên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        try {
-            boolean gioiTinh = cboGioiTinhForm.getSelectedItem().equals("Nam");
-            Date ngaySinhSQL = Date.valueOf(ngaySinh);
+        // 4. Chuẩn bị dữ liệu FINAL để đưa vào luồng ngầm
+        final String hoTen = hoTenRaw;
+        final String sdt = sdtRaw;
+        final String email = emailRaw;
+        final String diaChi = diaChiRaw;
 
-            NhanVien nv = new NhanVien(
-                    txtMaNV.getText().trim(),
-                    hoTen,
-                    gioiTinh,
-                    sdt,
-                    email,
-                    ngaySinhSQL,
-                    diaChi,
-                    chucVu
-            );
+        final NhanVien nvCapNhat = new NhanVien(maNV, hoTen, gioiTinh, sdt, email, sqlNgaySinh, diaChi, chucVu);
 
-            if (nhanVienDAO.capNhatNhanVien(nv)) {
-                JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                lamMoiGiaoDien();
-            } else {
-                JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        // 5. Thực hiện cập nhật bằng SwingWorker (Xử lý đa luồng)
+        btnCapNhat.setEnabled(false); // Tránh bấm liên tục
+
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                // Thực hiện gọi RMI để cập nhật trên Server Neo4j
+                return nhanVienDAO.capNhatNhanVien(nvCapNhat);
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi cập nhật: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+
+            @Override
+            protected void done() {
+                btnCapNhat.setEnabled(true); // Mở lại nút sau khi xong
+                try {
+                    if (get()) {
+                        JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this,
+                                "Cập nhật thông tin nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        loadDataToTable(); // Tải lại bảng để cập nhật giao diện
+                    } else {
+                        JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this,
+                                "Cập nhật thất bại. Vui lòng kiểm tra lại dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this,
+                            "Mất kết nối với Server. Không thể thực hiện cập nhật!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void xoaNhanVien() {

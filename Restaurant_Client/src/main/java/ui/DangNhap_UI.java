@@ -10,15 +10,7 @@ import java.awt.RenderingHints;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -276,37 +268,46 @@ public class DangNhap_UI extends JFrame {
 			return;
 		}
 
-		try {
-			// Gọi hàm qua RMI
-			NhanVien loggedInUser = nvDAO.xacThucDangNhap(tenDangNhap, matKhau);
+		btnDangNhap.setEnabled(false);
+		btnDangNhap.setText("Đang kết nối...");
 
-			if (loggedInUser != null) {
-				Auth.login(loggedInUser);
-				try {
-					TrangChu_UI home = new TrangChu_UI();
-					home.setLocationRelativeTo(null);
-					home.setVisible(true);
-					this.dispose();
-				} catch (Exception ex) {
-					JOptionPane.showMessageDialog(this, "Lỗi khởi tạo Trang Chủ: " + ex.getMessage(), "Lỗi Hệ Thống",
-							JOptionPane.ERROR_MESSAGE);
-				}
-
-			} else {
-				JOptionPane.showMessageDialog(this, "Tên đăng nhập hoặc Mật khẩu không đúng!", "Đăng nhập thất bại",
-						JOptionPane.ERROR_MESSAGE);
-
-				txtMatKhau.setText("");
-				txtTaiKhoan.requestFocusInWindow();
+		SwingWorker<NhanVien, Void> worker = new SwingWorker<NhanVien, Void>() {
+			@Override
+			protected NhanVien doInBackground() throws Exception {
+				// Chạy ngầm, không làm đơ giao diện
+				return nvDAO.xacThucDangNhap(tenDangNhap, matKhau);
 			}
 
-		} catch (java.rmi.RemoteException e) {
-			e.printStackTrace();
-			javax.swing.JOptionPane.showMessageDialog(this,
-					"Không thể kết nối đến Máy chủ. Vui lòng kiểm tra lại!",
-					"Lỗi Kết Nối",
-					javax.swing.JOptionPane.ERROR_MESSAGE);
-		}
+			@Override
+			protected void done() {
+				// Khi chạy xong, khôi phục nút bấm
+				btnDangNhap.setEnabled(true);
+				btnDangNhap.setText("Đăng nhập");
+
+				try {
+					NhanVien loggedInUser = get(); // Lấy kết quả từ doInBackground
+
+					if (loggedInUser != null) {
+						Auth.login(loggedInUser);
+						TrangChu_UI home = new TrangChu_UI();
+						home.setLocationRelativeTo(null);
+						home.setVisible(true);
+						DangNhap_UI.this.dispose();
+					} else {
+						JOptionPane.showMessageDialog(DangNhap_UI.this,
+								"Tên đăng nhập hoặc Mật khẩu không đúng!", "Đăng nhập thất bại", JOptionPane.ERROR_MESSAGE);
+						txtMatKhau.setText("");
+						txtTaiKhoan.requestFocusInWindow();
+					}
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					JOptionPane.showMessageDialog(DangNhap_UI.this,
+							"Không thể kết nối đến Máy chủ. Vui lòng kiểm tra lại!",
+							"Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		};
+		worker.execute();
 
 	}
 
