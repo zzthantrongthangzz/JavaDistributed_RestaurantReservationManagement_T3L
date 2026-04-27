@@ -1,6 +1,6 @@
 package ui.banan;
 
-import dao_impl.LichSuHuyDatBan_DAO;
+import rmi_interfaces.ILichSuHuyDatBan_DAO;
 import entity.LichSuHuyDatBan;
 
 import com.toedter.calendar.JDateChooser;
@@ -17,7 +17,9 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.rmi.Naming;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -39,16 +41,19 @@ public class LichSuHuyDatBan_UI extends JPanel {
 
     private JTable tblLichSu;
     private DefaultTableModel modelLichSu;
-    private LichSuHuyDatBan_DAO logDAO;
+    private ILichSuHuyDatBan_DAO logDAO;
 
     private JTextField txtTimKiemTen;
     private JTextField txtTimKiemMa;
     private JDateChooser dateChooserNgayHuy;
     private TableRowSorter<DefaultTableModel> rowSorter;
 
-    // Khởi tạo giao diện lịch sử hủy đặt bàn
     public LichSuHuyDatBan_UI() {
-        logDAO = new LichSuHuyDatBan_DAO();
+        try {
+            logDAO = (ILichSuHuyDatBan_DAO) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         setLayout(new BorderLayout(0, 15));
         setBackground(MAU_NEN_TAB);
@@ -140,10 +145,17 @@ public class LichSuHuyDatBan_UI extends JPanel {
         taiDuLieuLenBang();
     }
 
-    // Tải dữ liệu lịch sử từ CSDL lên bảng
     private void taiDuLieuLenBang() {
         modelLichSu.setRowCount(0);
-        List<LichSuHuyDatBan> list = logDAO.layTatCaLichSu();
+        List<LichSuHuyDatBan> list = new ArrayList<>();
+        try {
+            if (logDAO != null) {
+                list = logDAO.layTatCaLichSu();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
         int stt = 1;
@@ -161,7 +173,6 @@ public class LichSuHuyDatBan_UI extends JPanel {
         }
     }
 
-    // Lọc dữ liệu bảng theo các tiêu chí nhập vào
     private void thucHienTimKiem() {
         String textMa = txtTimKiemMa.getText().trim();
         String textTen = txtTimKiemTen.getText().trim();
@@ -197,7 +208,6 @@ public class LichSuHuyDatBan_UI extends JPanel {
         }
     }
 
-    // Tạo Cụm Tìm Kiếm NGÀY
     private JPanel taoCumTimKiemNgay(String labelText) {
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setBackground(MAU_NEN_TAB);
@@ -221,7 +231,6 @@ public class LichSuHuyDatBan_UI extends JPanel {
         return wrapper;
     }
 
-    // Hàm tạo JDateChooser
     private JDateChooser taoDateChooser() {
         JDateChooser dateChooser = new JDateChooser();
         dateChooser.setPreferredSize(new Dimension(140, 40));
@@ -270,7 +279,6 @@ public class LichSuHuyDatBan_UI extends JPanel {
         return dateChooser;
     }
 
-    // Tạo thành phần giao diện tìm kiếm (Label + TextField)
     private JPanel taoCumTimKiem(String labelText, String placeholder, int loai) {
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setBackground(MAU_NEN_TAB);
@@ -299,7 +307,6 @@ public class LichSuHuyDatBan_UI extends JPanel {
         return wrapper;
     }
 
-    // Tạo TextField tìm kiếm với icon kính lúp
     private JTextField taoThanhTimKiem(String placeholder) {
         JTextField textField = new JTextField() {
             @Override
@@ -384,7 +391,6 @@ public class LichSuHuyDatBan_UI extends JPanel {
         return btn;
     }
 
-    // Cấu hình giao diện, font chữ, màu sắc cho bảng
     private void tuyChinhBang(JTable table) {
         table.setFont(FONT_TEXT);
         table.setRowHeight(40);
@@ -408,7 +414,7 @@ public class LichSuHuyDatBan_UI extends JPanel {
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int column) {
+                                                           boolean hasFocus, int row, int column) {
                 JLabel label = new JLabel(value != null ? value.toString() : "");
                 label.setFont(FONT_HEADER);
                 label.setForeground(MAU_CHU_CHUNG);

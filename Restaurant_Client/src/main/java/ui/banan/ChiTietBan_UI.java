@@ -1,6 +1,6 @@
 package ui.banan;
 
-import dao_impl.*;
+import rmi_interfaces.*;
 import entity.*;
 
 import javax.swing.*;
@@ -11,6 +11,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
+import java.rmi.Naming;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,14 +31,14 @@ public class ChiTietBan_UI extends JDialog {
     private KhachHang khachHangHienTai;
     private NhanVien nhanVienHienTai;
 
-    private final MonAn_DAO monAnDAO;
-    private final ChiTietHoaDon_DAO chiTietHoaDonDAO;
-    private final KhachHang_DAO khachHangDAO;
-    private final NhanVien_DAO nhanVienDAO;
-    private final PhieuDatBan_DAO phieuDatBanDAO;
-    private final ChiTietPhieuDatBan_DAO chiTietPhieuDAO;
-    private List<ChiTietHoaDon> danhSachChiTiet;
-    private List<MonAn> danhSachMonAn;
+    private IMonAn_DAO monAnDAO;
+    private IChiTietHoaDon_DAO chiTietHoaDonDAO;
+    private IKhachHang_DAO khachHangDAO;
+    private INhanVien_DAO nhanVienDAO;
+    private IPhieuDatBan_DAO phieuDatBanDAO;
+    private IChiTietPhieuDatBan_DAO chiTietPhieuDAO;
+    private List<ChiTietHoaDon> danhSachChiTiet = new ArrayList<>();
+    private List<MonAn> danhSachMonAn = new ArrayList<>();
     private boolean isCheDoPhieuDat = false;
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0");
     private final SimpleDateFormat dateTimeFormatter = new SimpleDateFormat("HH:mm - dd/MM/yyyy");
@@ -62,64 +63,24 @@ public class ChiTietBan_UI extends JDialog {
     private final Font FONT_MONEY_BOLD = new Font("Segoe UI", Font.BOLD, 14);
     private final Font FONT_MONEY_PLAIN = new Font("Segoe UI", Font.PLAIN, 13);
 
-    // Khởi tạo dialog xem chi tiết bàn theo hóa đơn
     public ChiTietBan_UI(Frame parent, BanAn ban, HoaDon hoaDon) {
         super(parent, "Chi tiết bàn (Hóa đơn)", true);
         this.banDuocChon = ban;
         this.hoaDonHienTai = hoaDon;
         this.isCheDoPhieuDat = false;
 
-        this.monAnDAO = new MonAn_DAO();
-        this.chiTietHoaDonDAO = new ChiTietHoaDon_DAO();
-        this.khachHangDAO = new KhachHang_DAO();
-        this.nhanVienDAO = new NhanVien_DAO();
-        this.phieuDatBanDAO = new PhieuDatBan_DAO();
-        this.chiTietPhieuDAO = new ChiTietPhieuDatBan_DAO();
+        try {
+            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+            this.phieuDatBanDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
-        this.danhSachMonAn = monAnDAO.docDanhSachMon();
-        this.danhSachChiTiet = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
-
-        loadKhachHangVaNhanVien();
-        khoiTaoGiaoDien();
-        capNhatBangChiTiet();
-
-        configWindow(parent);
-    }
-
-    // Khởi tạo dialog xem chi tiết bàn theo phiếu đặt bàn
-    public ChiTietBan_UI(Frame parent, BanAn ban, String maPhieuDatBan) {
-        super(parent, "Chi tiết bàn (Phiếu đặt)", true);
-        this.banDuocChon = ban;
-        this.isCheDoPhieuDat = true;
-
-        this.monAnDAO = new MonAn_DAO();
-        this.chiTietHoaDonDAO = new ChiTietHoaDon_DAO();
-        this.khachHangDAO = new KhachHang_DAO();
-        this.nhanVienDAO = new NhanVien_DAO();
-        this.phieuDatBanDAO = new PhieuDatBan_DAO();
-        this.chiTietPhieuDAO = new ChiTietPhieuDatBan_DAO();
-        this.danhSachMonAn = monAnDAO.docDanhSachMon();
-        PhieuDatBan phieu = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieuDatBan);
-
-        this.hoaDonHienTai = new HoaDon(
-                maPhieuDatBan,
-                "Phiếu đặt chờ",
-                phieu.getThoiGianDat(),
-                BigDecimal.ZERO,
-                phieu.getMaNhanVien(),
-                null,
-                phieu.getMaKhachHang(),
-                null, null,
-                BigDecimal.valueOf(phieu.getTienDatCoc()),
-                BigDecimal.ZERO, BigDecimal.ZERO);
-
-        this.danhSachChiTiet = new ArrayList<>();
-        List<ChiTietPhieuDatBan> listPhieu = chiTietPhieuDAO.getChiTietTheoPhieu(maPhieuDatBan);
-        if (listPhieu != null) {
-            for (ChiTietPhieuDatBan item : listPhieu) {
-                danhSachChiTiet.add(new ChiTietHoaDon(
-                        maPhieuDatBan, item.getMaMon(), item.getSoLuong(), item.getDonGia()));
-            }
+            this.danhSachMonAn = monAnDAO.docDanhSachMon();
+            this.danhSachChiTiet = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         loadKhachHangVaNhanVien();
@@ -129,23 +90,68 @@ public class ChiTietBan_UI extends JDialog {
         configWindow(parent);
     }
 
-    // Cấu hình cửa sổ dialog
+    public ChiTietBan_UI(Frame parent, BanAn ban, String maPhieuDatBan) {
+        super(parent, "Chi tiết bàn (Phiếu đặt)", true);
+        this.banDuocChon = ban;
+        this.isCheDoPhieuDat = true;
+
+        try {
+            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+            this.phieuDatBanDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+
+            this.danhSachMonAn = monAnDAO.docDanhSachMon();
+            PhieuDatBan phieu = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieuDatBan);
+
+            this.hoaDonHienTai = new HoaDon(
+                    maPhieuDatBan,
+                    "Phiếu đặt chờ",
+                    phieu.getThoiGianDat(),
+                    BigDecimal.ZERO,
+                    phieu.getMaNhanVien(),
+                    null,
+                    phieu.getMaKhachHang(),
+                    null, null,
+                    BigDecimal.valueOf(phieu.getTienDatCoc()),
+                    BigDecimal.ZERO, BigDecimal.ZERO);
+
+            this.danhSachChiTiet = new ArrayList<>();
+            List<ChiTietPhieuDatBan> listPhieu = chiTietPhieuDAO.getChiTietTheoPhieu(maPhieuDatBan);
+            if (listPhieu != null) {
+                for (ChiTietPhieuDatBan item : listPhieu) {
+                    danhSachChiTiet.add(new ChiTietHoaDon(
+                            maPhieuDatBan, item.getMaMon(), item.getSoLuong(), item.getDonGia()));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        loadKhachHangVaNhanVien();
+        khoiTaoGiaoDien();
+        capNhatBangChiTiet();
+
+        configWindow(parent);
+    }
+
     private void configWindow(Frame parent) {
         setSize(1200, 700);
         setLocationRelativeTo(parent);
         setResizable(false);
     }
 
-    // Tải thông tin khách hàng và nhân viên liên quan
     private void loadKhachHangVaNhanVien() {
         try {
-            if (hoaDonHienTai.getMaKhachHang() != null) {
+            if (hoaDonHienTai.getMaKhachHang() != null && khachHangDAO != null) {
                 List<KhachHang> khList = khachHangDAO.timKiemTheoMa(hoaDonHienTai.getMaKhachHang());
                 if (khList != null && !khList.isEmpty()) {
                     khachHangHienTai = khList.get(0);
                 }
             }
-            if (hoaDonHienTai.getMaNhanVien() != null) {
+            if (hoaDonHienTai.getMaNhanVien() != null && nhanVienDAO != null) {
                 nhanVienHienTai = nhanVienDAO.timMotNhanVienTheoMa(hoaDonHienTai.getMaNhanVien());
             }
         } catch (Exception e) {
@@ -153,7 +159,6 @@ public class ChiTietBan_UI extends JDialog {
         }
     }
 
-    // Khởi tạo các thành phần giao diện chính
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(COLOR_DARK);
@@ -166,7 +171,6 @@ public class ChiTietBan_UI extends JDialog {
         getContentPane().add(mainPanel);
     }
 
-    // Tạo panel tiêu đề
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -182,7 +186,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel nội dung chính (thông tin bàn + hóa đơn)
     private JPanel taoPanelNoiDung() {
         JPanel panel = new JPanel(new BorderLayout(20, 0));
         panel.setBackground(COLOR_DARK);
@@ -194,7 +197,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel hiển thị thông tin bàn (bên trái)
     private JPanel taoPanelThongTinPhong() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(COLOR_DARK);
@@ -239,7 +241,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo dòng hiển thị nhãn và giá trị
     private JPanel taoHangThongTin(String nhan, String gia_tri) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -255,7 +256,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel hóa đơn tạm (bên phải)
     private JPanel taoPanelHoaDonTam() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(COLOR_DARK);
@@ -280,7 +280,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel thông tin khách hàng và phiếu
     private JPanel taoPanelThongTinKhachHang() {
         JPanel panel = new JPanel(new GridLayout(3, 4, 15, 10));
         panel.setOpaque(false);
@@ -363,7 +362,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo bảng hiển thị chi tiết món ăn
     private JPanel taoPanelBangChiTiet() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -398,7 +396,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Cập nhật dữ liệu vào bảng chi tiết
     private void capNhatBangChiTiet() {
         DefaultTableModel model = (DefaultTableModel) tableChiTiet.getModel();
         model.setRowCount(0);
@@ -419,7 +416,6 @@ public class ChiTietBan_UI extends JDialog {
         capNhatTongTien();
     }
 
-    // Tạo panel tổng hợp các loại tiền
     private JPanel taoPanelTomTat() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
@@ -458,7 +454,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tính toán và hiển thị tổng tiền
     private void capNhatTongTien() {
         double tienDichVu = tinhTongTienDichVu();
         double tienCoc = 0.0;
@@ -479,7 +474,6 @@ public class ChiTietBan_UI extends JDialog {
         lblTamTinhValue.setText(currencyFormatter.format(khachCanTra) + " VND");
     }
 
-    // Tính tổng tiền dịch vụ
     private double tinhTongTienDichVu() {
         double tong = 0;
         for (ChiTietHoaDon ct : danhSachChiTiet) {
@@ -488,7 +482,6 @@ public class ChiTietBan_UI extends JDialog {
         return tong;
     }
 
-    // Tạo dòng hiển thị tổng tiền
     private JPanel taoHangTomTat(String nhan, JLabel lblGiaTri) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -501,7 +494,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel nút đóng
     private JPanel taoPanelNut() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         panel.setBackground(COLOR_DARK);
@@ -515,7 +507,6 @@ public class ChiTietBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo nút bấm tùy chỉnh
     private JButton taoNut(String text, Color mauNen, Color mauHover) {
         JButton button = new JButton(text);
         button.setFont(FONT_NUT);
@@ -541,7 +532,6 @@ public class ChiTietBan_UI extends JDialog {
         return button;
     }
 
-    // Lấy đường dẫn ảnh dựa vào trạng thái bàn
     private String layDuongDanAnhBan(BanAn ban) {
         String loaiBan = ban.getLoaiBan();
         String trangThai = ban.getTrangThai();
@@ -562,7 +552,6 @@ public class ChiTietBan_UI extends JDialog {
         }
     }
 
-    // Tùy chỉnh thanh cuộn
     private void tuyChinhScrollBar(JScrollPane scrollPane) {
         JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
         verticalScrollBar.setPreferredSize(new Dimension(8, 0));

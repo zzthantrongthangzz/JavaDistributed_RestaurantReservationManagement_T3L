@@ -24,14 +24,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import dao_impl.NhanVien_DAO;
+import rmi_interfaces.INhanVien_DAO;
 import entity.NhanVien;
 
 public class DangNhap_UI extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
-	private NhanVien_DAO nvDAO;
+	private INhanVien_DAO nvDAO;
 	private JButton btnDangNhap;
 	private JTextField txtTaiKhoan;
 	private JPasswordField txtMatKhau;
@@ -55,7 +55,12 @@ public class DangNhap_UI extends JFrame {
 
 	// Constructor khởi tạo giao diện và các thành phần
 	public DangNhap_UI() {
-		nvDAO = new NhanVien_DAO();
+		try {
+			// Lưu ý: Chuỗi "rmi://localhost:1099/..." phải khớp 100% với tên bạn đã đăng ký (bind) bên phía Server.
+			nvDAO = (INhanVien_DAO) java.rmi.Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setTitle("Hệ thống Quản lý Đặt Bàn Nhà hàng T3L");
@@ -271,27 +276,38 @@ public class DangNhap_UI extends JFrame {
 			return;
 		}
 
-		NhanVien loggedInUser = nvDAO.xacThucDangNhap(tenDangNhap, matKhau);
+		try {
+			// Gọi hàm qua RMI
+			NhanVien loggedInUser = nvDAO.xacThucDangNhap(tenDangNhap, matKhau);
 
-		if (loggedInUser != null) {
-			Auth.login(loggedInUser);
-			try {
-				TrangChu_UI home = new TrangChu_UI();
-				home.setLocationRelativeTo(null);
-				home.setVisible(true);
-				this.dispose();
-			} catch (Exception ex) {
-				JOptionPane.showMessageDialog(this, "Lỗi khởi tạo Trang Chủ: " + ex.getMessage(), "Lỗi Hệ Thống",
+			if (loggedInUser != null) {
+				Auth.login(loggedInUser);
+				try {
+					TrangChu_UI home = new TrangChu_UI();
+					home.setLocationRelativeTo(null);
+					home.setVisible(true);
+					this.dispose();
+				} catch (Exception ex) {
+					JOptionPane.showMessageDialog(this, "Lỗi khởi tạo Trang Chủ: " + ex.getMessage(), "Lỗi Hệ Thống",
+							JOptionPane.ERROR_MESSAGE);
+				}
+
+			} else {
+				JOptionPane.showMessageDialog(this, "Tên đăng nhập hoặc Mật khẩu không đúng!", "Đăng nhập thất bại",
 						JOptionPane.ERROR_MESSAGE);
+
+				txtMatKhau.setText("");
+				txtTaiKhoan.requestFocusInWindow();
 			}
 
-		} else {
-			JOptionPane.showMessageDialog(this, "Tên đăng nhập hoặc Mật khẩu không đúng!", "Đăng nhập thất bại",
-					JOptionPane.ERROR_MESSAGE);
-
-			txtMatKhau.setText("");
-			txtTaiKhoan.requestFocusInWindow();
+		} catch (java.rmi.RemoteException e) {
+			e.printStackTrace();
+			javax.swing.JOptionPane.showMessageDialog(this,
+					"Không thể kết nối đến Máy chủ. Vui lòng kiểm tra lại!",
+					"Lỗi Kết Nối",
+					javax.swing.JOptionPane.ERROR_MESSAGE);
 		}
+
 	}
 
 }

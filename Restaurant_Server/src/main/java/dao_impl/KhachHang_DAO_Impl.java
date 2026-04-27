@@ -12,7 +12,6 @@ import org.neo4j.driver.Values;
 import java.math.BigDecimal;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.sql.Date;
 import java.util.*;
 
 public class KhachHang_DAO_Impl extends UnicastRemoteObject implements IKhachHang_DAO {
@@ -21,315 +20,341 @@ public class KhachHang_DAO_Impl extends UnicastRemoteObject implements IKhachHan
         super();
     }
 
-    // --- HELPER METHOD: Ánh xạ Record từ Neo4j sang Object KhachHang ---
+    // Cấu trúc chuỗi RETURN dùng chung để ánh xạ Record
+    private final String RETURN_FIELDS = "kh.maKhachHang AS maKhachHang, kh.hoTen AS hoTen, kh.soDienThoai AS soDienThoai, " +
+            "kh.email AS email, kh.diaChi AS diaChi, kh.ngaySinh AS ngaySinh, " +
+            "kh.gioiTinh AS gioiTinh, kh.tichDiem AS tichDiem, kh.trangThai AS trangThai";
+
+    // Ánh xạ Record của Neo4j sang đối tượng KhachHang
     private KhachHang mapKhachHang(Record r) {
-        return new KhachHang(
+        KhachHang kh = new KhachHang(
                 r.get("maKhachHang").asString(),
                 r.get("hoTen").asString(),
                 r.get("soDienThoai").asString(),
                 r.get("email").isNull() ? null : r.get("email").asString(),
                 r.get("diaChi").isNull() ? null : r.get("diaChi").asString(),
-                r.get("ngaySinh").isNull() ? null : new Date(r.get("ngaySinh").asLong()),
+                r.get("ngaySinh").isNull() ? null : new java.sql.Date(r.get("ngaySinh").asLong()), // Lưu dưới dạng Epoch milliseconds
                 r.get("gioiTinh").asBoolean(),
                 r.get("tichDiem").asInt()
         );
+        return kh;
     }
 
-    private final String CYPHER_RETURN = "RETURN kh.maKhachHang AS maKhachHang, kh.hoTen AS hoTen, " +
-            "kh.soDienThoai AS soDienThoai, kh.email AS email, kh.diaChi AS diaChi, " +
-            "kh.ngaySinh AS ngaySinh, kh.gioiTinh AS gioiTinh, kh.tichDiem AS tichDiem ";
-
-    // --- CÁC HÀM CRUD CƠ BẢN ---
-
     @Override
-    public String phatSinhMaKhachHang() throws RemoteException {
+    public synchronized String phatSinhMaKhachHang() throws RemoteException {
         try (Session session = DBConnect.getSession()) {
-            Result result = session.run("MATCH (kh:KhachHang) RETURN kh.maKhachHang AS ma ORDER BY ma DESC LIMIT 1");
+            Result result = session.run("MATCH (kh:KhachHang) RETURN kh.maKhachHang AS maxMa ORDER BY kh.maKhachHang DESC LIMIT 1");
             if (result.hasNext()) {
-                String maxMa = result.next().get("ma").asString();
-                if (maxMa != null && maxMa.startsWith("KH")) {
+                String maxMa = result.next().get("maxMa").asString();
+                if (maxMa != null && maxMa.length() > 2) {
                     int soMoi = Integer.parseInt(maxMa.substring(2)) + 1;
                     return String.format("KH%06d", soMoi);
                 }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return "KH000001";
     }
 
     @Override
     public List<KhachHang> docDanhSachKhachHang() throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) " + CYPHER_RETURN;
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher);
-            while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+            while (result.hasNext()) {
+                ds.add(mapKhachHang(result.next()));
+            }
+        }
         return ds;
     }
 
+    // ĐÂY LÀ HÀM BỊ THIẾU GÂY RA LỖI ĐỎ Ở HÌNH ẢNH TRƯỚC
     @Override
-    public boolean themKhachHang(KhachHang kh) throws RemoteException {
-        String cypher = "CREATE (kh:KhachHang {maKhachHang: $ma, hoTen: $ten, soDienThoai: $sdt, email: $email, " +
-                "diaChi: $diaChi, ngaySinh: $ngaySinh, gioiTinh: $gioiTinh, tichDiem: $diem, trangThai: 1})";
+    public List<KhachHang> getKhachHangDaXoa() throws RemoteException {
+        List<KhachHang> ds = new ArrayList<>();
+        String cypher = "MATCH (kh:KhachHang {trangThai: 0}) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
-            session.run(cypher, Values.parameters(
-                    "ma", kh.getMaKhachHang(), "ten", kh.getHoTen(), "sdt", kh.getSoDienThoai(),
-                    "email", kh.getEmail(), "diaChi", kh.getDiaChi(),
-                    "ngaySinh", kh.getNgaySinh() != null ? kh.getNgaySinh().getTime() : null,
-                    "gioiTinh", kh.isGioiTinh(), "diem", kh.getTichDiem()
-            ));
-            return true;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+            Result result = session.run(cypher);
+            while (result.hasNext()) {
+                ds.add(mapKhachHang(result.next()));
+            }
+        }
+        return ds;
+    }
+
+    // (Dự phòng nếu Interface yêu cầu tên này)
+    @Override
+    public List<KhachHang> docDanhSachKhachHangDaXoa() throws RemoteException {
+        return getKhachHangDaXoa();
     }
 
     @Override
-    public boolean capNhatKhachHang(KhachHang kh) throws RemoteException {
-        String cypher = "MATCH (kh:KhachHang {maKhachHang: $ma}) " +
-                "SET kh.hoTen = $ten, kh.soDienThoai = $sdt, kh.email = $email, " +
-                "kh.diaChi = $diaChi, kh.ngaySinh = $ngaySinh, kh.gioiTinh = $gioiTinh, kh.tichDiem = $diem";
+    public synchronized boolean themKhachHang(KhachHang kh) throws RemoteException {
+        String cypher = "CREATE (kh:KhachHang {maKhachHang: $ma, hoTen: $ten, soDienThoai: $sdt, " +
+                "email: $email, diaChi: $diaChi, ngaySinh: $ngaySinh, gioiTinh: $gioiTinh, tichDiem: $tichDiem, trangThai: 1})";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters(
                     "ma", kh.getMaKhachHang(), "ten", kh.getHoTen(), "sdt", kh.getSoDienThoai(),
                     "email", kh.getEmail(), "diaChi", kh.getDiaChi(),
                     "ngaySinh", kh.getNgaySinh() != null ? kh.getNgaySinh().getTime() : null,
-                    "gioiTinh", kh.isGioiTinh(), "diem", kh.getTichDiem()
+                    "gioiTinh", kh.isGioiTinh(), "tichDiem", kh.getTichDiem()
             ));
             return true;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+        } catch (Exception e) { return false; }
+    }
+
+    @Override
+    public synchronized boolean capNhatKhachHang(KhachHang kh) throws RemoteException {
+        String cypher = "MATCH (kh:KhachHang {maKhachHang: $ma}) " +
+                "SET kh.hoTen = $ten, kh.soDienThoai = $sdt, kh.email = $email, kh.diaChi = $diaChi, " +
+                "kh.ngaySinh = $ngaySinh, kh.gioiTinh = $gioiTinh, kh.tichDiem = $tichDiem";
+        try (Session session = DBConnect.getSession()) {
+            session.run(cypher, Values.parameters(
+                    "ma", kh.getMaKhachHang(), "ten", kh.getHoTen(), "sdt", kh.getSoDienThoai(),
+                    "email", kh.getEmail(), "diaChi", kh.getDiaChi(),
+                    "ngaySinh", kh.getNgaySinh() != null ? kh.getNgaySinh().getTime() : null,
+                    "gioiTinh", kh.isGioiTinh(), "tichDiem", kh.getTichDiem()
+            ));
+            return true;
+        } catch (Exception e) { return false; }
     }
 
     @Override
     public boolean xoaKhachHang(String ma) throws RemoteException {
+        // Cập nhật trạng thái = 0 (xóa mềm)
         String cypher = "MATCH (kh:KhachHang {maKhachHang: $ma}) SET kh.trangThai = 0";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("ma", ma));
             return true;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+        } catch (Exception e) { return false; }
     }
 
-    // --- CÁC HÀM TÌM KIẾM, LỌC VÀ SẮP XẾP ---
+    @Override
+    public boolean khoiPhucKhachHang(String ma) throws RemoteException {
+        String cypher = "MATCH (kh:KhachHang {maKhachHang: $ma}) SET kh.trangThai = 1";
+        try (Session session = DBConnect.getSession()) {
+            session.run(cypher, Values.parameters("ma", ma));
+            return true;
+        } catch (Exception e) { return false; }
+    }
 
     @Override
     public List<KhachHang> timKiemTheoMa(String ma) throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) WHERE toUpper(kh.maKhachHang) = toUpper($ma) " + CYPHER_RETURN;
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) WHERE toUpper(kh.maKhachHang) = toUpper($ma) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("ma", ma));
             while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return ds;
     }
 
     @Override
     public List<KhachHang> timKiemTheoTen(String ten) throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) WHERE toUpper(kh.hoTen) CONTAINS toUpper($ten) " + CYPHER_RETURN;
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) WHERE toUpper(kh.hoTen) CONTAINS toUpper($ten) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("ten", ten));
             while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return ds;
     }
 
     @Override
     public List<KhachHang> timKiemTheoSDT(String sdt) throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) WHERE kh.soDienThoai CONTAINS $sdt " + CYPHER_RETURN;
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) WHERE kh.soDienThoai CONTAINS $sdt RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("sdt", sdt));
             while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return ds;
     }
 
     @Override
     public KhachHang timKhachHangTheoSDT(String sdt) throws RemoteException {
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1, soDienThoai: $sdt}) " + CYPHER_RETURN;
+        String cypher = "MATCH (kh:KhachHang {soDienThoai: $sdt, trangThai: 1}) RETURN " + RETURN_FIELDS + " LIMIT 1";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("sdt", sdt));
             if (result.hasNext()) return mapKhachHang(result.next());
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return null;
     }
 
     @Override
     public List<KhachHang> locKhachHangTheoGioiTinh(boolean gt) throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1, gioiTinh: $gt}) " + CYPHER_RETURN;
+        String cypher = "MATCH (kh:KhachHang {gioiTinh: $gt, trangThai: 1}) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("gt", gt));
             while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return ds;
     }
 
     @Override
     public List<KhachHang> sapXepTheoTen(boolean tangDan) throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String sort = tangDan ? "ASC" : "DESC";
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) " + CYPHER_RETURN + " ORDER BY kh.hoTen " + sort;
+        String order = tangDan ? "ASC" : "DESC";
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) RETURN " + RETURN_FIELDS + " ORDER BY kh.hoTen " + order;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher);
             while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return ds;
     }
 
     @Override
     public List<KhachHang> sapXepTheoDiem(boolean tangDan) throws RemoteException {
         List<KhachHang> ds = new ArrayList<>();
-        String sort = tangDan ? "ASC" : "DESC";
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) " + CYPHER_RETURN + " ORDER BY kh.tichDiem " + sort;
+        String order = tangDan ? "ASC" : "DESC";
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) RETURN " + RETURN_FIELDS + " ORDER BY kh.tichDiem " + order;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher);
             while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return ds;
     }
 
-    // --- CÁC HÀM XỬ LÝ NGHIỆP VỤ & THỐNG KÊ ---
-
     @Override
-    public boolean capNhatDiemTichLuy(String ma, int diem) throws RemoteException {
+    public synchronized boolean capNhatDiemTichLuy(String ma, int diem) throws RemoteException {
         String cypher = "MATCH (kh:KhachHang {maKhachHang: $ma}) SET kh.tichDiem = kh.tichDiem + $diem";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("ma", ma, "diem", diem));
             return true;
-        } catch (Exception e) { e.printStackTrace(); return false; }
+        } catch (Exception e) { return false; }
     }
 
     @Override
     public int getTongSoKhachHang() throws RemoteException {
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) RETURN count(kh) AS tong";
         try (Session session = DBConnect.getSession()) {
-            Result result = session.run("MATCH (kh:KhachHang {trangThai: 1}) RETURN count(kh) AS tong");
+            Result result = session.run(cypher);
             if (result.hasNext()) return result.next().get("tong").asInt();
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return 0;
     }
 
     @Override
-    public int getTongDiemTichLuy(java.util.Date tu, java.util.Date den) throws RemoteException {
+    public int getTongSoKhachHang(Date tu, Date den) throws RemoteException {
+        if (tu == null || den == null) return getTongSoKhachHang();
+
+        String cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
+                "WITH DISTINCT hd.maKhachHang AS maKH " +
+                "MATCH (kh:KhachHang {maKhachHang: maKH, trangThai: 1}) " +
+                "RETURN count(kh) AS tong";
+        try (Session session = DBConnect.getSession()) {
+            Result result = session.run(cypher, Values.parameters("tu", tu.getTime(), "den", den.getTime()));
+            if (result.hasNext()) return result.next().get("tong").asInt();
+        }
+        return 0;
+    }
+
+    @Override
+    public int getTongDiemTichLuy(Date tu, Date den) throws RemoteException {
         String cypher;
         if (tu == null || den == null) {
             cypher = "MATCH (kh:KhachHang {trangThai: 1}) RETURN sum(kh.tichDiem) AS tong";
+            try (Session session = DBConnect.getSession()) {
+                Result result = session.run(cypher);
+                if (result.hasNext()) return result.next().get("tong").asInt();
+            }
         } else {
-            cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den AND hd.maKhachHang IS NOT NULL " +
+            cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
                     "WITH DISTINCT hd.maKhachHang AS maKH " +
                     "MATCH (kh:KhachHang {maKhachHang: maKH, trangThai: 1}) " +
                     "RETURN sum(kh.tichDiem) AS tong";
-        }
-        try (Session session = DBConnect.getSession()) {
-            Result result;
-            if (tu != null && den != null) {
-                long endOfDay = den.getTime() + (23 * 3600 + 59 * 60 + 59) * 1000L; // Lấy đến cuối ngày
-                result = session.run(cypher, Values.parameters("tu", tu.getTime(), "den", endOfDay));
-            } else {
-                result = session.run(cypher);
+            try (Session session = DBConnect.getSession()) {
+                Result result = session.run(cypher, Values.parameters("tu", tu.getTime(), "den", den.getTime()));
+                if (result.hasNext()) return result.next().get("tong").asInt();
             }
-            if (result.hasNext()) return result.next().get("tong").asInt();
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return 0;
     }
 
     @Override
     public Map<String, Integer> getSoLuongKhachHangTheoGioiTinh() throws RemoteException {
-        Map<String, Integer> map = new HashMap<>();
+        Map<String, Integer> data = new HashMap<>();
         String cypher = "MATCH (kh:KhachHang {trangThai: 1}) " +
                 "RETURN CASE WHEN kh.gioiTinh = true THEN 'Nam' ELSE 'Nữ' END AS GioiTinh, count(kh) AS SoLuong";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher);
             while (result.hasNext()) {
                 Record r = result.next();
-                map.put(r.get("GioiTinh").asString(), r.get("SoLuong").asInt());
+                data.put(r.get("GioiTinh").asString(), r.get("SoLuong").asInt());
             }
-        } catch (Exception e) { e.printStackTrace(); }
-        return map;
+        }
+        return data;
     }
 
     @Override
-    public BigDecimal getTongChiTieuTatCaKhachHang(java.util.Date tu, java.util.Date den) throws RemoteException {
+    public BigDecimal getTongChiTieuTatCaKhachHang(Date tu, Date den) throws RemoteException {
+        BigDecimal tong = BigDecimal.ZERO;
         StringBuilder cypher = new StringBuilder(
-                "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) WHERE hd.maKhachHang IS NOT NULL "
+                "MATCH (kh:KhachHang {trangThai: 1}) " +
+                        "MATCH (hd:HoaDon {maKhachHang: kh.maKhachHang, trangThai: 'Đã thanh toán'}) " +
+                        "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) "
         );
-        if (tu != null && den != null) cypher.append("AND hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
-
-        cypher.append("MATCH (kh:KhachHang {maKhachHang: hd.maKhachHang, trangThai: 1}) " +
-                "MATCH (hd)-[c:BAO_GOM]->(m:MonAn) " +
-                "RETURN sum(c.soLuong * c.donGia) AS tong");
+        if (tu != null && den != null) {
+            cypher.append("WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
+        }
+        cypher.append("RETURN sum(ct.soLuong * ct.donGia) AS tongChiTieu");
 
         try (Session session = DBConnect.getSession()) {
             Result result;
             if (tu != null && den != null) {
-                long endOfDay = den.getTime() + (23 * 3600 + 59 * 60 + 59) * 1000L;
-                result = session.run(cypher.toString(), Values.parameters("tu", tu.getTime(), "den", endOfDay));
+                result = session.run(cypher.toString(), Values.parameters("tu", tu.getTime(), "den", den.getTime()));
             } else {
                 result = session.run(cypher.toString());
             }
-            if (result.hasNext()) return BigDecimal.valueOf(result.next().get("tong").asDouble());
-        } catch (Exception e) { e.printStackTrace(); }
-        return BigDecimal.ZERO;
+            if (result.hasNext()) {
+                tong = BigDecimal.valueOf(result.next().get("tongChiTieu").asDouble());
+            }
+        }
+        return tong;
     }
 
     @Override
     public Map<String, BigDecimal> getTopKhachHangTheoChiTieu(int topN) throws RemoteException {
-        Map<String, BigDecimal> map = new LinkedHashMap<>(); // Giữ thứ tự Top
-        String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[c:BAO_GOM]->(m:MonAn) " +
-                "WHERE hd.maKhachHang IS NOT NULL " +
-                "MATCH (kh:KhachHang {maKhachHang: hd.maKhachHang, trangThai: 1}) " +
-                "RETURN kh.hoTen AS hoTen, sum(c.soLuong * c.donGia) AS TongChiTieu " +
-                "ORDER BY TongChiTieu DESC LIMIT $topN";
+        Map<String, BigDecimal> data = new LinkedHashMap<>();
+        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) " +
+                "MATCH (hd:HoaDon {maKhachHang: kh.maKhachHang, trangThai: 'Đã thanh toán'}) " +
+                "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) " +
+                "RETURN kh.hoTen AS hoTen, sum(ct.soLuong * ct.donGia) AS TongChiTieu " +
+                "ORDER BY TongChiTieu DESC LIMIT $top";
         try (Session session = DBConnect.getSession()) {
-            Result result = session.run(cypher, Values.parameters("topN", topN));
+            Result result = session.run(cypher, Values.parameters("top", topN));
             while (result.hasNext()) {
                 Record r = result.next();
-                map.put(r.get("hoTen").asString(), BigDecimal.valueOf(r.get("TongChiTieu").asDouble()));
+                data.put(r.get("hoTen").asString(), BigDecimal.valueOf(r.get("TongChiTieu").asDouble()));
             }
-        } catch (Exception e) { e.printStackTrace(); }
-        return map;
-    }
-
-    @Override
-    public int getTongSoKhachHang(java.util.Date tu, java.util.Date den) throws RemoteException {
-        String cypher;
-        if (tu == null || den == null) {
-            cypher = "MATCH (kh:KhachHang {trangThai: 1}) RETURN count(kh) AS tong";
-        } else {
-            cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den AND hd.maKhachHang IS NOT NULL " +
-                    "RETURN count(DISTINCT hd.maKhachHang) AS tong";
         }
-        try (Session session = DBConnect.getSession()) {
-            Result result;
-            if (tu != null && den != null) {
-                long endOfDay = den.getTime() + (23 * 3600 + 59 * 60 + 59) * 1000L;
-                result = session.run(cypher, Values.parameters("tu", tu.getTime(), "den", endOfDay));
-            } else {
-                result = session.run(cypher);
-            }
-            if (result.hasNext()) return result.next().get("tong").asInt();
-        } catch (Exception e) { e.printStackTrace(); }
-        return 0;
+        return data;
     }
 
     @Override
-    public List<Object[]> getTopKhachHangDayDu(int topN, java.util.Date tu, java.util.Date den) throws RemoteException {
+    public List<Object[]> getTopKhachHangDayDu(int topN, Date tu, Date den) throws RemoteException {
         List<Object[]> list = new ArrayList<>();
         StringBuilder cypher = new StringBuilder(
-                "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) WHERE hd.maKhachHang IS NOT NULL "
+                "MATCH (kh:KhachHang {trangThai: 1}) " +
+                        "MATCH (hd:HoaDon {maKhachHang: kh.maKhachHang, trangThai: 'Đã thanh toán'}) " +
+                        "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) "
         );
-        if (tu != null && den != null) cypher.append("AND hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
-
-        cypher.append("MATCH (kh:KhachHang {maKhachHang: hd.maKhachHang, trangThai: 1}) " +
-                "OPTIONAL MATCH (hd)-[c:BAO_GOM]->(m:MonAn) " +
-                "RETURN kh.hoTen AS hoTen, sum(c.soLuong * c.donGia) AS TongChiTieu, kh.tichDiem AS tichDiem " +
-                "ORDER BY TongChiTieu DESC LIMIT $topN");
+        if (tu != null && den != null) {
+            cypher.append("WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
+        }
+        cypher.append("RETURN kh.hoTen AS hoTen, sum(ct.soLuong * ct.donGia) AS TongChiTieu, kh.tichDiem AS tichDiem " +
+                "ORDER BY TongChiTieu DESC LIMIT $top");
 
         try (Session session = DBConnect.getSession()) {
             Result result;
             if (tu != null && den != null) {
-                long endOfDay = den.getTime() + (23 * 3600 + 59 * 60 + 59) * 1000L;
-                result = session.run(cypher.toString(), Values.parameters("tu", tu.getTime(), "den", endOfDay, "topN", topN));
+                // Đưa den về mốc 23:59:59 giống code SQL cũ
+                java.util.Calendar c = java.util.Calendar.getInstance();
+                c.setTime(den); c.set(java.util.Calendar.HOUR_OF_DAY, 23); c.set(java.util.Calendar.MINUTE, 59); c.set(java.util.Calendar.SECOND, 59);
+                result = session.run(cypher.toString(), Values.parameters("tu", tu.getTime(), "den", c.getTimeInMillis(), "top", topN));
             } else {
-                result = session.run(cypher.toString(), Values.parameters("topN", topN));
+                result = session.run(cypher.toString(), Values.parameters("top", topN));
             }
             while (result.hasNext()) {
                 Record r = result.next();
@@ -339,29 +364,7 @@ public class KhachHang_DAO_Impl extends UnicastRemoteObject implements IKhachHan
                         r.get("tichDiem").asInt()
                 });
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        }
         return list;
-    }
-
-    // --- CÁC HÀM XỬ LÝ KHÁCH HÀNG ĐÃ XÓA MỀM ---
-
-    @Override
-    public List<KhachHang> docDanhSachKhachHangDaXoa() throws RemoteException {
-        List<KhachHang> ds = new ArrayList<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 0}) " + CYPHER_RETURN;
-        try (Session session = DBConnect.getSession()) {
-            Result result = session.run(cypher);
-            while (result.hasNext()) ds.add(mapKhachHang(result.next()));
-        } catch (Exception e) { e.printStackTrace(); }
-        return ds;
-    }
-
-    @Override
-    public boolean khoiPhucKhachHang(String ma) throws RemoteException {
-        String cypher = "MATCH (kh:KhachHang {maKhachHang: $ma}) SET kh.trangThai = 1";
-        try (Session session = DBConnect.getSession()) {
-            session.run(cypher, Values.parameters("ma", ma));
-            return true;
-        } catch (Exception e) { e.printStackTrace(); return false; }
     }
 }

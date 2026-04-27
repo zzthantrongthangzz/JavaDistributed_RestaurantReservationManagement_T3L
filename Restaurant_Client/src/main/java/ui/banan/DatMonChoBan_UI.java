@@ -1,10 +1,10 @@
 package ui.banan;
 
-import dao_impl.BanAn_DAO;
-import dao_impl.LoaiMon_DAO;
-import dao_impl.MonAn_DAO;
-import dao_impl.ChiTietHoaDon_DAO;
-import dao_impl.ChiTietPhieuDatBan_DAO;
+import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.ILoaiMon_DAO;
+import rmi_interfaces.IMonAn_DAO;
+import rmi_interfaces.IChiTietHoaDon_DAO;
+import rmi_interfaces.IChiTietPhieuDatBan_DAO;
 import entity.BanAn;
 import entity.HoaDon;
 import entity.MonAn;
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.rmi.Naming;
 
 public class DatMonChoBan_UI extends JDialog {
 
@@ -41,11 +42,11 @@ public class DatMonChoBan_UI extends JDialog {
     private JTextField txtTimMaMon;
     private JTextField txtTimTenMon;
 
-    private final MonAn_DAO monAnDAO;
-    private final BanAn_DAO banAnDAO;
-    private final LoaiMon_DAO loaiMonDAO;
-    private final ChiTietHoaDon_DAO chiTietHoaDonDAO;
-    private final ChiTietPhieuDatBan_DAO chiTietPhieuDAO;
+    private IMonAn_DAO monAnDAO;
+    private IBanAn_DAO banAnDAO;
+    private ILoaiMon_DAO loaiMonDAO;
+    private IChiTietHoaDon_DAO chiTietHoaDonDAO;
+    private IChiTietPhieuDatBan_DAO chiTietPhieuDAO;
 
     private final List<BanAn> danhSachBan;
 
@@ -83,27 +84,35 @@ public class DatMonChoBan_UI extends JDialog {
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 15);
     private final Font FONT_SECTION = new Font("Segoe UI", Font.BOLD, 17);
 
-    // Khởi tạo giao diện đặt món cho hóa đơn (bàn đang phục vụ)
     public DatMonChoBan_UI(Frame parent, List<BanAn> dsBan, HoaDon hoaDon) {
         super(parent, "Đặt món cho bàn", true);
         this.danhSachBan = dsBan;
         this.hoaDonHienTai = hoaDon;
         this.isDatBanCho = false;
 
-        this.monAnDAO = new MonAn_DAO();
-        this.banAnDAO = new BanAn_DAO();
-        this.chiTietHoaDonDAO = new ChiTietHoaDon_DAO();
-        this.chiTietPhieuDAO = new ChiTietPhieuDatBan_DAO();
-        this.loaiMonDAO = new LoaiMon_DAO();
+        try {
+            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
-        this.danhSachMonAn = monAnDAO.docDanhSachMon();
+            this.danhSachMonAn = monAnDAO.docDanhSachMon();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         this.danhSachMonAnHienThi = new ArrayList<>(this.danhSachMonAn);
         this.danhSachChiTietTam = new ArrayList<>();
 
         if (hoaDon != null) {
-            List<ChiTietHoaDon> dsDaGoi = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
-            if (dsDaGoi != null) {
-                this.danhSachChiTietTam.addAll(dsDaGoi);
+            try {
+                List<ChiTietHoaDon> dsDaGoi = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
+                if (dsDaGoi != null) {
+                    this.danhSachChiTietTam.addAll(dsDaGoi);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -116,20 +125,24 @@ public class DatMonChoBan_UI extends JDialog {
         this(parent, new ArrayList<>(Arrays.asList(ban)), hoaDon);
     }
 
-    // Khởi tạo giao diện đặt món trước cho phiếu đặt (bàn chờ)
     public DatMonChoBan_UI(Frame parent, List<BanAn> dsBan, String maPhieuDatBan) {
         super(parent, "Đặt món trước (Đặt chờ)", true);
         this.danhSachBan = dsBan;
         this.maPhieuDatBan = maPhieuDatBan;
         this.isDatBanCho = true;
 
-        this.monAnDAO = new MonAn_DAO();
-        this.banAnDAO = new BanAn_DAO();
-        this.chiTietHoaDonDAO = new ChiTietHoaDon_DAO();
-        this.chiTietPhieuDAO = new ChiTietPhieuDatBan_DAO();
-        this.loaiMonDAO = new LoaiMon_DAO();
+        try {
+            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
-        this.danhSachMonAn = monAnDAO.docDanhSachMon();
+            this.danhSachMonAn = monAnDAO.docDanhSachMon();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         this.danhSachMonAnHienThi = new ArrayList<>(this.danhSachMonAn);
         this.danhSachChiTietTam = new ArrayList<>();
 
@@ -147,7 +160,6 @@ public class DatMonChoBan_UI extends JDialog {
         setResizable(false);
     }
 
-    // Thiết lập cấu trúc giao diện chính
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(MAU_NEN);
@@ -163,7 +175,6 @@ public class DatMonChoBan_UI extends JDialog {
         getContentPane().add(mainPanel);
     }
 
-    // Tạo panel hiển thị tiêu đề và thông tin bàn
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -209,7 +220,6 @@ public class DatMonChoBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel chứa nội dung chính
     private JPanel taoPanelNoiDung() {
         JPanel panel = new JPanel(new BorderLayout(15, 15));
         panel.setBackground(MAU_NEN_FORM);
@@ -225,7 +235,6 @@ public class DatMonChoBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo giao diện danh sách món ăn và bộ lọc
     private JPanel taoPanelDanhSachMon() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(MAU_NEN_FORM);
@@ -265,26 +274,16 @@ public class DatMonChoBan_UI extends JDialog {
         pFilter.add(pComboBox);
 
         DocumentListener searchListener = new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) {
-                locVaTimKiemMonAn();
-            }
-
-            public void removeUpdate(DocumentEvent e) {
-                locVaTimKiemMonAn();
-            }
-
-            public void changedUpdate(DocumentEvent e) {
-                locVaTimKiemMonAn();
-            }
+            public void insertUpdate(DocumentEvent e) { locVaTimKiemMonAn(); }
+            public void removeUpdate(DocumentEvent e) { locVaTimKiemMonAn(); }
+            public void changedUpdate(DocumentEvent e) { locVaTimKiemMonAn(); }
         };
         txtTimMaMon.getDocument().addDocumentListener(searchListener);
         txtTimTenMon.getDocument().addDocumentListener(searchListener);
 
         String[] columnNames = { "Mã", "Tên món", "Giá", "Đơn vị" };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         tableMonAn = new JTable(model);
         setupTableStyle(tableMonAn);
@@ -292,11 +291,9 @@ public class DatMonChoBan_UI extends JDialog {
         tableMonAn.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int row = tableMonAn.getSelectedRow();
-                if (row < 0)
-                    return;
+                if (row < 0) return;
                 String maMon = tableMonAn.getValueAt(row, 0).toString();
-                monAnDuocChon = danhSachMonAnHienThi.stream().filter(mon -> mon.getMaMon().equals(maMon)).findFirst()
-                        .orElse(null);
+                monAnDuocChon = danhSachMonAnHienThi.stream().filter(mon -> mon.getMaMon().equals(maMon)).findFirst().orElse(null);
                 if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2 && monAnDuocChon != null) {
                     themMonVaoChiTiet(monAnDuocChon, 1);
                 }
@@ -337,7 +334,6 @@ public class DatMonChoBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo ComboBox chọn loại món ăn
     private JPanel taoComboBoxLoaiMon() {
         JPanel pComboBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pComboBox.setBackground(MAU_NEN_FORM);
@@ -365,7 +361,6 @@ public class DatMonChoBan_UI extends JDialog {
         return pComboBox;
     }
 
-    // Tạo bảng hiển thị các món đã chọn
     private JPanel taoPanelChiTietHoaDon() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(MAU_NEN_FORM);
@@ -378,9 +373,7 @@ public class DatMonChoBan_UI extends JDialog {
 
         String[] columnNames = { "Tên món", "SL", "Giá", "Thành tiền" };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         tableChiTiet = new JTable(model);
         setupTableStyle(tableChiTiet);
@@ -437,7 +430,6 @@ public class DatMonChoBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel chứa các nút điều khiển
     private JPanel taoPanelNut() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         panel.setBackground(MAU_NEN);
@@ -454,7 +446,6 @@ public class DatMonChoBan_UI extends JDialog {
         return panel;
     }
 
-    // Logic thêm món vào danh sách tạm hoặc tăng số lượng
     private void themMonVaoChiTiet(MonAn monThem, int soLuong) {
         if (monThem == null)
             return;
@@ -472,7 +463,6 @@ public class DatMonChoBan_UI extends JDialog {
         capNhatBangChiTiet();
     }
 
-    // Xử lý sự kiện khi nhấn nút thêm món
     private void xuLyThemMon() {
         if (monAnDuocChon == null) {
             hienThiLoi("Vui lòng chọn một món ăn!");
@@ -493,7 +483,6 @@ public class DatMonChoBan_UI extends JDialog {
         }
     }
 
-    // Cập nhật hiển thị bảng chi tiết món đã chọn
     private void capNhatBangChiTiet() {
         DefaultTableModel model = (DefaultTableModel) tableChiTiet.getModel();
         model.setRowCount(0);
@@ -512,7 +501,6 @@ public class DatMonChoBan_UI extends JDialog {
         lblTongTien.setText(String.format("%,.0f đ", tongTien));
     }
 
-    // Xử lý sự kiện xóa món khỏi danh sách chọn
     private void xuLyXoaMon() {
         int row = tableChiTiet.getSelectedRow();
         if (row < 0) {
@@ -526,7 +514,6 @@ public class DatMonChoBan_UI extends JDialog {
         }
     }
 
-    // Lưu dữ liệu gọi món xuống cơ sở dữ liệu và đóng giao diện
     private void xuLyHoanTat() {
         if (danhSachChiTietTam.isEmpty()) {
             hienThiLoi("Vui lòng chọn ít nhất một món!");
@@ -564,13 +551,12 @@ public class DatMonChoBan_UI extends JDialog {
                 dispose();
 
             } catch (Exception e) {
-                hienThiLoi("Lỗi khi lưu dữ liệu: " + e.getMessage());
+                hienThiLoi("Lỗi khi lưu dữ liệu RMI: " + e.getMessage());
                 e.printStackTrace();
             }
         }
     }
 
-    // Tải danh sách loại món
     private void taiDuLieuLoaiMon() {
         try {
             if (this.cmbLoaiMon == null)
@@ -585,7 +571,6 @@ public class DatMonChoBan_UI extends JDialog {
         }
     }
 
-    // Lọc danh sách món ăn theo từ khóa và loại món
     private void locVaTimKiemMonAn() {
         String ma = txtTimMaMon.getText().trim().toLowerCase();
         String ten = txtTimTenMon.getText().trim().toLowerCase();
@@ -603,7 +588,6 @@ public class DatMonChoBan_UI extends JDialog {
         capNhatBangMonAn(danhSachMonAnHienThi);
     }
 
-    // Hiển thị danh sách món ăn lên bảng
     private void capNhatBangMonAn(List<MonAn> ds) {
         DefaultTableModel m = (DefaultTableModel) tableMonAn.getModel();
         m.setRowCount(0);

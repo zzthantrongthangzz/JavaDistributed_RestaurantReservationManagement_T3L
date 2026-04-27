@@ -1,6 +1,6 @@
-package ui.monan; 
+package ui.monan;
 
-import dao_impl.MonAn_DAO;
+import rmi_interfaces.IMonAn_DAO;
 import entity.LichSuGia;
 import entity.MonAn;
 
@@ -13,13 +13,16 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.List;
 
 public class ChiTietMonAn_UI extends JDialog {
 
     private final MonAn monAnDuocChon;
-    private final MonAn_DAO monAnDAO;
+    private IMonAn_DAO monAnDAO;
 
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0");
 
@@ -29,9 +32,9 @@ public class ChiTietMonAn_UI extends JDialog {
     private final Color COLOR_GRID = new Color(80, 80, 80);
     private final Color COLOR_TEXT_WHITE = Color.WHITE;
     private final Color COLOR_TEXT_GRAY = new Color(150, 150, 150);
-    private final Color COLOR_BUTTON_UPDATE = new Color(76, 175, 80); 
+    private final Color COLOR_BUTTON_UPDATE = new Color(76, 175, 80);
     private final Color COLOR_BUTTON_UPDATE_HOVER = new Color(56, 142, 60);
-    private final Color COLOR_BUTTON_CLOSE = new Color(244, 67, 54); 
+    private final Color COLOR_BUTTON_CLOSE = new Color(244, 67, 54);
     private final Color COLOR_BUTTON_CLOSE_HOVER = new Color(211, 47, 47);
 
     private final Font FONT_TIEU_DE = new Font("Segoe UI", Font.BOLD, 30);
@@ -40,11 +43,16 @@ public class ChiTietMonAn_UI extends JDialog {
     private final Font FONT_O_NHAP = new Font("Segoe UI", Font.PLAIN, 19);
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 19);
 
-    // Khởi tạo giao diện chi tiết món
     public ChiTietMonAn_UI(Frame parent, MonAn monAn) {
         super(parent, "Chi tiết món ăn", true);
         this.monAnDuocChon = monAn;
-        this.monAnDAO = new MonAn_DAO(); 
+
+        try {
+            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+        }
 
         khoiTaoGiaoDien();
 
@@ -53,7 +61,6 @@ public class ChiTietMonAn_UI extends JDialog {
         setResizable(false);
     }
 
-    // Khởi tạo giao diện chính
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(COLOR_DARK);
@@ -69,7 +76,6 @@ public class ChiTietMonAn_UI extends JDialog {
         getContentPane().add(mainPanel);
     }
 
-    // Tạo panel tiêu đề
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -85,7 +91,6 @@ public class ChiTietMonAn_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel nội dung
     private JPanel taoPanelNoiDung() {
         JPanel panel = new JPanel(new BorderLayout(20, 0));
         panel.setBackground(COLOR_DARK);
@@ -100,7 +105,6 @@ public class ChiTietMonAn_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel thông tin bên trái
     private JPanel taoPanelThongTin() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(COLOR_DARK);
@@ -116,7 +120,7 @@ public class ChiTietMonAn_UI extends JDialog {
         pNoiDungThongTin.setLayout(new BoxLayout(pNoiDungThongTin, BoxLayout.Y_AXIS));
         pNoiDungThongTin.setBackground(COLOR_DARK);
         pNoiDungThongTin.setBorder(new EmptyBorder(15, 15, 15, 15));
-        
+
         pNoiDungThongTin.add(taoHangThongTin("Mã món:", monAnDuocChon.getMaMon()));
         pNoiDungThongTin.add(Box.createVerticalStrut(15));
         pNoiDungThongTin.add(taoHangThongTin("Tên món:", monAnDuocChon.getTenMon()));
@@ -135,50 +139,48 @@ public class ChiTietMonAn_UI extends JDialog {
 
         return panel;
     }
-    
-    // Tạo panel hình ảnh và mô tả bên phải
+
     private JPanel taoPanelHinhAnhMoTa() {
-        JPanel panel = new JPanel(); 
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS)); 
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(COLOR_DARK);
         panel.setBorder(new LineBorder(COLOR_GRID));
 
         JPanel pImage = new JPanel(new BorderLayout());
         pImage.setOpaque(false);
-        pImage.setBorder(new EmptyBorder(10, 10, 10, 10)); 
+        pImage.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         JLabel lblHinhAnh = new JLabel();
         try {
             String imagePath = monAnDuocChon.getDuongDanAnh();
             if (imagePath != null && !imagePath.isEmpty()) {
-                 ImageIcon icon = new ImageIcon(getClass().getResource(imagePath));
-                 if (icon.getImage() != null) {
-                     Image img = icon.getImage().getScaledInstance(250, 250, Image.SCALE_SMOOTH); 
-                     lblHinhAnh.setIcon(new ImageIcon(img));
-                 } else {
-                     lblHinhAnh.setText("Không tìm thấy ảnh tại: " + imagePath);
-                 }
+                ImageIcon icon = new ImageIcon(getClass().getResource(imagePath));
+                if (icon.getImage() != null) {
+                    Image img = icon.getImage().getScaledInstance(250, 250, Image.SCALE_SMOOTH);
+                    lblHinhAnh.setIcon(new ImageIcon(img));
+                } else {
+                    lblHinhAnh.setText("Không tìm thấy ảnh tại: " + imagePath);
+                }
             } else {
-                 lblHinhAnh.setText("Không có đường dẫn ảnh");
+                lblHinhAnh.setText("Không có đường dẫn ảnh");
             }
         } catch (Exception e) {
             lblHinhAnh.setText("Lỗi tải ảnh");
             System.err.println("Lỗi tải ảnh món ăn: " + e.getMessage());
-            e.printStackTrace(); 
         }
         lblHinhAnh.setHorizontalAlignment(SwingConstants.CENTER);
-        lblHinhAnh.setVerticalAlignment(SwingConstants.CENTER); 
+        lblHinhAnh.setVerticalAlignment(SwingConstants.CENTER);
         lblHinhAnh.setForeground(COLOR_TEXT_GRAY);
         pImage.add(lblHinhAnh, BorderLayout.CENTER);
-        
+
         JPanel pMoTa = new JPanel(new BorderLayout(0, 5));
         pMoTa.setOpaque(false);
-        pMoTa.setBorder(new EmptyBorder(0, 15, 15, 15)); 
+        pMoTa.setBorder(new EmptyBorder(0, 15, 15, 15));
 
         JLabel lblTieuDeMoTa = new JLabel("Mô tả");
         lblTieuDeMoTa.setFont(FONT_NHAN);
         lblTieuDeMoTa.setForeground(COLOR_TEXT_WHITE);
-        lblTieuDeMoTa.setAlignmentX(Component.LEFT_ALIGNMENT); 
+        lblTieuDeMoTa.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JTextArea txtMoTa = new JTextArea(monAnDuocChon.getMoTa());
         txtMoTa.setFont(FONT_O_NHAP);
@@ -190,20 +192,19 @@ public class ChiTietMonAn_UI extends JDialog {
         txtMoTa.setBorder(null);
 
         JScrollPane scrollMoTa = new JScrollPane(txtMoTa);
-        scrollMoTa.setBorder(null); 
-        scrollMoTa.getViewport().setBackground(COLOR_DARK); 
-        scrollMoTa.setPreferredSize(new Dimension(100, 80)); 
+        scrollMoTa.setBorder(null);
+        scrollMoTa.getViewport().setBackground(COLOR_DARK);
+        scrollMoTa.setPreferredSize(new Dimension(100, 80));
 
         pMoTa.add(lblTieuDeMoTa, BorderLayout.NORTH);
-        pMoTa.add(scrollMoTa, BorderLayout.CENTER); 
+        pMoTa.add(scrollMoTa, BorderLayout.CENTER);
 
         panel.add(pImage);
         panel.add(pMoTa);
-        
+
         return panel;
     }
 
-    // Tạo hàng thông tin
     private JPanel taoHangThongTin(String nhan, String gia_tri) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -223,7 +224,6 @@ public class ChiTietMonAn_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel chứa nút bấm
     private JPanel taoPanelNut() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         panel.setBackground(COLOR_DARK);
@@ -234,18 +234,18 @@ public class ChiTietMonAn_UI extends JDialog {
         btnSua.addActionListener(e -> {
             Window parentWindow = SwingUtilities.getWindowAncestor(this);
 
-            if (parentWindow instanceof ui.TrangChu_UI) { 
+            if (parentWindow instanceof ui.TrangChu_UI) {
                 ui.TrangChu_UI trangChu = (ui.TrangChu_UI) parentWindow;
 
                 trangChu.hienThiTrangCapNhatMon(monAnDuocChon);
 
                 dispose();
             } else {
-                 JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy cửa sổ Trang Chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy cửa sổ Trang Chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
-        
-        JButton btnLichSu = taoNut("Lịch sử giá", new Color(33, 150, 243), new Color(30, 136, 229)); 
+
+        JButton btnLichSu = taoNut("Lịch sử giá", new Color(33, 150, 243), new Color(30, 136, 229));
         btnLichSu.setPreferredSize(new Dimension(160, 40));
         btnLichSu.addActionListener(e -> hienThiLichSuGia());
 
@@ -260,7 +260,6 @@ public class ChiTietMonAn_UI extends JDialog {
         return panel;
     }
 
-    // Tạo nút bấm
     private JButton taoNut(String text, Color mauNen, Color mauHover) {
         JButton button = new JButton(text);
         button.setFont(FONT_NUT);
@@ -284,8 +283,7 @@ public class ChiTietMonAn_UI extends JDialog {
 
         return button;
     }
-    
-    // Hiển thị lịch sử thay đổi giá
+
     private void hienThiLichSuGia() {
         Color MAU_NEN_DARK = new Color(48, 52, 56);
         Color MAU_NEN_ITEM = new Color(31, 32, 44);
@@ -303,23 +301,28 @@ public class ChiTietMonAn_UI extends JDialog {
         String[] headers = {"Thời gian thay đổi", "Giá cũ", "Giá mới", "Người thực hiện"};
         javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(headers, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; } 
+            public boolean isCellEditable(int row, int column) { return false; }
         };
-     
-        java.util.List<LichSuGia> list = monAnDAO.getLichSuGia(monAnDuocChon.getMaMon());
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm - dd/MM/yyyy");
-        
-        for (entity.LichSuGia ls : list) {
-            model.addRow(new Object[]{
-                sdf.format(ls.getNgayThayDoi()),
-                currencyFormatter.format(ls.getGiaCu()) + " VNĐ",
-                currencyFormatter.format(ls.getGiaMoi()) + " VNĐ",
-                ls.getTenNhanVien() == null ? "Hệ thống" : ls.getTenNhanVien()
-            });
+
+        try {
+            List<LichSuGia> list = monAnDAO.getLichSuGia(monAnDuocChon.getMaMon());
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm - dd/MM/yyyy");
+
+            for (entity.LichSuGia ls : list) {
+                model.addRow(new Object[]{
+                        sdf.format(ls.getNgayThayDoi()),
+                        currencyFormatter.format(ls.getGiaCu()) + " VNĐ",
+                        currencyFormatter.format(ls.getGiaMoi()) + " VNĐ",
+                        ls.getTenNhanVien() == null ? "Hệ thống" : ls.getTenNhanVien()
+                });
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi tải lịch sử giá: " + e.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
         }
 
         JTable table = new JTable(model);
-        
+
         table.setBackground(MAU_NEN_ITEM);
         table.setForeground(MAU_CHU_CHUNG);
         table.setGridColor(MAU_LUOI_BANG);
@@ -327,9 +330,9 @@ public class ChiTietMonAn_UI extends JDialog {
         table.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         table.setSelectionBackground(MAU_CHON_HANG);
         table.setSelectionForeground(MAU_CHU_CHUNG);
-        table.setShowVerticalLines(true);   
+        table.setShowVerticalLines(true);
         table.setShowHorizontalLines(true);
-        table.setIntercellSpacing(new Dimension(1, 1)); 
+        table.setIntercellSpacing(new Dimension(1, 1));
 
         JTableHeader header = table.getTableHeader();
         header.setBackground(MAU_NEN_ITEM);
@@ -348,8 +351,8 @@ public class ChiTietMonAn_UI extends JDialog {
                 label.setOpaque(true);
                 label.setHorizontalAlignment(JLabel.CENTER);
                 label.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_HEADER_BORDER),
-                    new EmptyBorder(10, 5, 10, 5)
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_HEADER_BORDER),
+                        new EmptyBorder(10, 5, 10, 5)
                 ));
                 return label;
             }
@@ -359,22 +362,22 @@ public class ChiTietMonAn_UI extends JDialog {
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         centerRenderer.setBackground(MAU_NEN_ITEM);
         centerRenderer.setForeground(MAU_CHU_CHUNG);
-        
+
         for(int i=0; i<table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
-        
+
         table.getColumnModel().getColumn(0).setPreferredWidth(150);
         table.getColumnModel().getColumn(3).setPreferredWidth(150);
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.getViewport().setBackground(MAU_NEN_ITEM);
         scroll.setBorder(BorderFactory.createLineBorder(MAU_LUOI_BANG, 1));
-        
+
         JPanel corner = new JPanel();
         corner.setBackground(MAU_NEN_ITEM);
         scroll.setCorner(JScrollPane.UPPER_RIGHT_CORNER, corner);
-        
+
         scroll.getVerticalScrollBar().setBackground(MAU_NEN_ITEM);
         scroll.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
             @Override protected void configureScrollBarColors() {
@@ -394,13 +397,13 @@ public class ChiTietMonAn_UI extends JDialog {
         pTable.setBackground(MAU_NEN_DARK);
         pTable.setBorder(new EmptyBorder(10, 10, 10, 10));
         pTable.add(scroll, BorderLayout.CENTER);
-        
+
         dialog.add(pTable, BorderLayout.CENTER);
-        
+
         JPanel pBot = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         pBot.setBackground(MAU_NEN_DARK);
         pBot.setBorder(new EmptyBorder(0, 10, 15, 15));
-        
+
         JButton btnClose = new JButton("Đóng");
         btnClose.setPreferredSize(new Dimension(100, 40));
         btnClose.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -410,7 +413,7 @@ public class ChiTietMonAn_UI extends JDialog {
         btnClose.setBorderPainted(false);
         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> dialog.dispose());
-        
+
         pBot.add(btnClose);
         dialog.add(pBot, BorderLayout.SOUTH);
 

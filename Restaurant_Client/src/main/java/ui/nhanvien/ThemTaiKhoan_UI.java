@@ -1,6 +1,8 @@
 package ui.nhanvien;
 
-import dao_impl.TaiKhoan_DAO;
+import rmi_interfaces.ITaiKhoan_DAO;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -16,13 +18,12 @@ public class ThemTaiKhoan_UI extends JDialog {
     private JTextField txtTenDangNhap;
     private JPasswordField txtMatKhau;
     private JPasswordField txtXacNhanMatKhau;
-    private TaiKhoan_DAO taiKhoanDAO;
+    private ITaiKhoan_DAO taiKhoanDAO;
     private Runnable onAccountAdded;
     private String maNhanVienTruyen;
     private String tenChucVuTruyen;
     private boolean themThanhCong = false;
 
-    
     private final Color MAU_NEN = new Color(48, 52, 56);
     private final Color MAU_NEN_FORM = new Color(48, 52, 56);
     private final Color MAU_NEN_INPUT = new Color(60, 64, 68);
@@ -41,22 +42,27 @@ public class ThemTaiKhoan_UI extends JDialog {
     private final Font FONT_NHAN = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_O_NHAP = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 16);
-	private JTextField txtChucVu;
-	private JButton btnThem;
+    private JTextField txtChucVu;
+    private JButton btnThem;
 
     public ThemTaiKhoan_UI(Frame parent, String maNhanVien, String tenChucVu) {
-        super(parent, "Thêm tài khoản", true);        
+        super(parent, "Thêm tài khoản", true);
         this.maNhanVienTruyen = maNhanVien;
-        this.tenChucVuTruyen = tenChucVu; 
-        
-        taiKhoanDAO = new TaiKhoan_DAO();
+        this.tenChucVuTruyen = tenChucVu;
+
+        try {
+            taiKhoanDAO = (ITaiKhoan_DAO) Naming.lookup("rmi://localhost:1099/TaiKhoan_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+        }
+
         khoiTaoGiaoDien();
         setSize(550, 700);
         setLocationRelativeTo(parent);
         setResizable(false);
     }
 
-    // Khởi tạo giao diện dialog
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(MAU_NEN);
@@ -69,7 +75,6 @@ public class ThemTaiKhoan_UI extends JDialog {
         getContentPane().add(mainPanel);
     }
 
-    // Tạo tiêu đề dialog
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         panel.setBackground(MAU_NEN);
@@ -78,13 +83,12 @@ public class ThemTaiKhoan_UI extends JDialog {
         lblTieuDe.setForeground(MAU_CHU_TRANG);
         panel.add(lblTieuDe);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, MAU_VIEN_DUOI),
-            new EmptyBorder(0, 0, 15, 0)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, MAU_VIEN_DUOI),
+                new EmptyBorder(0, 0, 15, 0)
         ));
         return panel;
     }
 
-    // Tạo form nhập liệu
     private JPanel taoPanelForm() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -105,26 +109,21 @@ public class ThemTaiKhoan_UI extends JDialog {
         }
         txtTenDangNhap.setBackground(MAU_NEN_INPUT);
 
-        
         txtMatKhau = taoPasswordFieldCoNhan(panel, "Mật khẩu:", true, "Nhập mật khẩu");
-        
+
         txtXacNhanMatKhau = taoPasswordFieldCoNhan(panel, "Xác nhận mật khẩu:", true, "Nhập lại mật khẩu");
         txtXacNhanMatKhau.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				btnThem.doClick();
-				
-			}
-		});
-        
-        txtChucVu =taoTextFieldChucVu(panel, tenChucVuTruyen);    
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                btnThem.doClick();
+            }
+        });
+
+        txtChucVu = taoTextFieldChucVu(panel, tenChucVuTruyen);
 
         return panel;
     }
-    
-    // Tạo TextField có nhãn
+
     private JTextField taoFieldCoNhan(JPanel panel, String nhan, boolean batBuoc, String placeholder) {
         JPanel fieldPanel = new JPanel();
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
@@ -148,7 +147,6 @@ public class ThemTaiKhoan_UI extends JDialog {
         return textField;
     }
 
-    // Tạo PasswordField có nhãn
     private JPasswordField taoPasswordFieldCoNhan(JPanel panel, String nhan, boolean batBuoc, String placeholder) {
         JPanel fieldPanel = new JPanel();
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
@@ -172,18 +170,17 @@ public class ThemTaiKhoan_UI extends JDialog {
         return passwordField;
     }
 
-    // Tạo TextField hiển thị chức vụ
     private JTextField taoTextFieldChucVu(JPanel panel, String chucVuTruyen) {
         JPanel fieldPanel = new JPanel();
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
         fieldPanel.setBackground(MAU_NEN_FORM);
         fieldPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        
+
         JLabel label = new JLabel("Chức vụ:");
         label.setFont(FONT_NHAN);
         label.setForeground(MAU_O_Nhap);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+
         JTextField TextField = new JTextField(chucVuTruyen);
         TextField.setEditable(false);
         TextField.setFont(FONT_O_NHAP);
@@ -193,7 +190,7 @@ public class ThemTaiKhoan_UI extends JDialog {
         TextField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
                 new EmptyBorder(5, 10, 5, 10)
-            ));
+        ));
         TextField.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         fieldPanel.add(label);
@@ -204,8 +201,7 @@ public class ThemTaiKhoan_UI extends JDialog {
         panel.add(fieldPanel);
         return TextField;
     }
-    
-    // Tạo TextField chuẩn
+
     private JTextField taoTextField(String placeholder) {
         JTextField textField = new JTextField();
         textField.setPreferredSize(KICH_THUOC_O_NHAP);
@@ -215,13 +211,12 @@ public class ThemTaiKhoan_UI extends JDialog {
         textField.setForeground(MAU_CHU_TRANG);
         textField.setCaretColor(MAU_CHU_TRANG);
         textField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
-            new EmptyBorder(5, 10, 5, 10)
+                BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
+                new EmptyBorder(5, 10, 5, 10)
         ));
         return textField;
     }
 
-    // Tạo PasswordField chuẩn
     private JPasswordField taoPasswordField(String placeholder) {
         JPasswordField passwordField = new JPasswordField();
         passwordField.setPreferredSize(KICH_THUOC_O_NHAP);
@@ -231,13 +226,12 @@ public class ThemTaiKhoan_UI extends JDialog {
         passwordField.setForeground(MAU_CHU_TRANG);
         passwordField.setCaretColor(MAU_CHU_TRANG);
         passwordField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
-            new EmptyBorder(5, 10, 5, 10)
+                BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
+                new EmptyBorder(5, 10, 5, 10)
         ));
         return passwordField;
     }
 
-    // Tạo panel chứa các nút hành động
     private JPanel taoPanelNut() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         panel.setBackground(MAU_NEN);
@@ -254,7 +248,6 @@ public class ThemTaiKhoan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo nút bấm với hiệu ứng hover
     private JButton taoNut(String text, Color mauNen, Color mauHover) {
         JButton button = new JButton(text);
         button.setPreferredSize(KICH_THUOC_NUT);
@@ -280,7 +273,6 @@ public class ThemTaiKhoan_UI extends JDialog {
         return button;
     }
 
-    // Xử lý logic thêm tài khoản
     private void xuLyThemTaiKhoan() {
         if (!kiemTraDuLieu()) {
             return;
@@ -295,33 +287,35 @@ public class ThemTaiKhoan_UI extends JDialog {
             boolean thanhCong = taiKhoanDAO.themTaiKhoan(maNhanVien, tenDangNhap, matKhau, chucVu);
 
             if (thanhCong) {
-            	this.themThanhCong=true;
+                this.themThanhCong=true;
                 JOptionPane.showMessageDialog(this,
-                    "Thêm tài khoản thành công!",
-                    "Thành công",
-                    JOptionPane.INFORMATION_MESSAGE);
-                
+                        "Thêm tài khoản thành công!",
+                        "Thành công",
+                        JOptionPane.INFORMATION_MESSAGE);
+
                 if (onAccountAdded != null) {
                     onAccountAdded.run();
                 }
-                
+
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this,
-                    "Không thể thêm tài khoản. Vui lòng kiểm tra lại!",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE);
+                        "Không thể thêm tài khoản. Vui lòng kiểm tra lại!",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE);
             }
 
+        } catch (RemoteException re) {
+            re.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                "Lỗi khi thêm tài khoản: " + e.getMessage(),
-                "Lỗi",
-                JOptionPane.ERROR_MESSAGE);
+                    "Lỗi khi thêm tài khoản: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Kiểm tra dữ liệu nhập vào
     private boolean kiemTraDuLieu() {
         String matKhau = new String(txtMatKhau.getPassword());
         if (matKhau.isEmpty()) {
@@ -347,13 +341,15 @@ public class ThemTaiKhoan_UI extends JDialog {
 
     private void hienThiLoi(String message) {
         JOptionPane.showMessageDialog(this,
-            message,
-            "Lỗi nhập liệu",
-            JOptionPane.WARNING_MESSAGE);
+                message,
+                "Lỗi nhập liệu",
+                JOptionPane.WARNING_MESSAGE);
     }
+
     public boolean isThemThanhCong() {
         return this.themThanhCong;
     }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
@@ -363,9 +359,9 @@ public class ThemTaiKhoan_UI extends JDialog {
                     e.printStackTrace();
                 }
                 JFrame parentFrame = new JFrame();
-                parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); 
+                parentFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 String testMaNV = "NV001";
-                String testChucVu = "Quản lý"; 
+                String testChucVu = "Quản lý";
                 ThemTaiKhoan_UI dialog = new ThemTaiKhoan_UI(parentFrame, testMaNV, testChucVu);
                 dialog.setVisible(true);
             }

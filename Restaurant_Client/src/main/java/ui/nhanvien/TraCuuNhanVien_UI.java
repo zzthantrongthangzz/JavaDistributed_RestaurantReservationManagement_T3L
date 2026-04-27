@@ -3,6 +3,8 @@ package ui.nhanvien;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,7 +16,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import java.text.SimpleDateFormat;
 
 import entity.NhanVien;
-import dao_impl.NhanVien_DAO;
+import rmi_interfaces.INhanVien_DAO;
 
 public class TraCuuNhanVien_UI extends JPanel {
 
@@ -50,11 +52,15 @@ public class TraCuuNhanVien_UI extends JPanel {
     private JComboBox<String> cmbSapXep;
     private JComboBox<String> cmbGioiTinh;
     private JPanel panelChinh;
-    private NhanVien_DAO nhanVienDAO;
-    
+    private INhanVien_DAO nhanVienDAO;
 
     public TraCuuNhanVien_UI() {
-        nhanVienDAO = new NhanVien_DAO();
+        try {
+            nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+        }
         khoiTaoGiaoDien();
         docDuLieuTuSQL();
     }
@@ -67,44 +73,43 @@ public class TraCuuNhanVien_UI extends JPanel {
         panelChinh.setBackground(MAU_NEN_TAB);
         panelChinh.setBorder(new EmptyBorder(20, 25, 20, 25));
         panelChinh.setFocusable(true);
-        
+
         panelChinh.add(taoPanelTieuDe(), BorderLayout.NORTH);
-        
+
         JPanel wrapperNoiDung = new JPanel(new BorderLayout(0, 15));
         wrapperNoiDung.setBackground(MAU_NEN_TAB);
         wrapperNoiDung.add(taoPanelDieuKhien(), BorderLayout.NORTH);
         wrapperNoiDung.add(taoPanelNoiDung(), BorderLayout.CENTER);
-        
+
         panelChinh.add(wrapperNoiDung, BorderLayout.CENTER);
         panelChinh.requestFocusInWindow();
 
         add(panelChinh, BorderLayout.CENTER);
     }
-    
+
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(MAU_NEN_TAB);
         panel.setPreferredSize(new Dimension(0, 90));
         panel.setBorder(new EmptyBorder(10, 0, 20, 0));
-        
+
         JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         contentPanel.setBackground(MAU_NEN_TAB);
-        
+
         JLabel lblTieuDe = new JLabel("TRA CỨU NHÂN VIÊN");
         lblTieuDe.setFont(new Font("Segoe UI", Font.BOLD, 36));
         lblTieuDe.setForeground(Color.WHITE);
         lblTieuDe.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 3, 0, new Color(100, 104, 124)),
-            new EmptyBorder(15, 30, 15, 30)
+                BorderFactory.createMatteBorder(0, 0, 3, 0, new Color(100, 104, 124)),
+                new EmptyBorder(15, 30, 15, 30)
         ));
-        
+
         contentPanel.add(lblTieuDe);
         panel.add(contentPanel, BorderLayout.CENTER);
-        
+
         return panel;
     }
 
-    // Tạo panel điều khiển tìm kiếm
     private JPanel taoPanelDieuKhien() {
         JPanel panel = new JPanel(new BorderLayout(30, 0));
         panel.setBackground(MAU_NEN_TAB);
@@ -116,19 +121,19 @@ public class TraCuuNhanVien_UI extends JPanel {
 
         JPanel wrapperMa = taoWrapperTimKiemCoNhan("Mã NV:", "Tìm theo mã...");
         txtTimKiemMa = (JTextField) wrapperMa.getComponent(1);
-        
+
         JPanel wrapperTen = taoWrapperTimKiemCoNhan("Tên NV:", "Tìm theo tên...");
         txtTimKiemTen = (JTextField) wrapperTen.getComponent(1);
-        
+
         JPanel wrapperSDT = taoWrapperTimKiemCoNhan("SĐT:", "Tìm theo SĐT...");
         txtTimKiemSDT = (JTextField) wrapperSDT.getComponent(1);
-        
+
         int chuanChieuCao = 40;
         Dimension maxSize = new Dimension(450, chuanChieuCao);
         wrapperMa.setMaximumSize(maxSize);
         wrapperTen.setMaximumSize(maxSize);
         wrapperSDT.setMaximumSize(maxSize);
-        
+
         cmbSapXep = taoComboBox(new String[]{"Sắp xếp", "Tên A-Z", "Tên Z-A", "Chức vụ"}, KICH_THUOC_COMBO_BOX);
         cmbSapXep.addActionListener(e -> {
             int selectedIndex = cmbSapXep.getSelectedIndex();
@@ -138,7 +143,7 @@ public class TraCuuNhanVien_UI extends JPanel {
                 thucHienSapXep(selectedIndex);
             }
         });
-        
+
         cmbGioiTinh = taoComboBox(new String[]{"Giới tính", "Nam", "Nữ"}, KICH_THUOC_COMBO_BOX);
         cmbGioiTinh.addActionListener(e -> {
             int selectedIndex = cmbGioiTinh.getSelectedIndex();
@@ -161,7 +166,7 @@ public class TraCuuNhanVien_UI extends JPanel {
 
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 4));
         panelNut.setBackground(MAU_NEN_TAB);
-      
+
         JButton btnLamMoi = taoNutChucNang("Làm mới", new Color(33, 150, 243));
         btnLamMoi.addActionListener(e -> lamMoiGiaoDien());
 
@@ -172,7 +177,7 @@ public class TraCuuNhanVien_UI extends JPanel {
 
         return panel;
     }
-    
+
     private JPanel taoWrapperTimKiemCoNhan(String labelText, String placeholder) {
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setBackground(MAU_NEN_TAB);
@@ -191,7 +196,7 @@ public class TraCuuNhanVien_UI extends JPanel {
 
         return wrapper;
     }
-    
+
     private JTextField taoTextFieldTimKiem(String holder) {
         JTextField txt = new JTextField() {
             @Override
@@ -204,9 +209,7 @@ public class TraCuuNhanVien_UI extends JPanel {
                     int y = (getHeight() - searchIcon.getIconHeight()) / 2;
                     int x = getWidth() - searchIcon.getIconWidth() - 10;
                     searchIcon.paintIcon(this, g, x, y);
-                } catch (Exception e) {
-                    System.err.println("Lỗi tải icon tìm kiếm: " + e.getMessage());
-                }
+                } catch (Exception e) {}
             }
         };
 
@@ -218,8 +221,8 @@ public class TraCuuNhanVien_UI extends JPanel {
         txt.setPreferredSize(KICH_THUOC_THANH_TIM_KIEM);
         txt.setMaximumSize(new Dimension(400, 40));
         txt.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
-            new EmptyBorder(8, 15, 8, 40)
+                BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
+                new EmptyBorder(8, 15, 8, 40)
         ));
 
         txt.addActionListener(e -> timKiemNhanVien());
@@ -240,9 +243,9 @@ public class TraCuuNhanVien_UI extends JPanel {
             public void mouseMoved(MouseEvent e) {
                 int iconX = txt.getWidth() - KICH_THUOC_ICON - 10;
                 Rectangle iconBounds = new Rectangle(iconX, 0, KICH_THUOC_ICON + 10, txt.getHeight());
-                txt.setCursor(iconBounds.contains(e.getPoint()) ? 
-                    Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : 
-                    Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
+                txt.setCursor(iconBounds.contains(e.getPoint()) ?
+                        Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) :
+                        Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
             }
         });
 
@@ -267,7 +270,6 @@ public class TraCuuNhanVien_UI extends JPanel {
         return txt;
     }
 
-    // Tạo ComboBox tùy chỉnh
     private JComboBox<String> taoComboBox(String[] items, Dimension size) {
         JComboBox<String> cmb = new JComboBox<>(items);
         cmb.setFont(FONT_NHAN);
@@ -278,8 +280,8 @@ public class TraCuuNhanVien_UI extends JPanel {
         cmb.setPreferredSize(size);
         cmb.setMaximumSize(size);
         cmb.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
-            new EmptyBorder(0, 15, 0, 5)
+                BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
+                new EmptyBorder(0, 15, 0, 5)
         ));
 
         cmb.setUI(new BasicComboBoxUI() {
@@ -304,7 +306,6 @@ public class TraCuuNhanVien_UI extends JPanel {
         return cmb;
     }
 
-    // Tạo nút bấm chức năng
     private JButton taoNutChucNang(String text, Color mauNen) {
         JButton btn = new JButton(text);
         btn.setFont(FONT_NHAN);
@@ -337,7 +338,6 @@ public class TraCuuNhanVien_UI extends JPanel {
         return panel;
     }
 
-    // Tạo bảng hiển thị
     private JPanel taoPanelBang() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(MAU_NEN_TAB);
@@ -384,8 +384,8 @@ public class TraCuuNhanVien_UI extends JPanel {
                 label.setOpaque(true);
                 label.setHorizontalAlignment(JLabel.CENTER);
                 label.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_LUOI_BANG),
-                    new EmptyBorder(10, 5, 10, 5)
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_LUOI_BANG),
+                        new EmptyBorder(10, 5, 10, 5)
                 ));
                 return label;
             }
@@ -412,106 +412,108 @@ public class TraCuuNhanVien_UI extends JPanel {
         return panel;
     }
 
-    // Đọc dữ liệu từ database
     private void docDuLieuTuSQL() {
         try {
             List<NhanVien> danhSach = nhanVienDAO.getAllNhanVien();
             hienThiDanhSach(danhSach);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Lỗi khi đọc dữ liệu từ database: " + e.getMessage(),
-                "Lỗi", 
-                JOptionPane.ERROR_MESSAGE);
+        } catch (RemoteException e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Hiển thị danh sách lên bảng
     private void hienThiDanhSach(List<NhanVien> danhSach) {
         tableModel.setRowCount(0);
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         for (NhanVien nv : danhSach) {
-			String ngaySinh = sdf.format(nv.getNgaySinh());
+            String ngaySinh = sdf.format(nv.getNgaySinh());
             String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
             tableModel.addRow(new Object[]{
-                nv.getMaNhanVien(),
-                nv.getHoTen(),
-                gioiTinh,
-                nv.getSoDienThoai(),
-                nv.getEmail(),
-                ngaySinh,
-                nv.getDiaChi(),
-                nv.getChucVu()
+                    nv.getMaNhanVien(),
+                    nv.getHoTen(),
+                    gioiTinh,
+                    nv.getSoDienThoai(),
+                    nv.getEmail(),
+                    ngaySinh,
+                    nv.getDiaChi(),
+                    nv.getChucVu()
             });
         }
     }
 
-    // Thực hiện sắp xếp
     private void thucHienSapXep(int loaiSapXep) {
-        List<NhanVien> ketQuaSapXep;
-        
-        switch (loaiSapXep) {
-            case 1: 
-                ketQuaSapXep = nhanVienDAO.sapXepNhanVien("hoTen ASC");
-                break;
-            case 2: 
-                ketQuaSapXep = nhanVienDAO.sapXepNhanVien("hoTen DESC");
-                break;
-            case 3: 
-                ketQuaSapXep = nhanVienDAO.sapXepNhanVien("chucVu ASC, hoTen ASC");
-                break;
-            default:
-                ketQuaSapXep = nhanVienDAO.getAllNhanVien();
-                break;
-        }
-        
-        hienThiDanhSach(ketQuaSapXep);
-        panelChinh.requestFocusInWindow();
-    }
-
-    // Thực hiện lọc dữ liệu
-    private void thucHienLoc(String loaiLoc) {
-        List<NhanVien> ketQuaLoc;
-
-        if (loaiLoc.equals("gioitinh")) {
-            String gioiTinhDuocChon = (String) cmbGioiTinh.getSelectedItem();
-            if (gioiTinhDuocChon.equals("Giới tính")) {
-                ketQuaLoc = nhanVienDAO.getAllNhanVien();
-            } else if (gioiTinhDuocChon.equals("Nam")) {
-                ketQuaLoc = nhanVienDAO.locTheoGioiTinh(true);
-            } else {
-                ketQuaLoc = nhanVienDAO.locTheoGioiTinh(false);
+        List<NhanVien> ketQuaSapXep = null;
+        try {
+            switch (loaiSapXep) {
+                case 1:
+                    ketQuaSapXep = nhanVienDAO.sapXepNhanVien("hoTen ASC");
+                    break;
+                case 2:
+                    ketQuaSapXep = nhanVienDAO.sapXepNhanVien("hoTen DESC");
+                    break;
+                case 3:
+                    ketQuaSapXep = nhanVienDAO.sapXepNhanVien("chucVu ASC, hoTen ASC");
+                    break;
+                default:
+                    ketQuaSapXep = nhanVienDAO.getAllNhanVien();
+                    break;
             }
+            if (ketQuaSapXep != null) {
+                hienThiDanhSach(ketQuaSapXep);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
-        else {
-            ketQuaLoc = nhanVienDAO.getAllNhanVien();
-        }
-
-        hienThiDanhSach(ketQuaLoc);
         panelChinh.requestFocusInWindow();
     }
 
-    // Làm mới giao diện
+    private void thucHienLoc(String loaiLoc) {
+        List<NhanVien> ketQuaLoc = null;
+
+        try {
+            if (loaiLoc.equals("gioitinh")) {
+                String gioiTinhDuocChon = (String) cmbGioiTinh.getSelectedItem();
+                if (gioiTinhDuocChon.equals("Giới tính")) {
+                    ketQuaLoc = nhanVienDAO.getAllNhanVien();
+                } else if (gioiTinhDuocChon.equals("Nam")) {
+                    ketQuaLoc = nhanVienDAO.locTheoGioiTinh(true);
+                } else {
+                    ketQuaLoc = nhanVienDAO.locTheoGioiTinh(false);
+                }
+            }
+            else {
+                ketQuaLoc = nhanVienDAO.getAllNhanVien();
+            }
+            if (ketQuaLoc != null) {
+                hienThiDanhSach(ketQuaLoc);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+        panelChinh.requestFocusInWindow();
+    }
+
     private void lamMoiGiaoDien() {
         docDuLieuTuSQL();
-        
+
         txtTimKiemMa.setText("Tìm theo mã...");
         txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
         txtTimKiemTen.setText("Tìm theo tên...");
         txtTimKiemTen.setForeground(MAU_PLACEHOLDER);
         txtTimKiemSDT.setText("Tìm theo SĐT...");
         txtTimKiemSDT.setForeground(MAU_PLACEHOLDER);
-        
+
         cmbSapXep.setSelectedIndex(0);
         cmbGioiTinh.setSelectedIndex(0);
         panelChinh.requestFocusInWindow();
     }
-    
+
     public void lamMoiBang() {
         docDuLieuTuSQL();
     }
-    
-    // Tìm kiếm nhân viên nâng cao
+
     private void timKiemNhanVien() {
         String tuKhoaMa = txtTimKiemMa.getText().trim();
         String tuKhoaTen = txtTimKiemTen.getText().trim();
@@ -528,35 +530,40 @@ public class TraCuuNhanVien_UI extends JPanel {
 
         List<NhanVien> ketQua = null;
 
-        if (!tuKhoaMa.isEmpty()) {
-            ketQua = nhanVienDAO.timKiemNhanVienTheoMa(tuKhoaMa);
-        }
-
-        if (!tuKhoaTen.isEmpty()) {
-            List<NhanVien> listTheoTen = nhanVienDAO.timKiemNhanVienTheoTen(tuKhoaTen);
-            
-            if (ketQua == null) {
-                ketQua = listTheoTen;
-            } else {
-                ketQua.retainAll(listTheoTen);
+        try {
+            if (!tuKhoaMa.isEmpty()) {
+                ketQua = nhanVienDAO.timKiemNhanVienTheoMa(tuKhoaMa);
             }
-        }
 
-        if (!tuKhoaSDT.isEmpty()) {
-            List<NhanVien> listTheoSDT = nhanVienDAO.timKiemNhanVienTheoSDT(tuKhoaSDT);
-            
-            if (ketQua == null) {
-                ketQua = listTheoSDT;
-            } else {
-                ketQua.retainAll(listTheoSDT);
+            if (!tuKhoaTen.isEmpty()) {
+                List<NhanVien> listTheoTen = nhanVienDAO.timKiemNhanVienTheoTen(tuKhoaTen);
+
+                if (ketQua == null) {
+                    ketQua = listTheoTen;
+                } else {
+                    ketQua.retainAll(listTheoTen);
+                }
             }
-        }
 
-        if (ketQua == null || ketQua.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên nào!", "Kết quả", JOptionPane.INFORMATION_MESSAGE);
-            tableModel.setRowCount(0); 
-        } else {
-            hienThiDanhSach(ketQua);
+            if (!tuKhoaSDT.isEmpty()) {
+                List<NhanVien> listTheoSDT = nhanVienDAO.timKiemNhanVienTheoSDT(tuKhoaSDT);
+
+                if (ketQua == null) {
+                    ketQua = listTheoSDT;
+                } else {
+                    ketQua.retainAll(listTheoSDT);
+                }
+            }
+
+            if (ketQua == null || ketQua.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên nào!", "Kết quả", JOptionPane.INFORMATION_MESSAGE);
+                tableModel.setRowCount(0);
+            } else {
+                hienThiDanhSach(ketQua);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

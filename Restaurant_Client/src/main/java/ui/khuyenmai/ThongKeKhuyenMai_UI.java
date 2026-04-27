@@ -9,8 +9,7 @@ import javax.swing.table.JTableHeader;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
-import dao_impl.KhuyenMai_DAO;
-import connect.DBConnect;
+import rmi_interfaces.IKhuyenMai_DAO;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -23,7 +22,7 @@ import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.BarRenderer; 
+import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 
 import java.awt.*;
@@ -34,11 +33,12 @@ import java.beans.PropertyChangeEvent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 
 public class ThongKeKhuyenMai_UI extends JPanel {
 
@@ -49,11 +49,11 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     private final Color MAU_CHU_CHUNG = Color.WHITE;
     private final Color MAU_THANH_TIM_KIEM = new Color(60, 64, 68);
     private final Color MAU_XANH_LAM = new Color(30, 144, 255);
-    private final Color MAU_CAM = new Color(255, 152, 0); 
+    private final Color MAU_CAM = new Color(255, 152, 0);
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_KPI_VALUE = new Font("Segoe UI", Font.BOLD, 24);
 
-    private KhuyenMai_DAO khuyenMaiDAO;
+    private IKhuyenMai_DAO khuyenMaiDAO;
     private JPanel panelChinh;
     private JDateChooser dcTuNgay, dcDenNgay;
     private JTable tblThongKe;
@@ -66,12 +66,12 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     private final DecimalFormat currencyFormat = new DecimalFormat("###,### VNĐ");
     private final DecimalFormat numberFormat = new DecimalFormat("###,###");
 
-    // Khởi tạo giao diện và kết nối database
     public ThongKeKhuyenMai_UI() {
         try {
-            khuyenMaiDAO = new KhuyenMai_DAO(DBConnect.getConnection());
-        } catch (SQLException e) {
+            khuyenMaiDAO = (IKhuyenMai_DAO) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+        } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
 
         setLayout(new BorderLayout());
@@ -110,7 +110,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
             thucHienThongKe();
         });
         panelDieuKhien.add(dcDenNgay);
-        
+
         panelDieuKhien.add(Box.createRigidArea(new Dimension(10, 0)));
         btnXuatExcel = new JButton("Xuất File");
         setupButton(btnXuatExcel, MAU_XANH_LUC);
@@ -131,17 +131,17 @@ public class ThongKeKhuyenMai_UI extends JPanel {
 
         JPanel wrapperTab1 = new JPanel(new BorderLayout(0, 10));
         wrapperTab1.setBackground(MAU_NEN_TAB);
-        
+
         JPanel panelKPI = new JPanel(new GridLayout(1, 2, 20, 0));
         panelKPI.setOpaque(false);
-        panelKPI.setBorder(new EmptyBorder(0, 50, 0, 50)); 
-        
+        panelKPI.setBorder(new EmptyBorder(0, 50, 0, 50));
+
         lblTongTienGiam = new JLabel("0 VNĐ", SwingConstants.CENTER);
         lblTongLuotDung = new JLabel("0", SwingConstants.CENTER);
-        
+
         panelKPI.add(taoBoxKPI("TỔNG TIỀN GIẢM", lblTongTienGiam, MAU_CAM));
         panelKPI.add(taoBoxKPI("TỔNG LƯỢT SỬ DỤNG", lblTongLuotDung, MAU_XANH_LAM));
-        
+
         wrapperTab1.add(panelKPI, BorderLayout.NORTH);
 
         panelBieuDoContainer = new JPanel(new BorderLayout());
@@ -150,13 +150,13 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         chartPanel.setOpaque(false);
         chartPanel.setBackground(MAU_NEN_TAB);
         panelBieuDoContainer.add(chartPanel, BorderLayout.CENTER);
-        
+
         wrapperTab1.add(panelBieuDoContainer, BorderLayout.CENTER);
         tabbedPane.addTab("Tổng quan & Biểu đồ", wrapperTab1);
 
         JPanel panelBang = new JPanel(new BorderLayout());
         panelBang.setOpaque(false);
-        
+
         String[] headers = {"STT", "Mã KM", "Tên chương trình", "Số lượt sử dụng", "Tổng giá trị", "Ngày BĐ", "Ngày KT"};
         modelThongKe = new DefaultTableModel(headers, 0) {
             @Override
@@ -164,15 +164,15 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         };
         tblThongKe = new JTable(modelThongKe);
         tuyChinhBang(tblThongKe);
-        
+
         JScrollPane scrollPane = new JScrollPane(tblThongKe);
         tuyChinhScrollBar(scrollPane);
-        
+
         scrollPane.getViewport().setBackground(MAU_NEN_TAB);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setViewportBorder(null);
         panelBang.add(scrollPane, BorderLayout.CENTER);
-        
+
         tabbedPane.addTab("Danh sách khuyến mãi", panelBang);
 
         panelChinh.add(tabbedPane, BorderLayout.CENTER);
@@ -182,49 +182,46 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         setButtonActive(btnThangNay);
     }
 
-    // Tạo panel tiêu đề trang
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(MAU_NEN_TAB);
-        panel.setPreferredSize(new Dimension(0, 80)); 
+        panel.setPreferredSize(new Dimension(0, 80));
         panel.setBorder(new EmptyBorder(0, 0, 10, 0));
-        
+
         JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         contentPanel.setBackground(MAU_NEN_TAB);
-        
+
         JLabel lblTieuDe = new JLabel("THỐNG KÊ KHUYẾN MÃI");
         lblTieuDe.setFont(new Font("Segoe UI", Font.BOLD, 36));
         lblTieuDe.setForeground(Color.WHITE);
         lblTieuDe.setBorder(new EmptyBorder(10, 30, 10, 30));
-        
+
         contentPanel.add(lblTieuDe);
         panel.add(contentPanel, BorderLayout.CENTER);
-        
+
         return panel;
     }
 
-    // Tạo hộp hiển thị chỉ số KPI
     private JPanel taoBoxKPI(String title, JLabel valueLabel, Color color) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(MAU_NEN_INPUT);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            new LineBorder(color, 2),
-            new EmptyBorder(10, 10, 10, 10)
+                new LineBorder(color, 2),
+                new EmptyBorder(10, 10, 10, 10)
         ));
-        
+
         JLabel lblTitle = new JLabel(title, SwingConstants.CENTER);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblTitle.setForeground(MAU_CHU_CHUNG);
-        
+
         valueLabel.setFont(FONT_KPI_VALUE);
         valueLabel.setForeground(color);
-        
+
         panel.add(lblTitle, BorderLayout.NORTH);
         panel.add(valueLabel, BorderLayout.CENTER);
         return panel;
     }
 
-    // Thiết lập giao diện cho nút bấm
     private void setupButton(JButton btn, Color bg) {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setForeground(MAU_CHU_CHUNG);
@@ -235,38 +232,35 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         btn.setFocusPainted(false);
     }
 
-    // Tạo các nút chọn khoảng thời gian nhanh
     private JButton taoNutThoiGian(String text) {
-        JButton btn = new JButton(text); 
+        JButton btn = new JButton(text);
         setupButton(btn, null);
-        
+
         if (text.equals("Hôm nay")) btn.addActionListener(e -> { datThoiGianHomNay(); setButtonActive(btn); });
         else if (text.equals("Tuần này")) btn.addActionListener(e -> { datThoiGianTuanNay(); setButtonActive(btn); });
         else if (text.equals("Tháng này")) btn.addActionListener(e -> { datThoiGianThangNay(); setButtonActive(btn); });
         else if (text.equals("Năm nay")) btn.addActionListener(e -> { datThoiGianNamNay(); setButtonActive(btn); });
-        
+
         btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { 
+            public void mouseEntered(MouseEvent e) {
                 if (btn.getBackground() != MAU_XANH_LUC) {
-                    btn.setBackground(MAU_VIEN_THANH_TIM_KIEM); 
+                    btn.setBackground(MAU_VIEN_THANH_TIM_KIEM);
                 }
             }
-            public void mouseExited(MouseEvent e) { 
+            public void mouseExited(MouseEvent e) {
                 if (btn.getBackground() != MAU_XANH_LUC) {
-                    btn.setBackground(MAU_THANH_TIM_KIEM); 
+                    btn.setBackground(MAU_THANH_TIM_KIEM);
                 }
             }
         });
         return btn;
     }
-    
-    // Tạo nhãn tiêu đề
+
     private JLabel taoLabel(String text) {
         JLabel l = new JLabel(text); l.setFont(new Font("Segoe UI", Font.BOLD, 14));
         l.setForeground(MAU_CHU_CHUNG); return l;
     }
 
-    // Tạo component chọn ngày tháng
     private JDateChooser taoDateChooser() {
         JDateChooser dateChooser = new JDateChooser();
         dateChooser.setPreferredSize(new Dimension(140, 40));
@@ -274,7 +268,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         dateChooser.setFont(FONT_TEXTFIELD);
         dateChooser.setBackground(MAU_THANH_TIM_KIEM);
         dateChooser.setForeground(MAU_CHU_CHUNG);
-        
+
         JButton calendarButton = dateChooser.getCalendarButton();
         calendarButton.setBackground(MAU_THANH_TIM_KIEM);
         calendarButton.setBorder(BorderFactory.createEmptyBorder());
@@ -290,11 +284,11 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         dateEditor.setFont(FONT_TEXTFIELD);
         dateEditor.setBorder(new EmptyBorder(0, 8, 0, 0));
         dateEditor.setOpaque(true);
-        dateEditor.setEditable(false); 
+        dateEditor.setEditable(false);
         dateChooser.getDateEditor().addPropertyChangeListener(evt -> {
             if ("date".equals(evt.getPropertyName()) || "foreground".equals(evt.getPropertyName())) {
                 if (!Color.WHITE.equals(dateEditor.getForeground())) {
-                   dateEditor.setForeground(Color.WHITE);
+                    dateEditor.setForeground(Color.WHITE);
                 }
                 if (!Color.WHITE.equals(dateEditor.getDisabledTextColor())) {
                     dateEditor.setDisabledTextColor(Color.WHITE);
@@ -305,7 +299,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         return dateChooser;
     }
 
-    // Tùy chỉnh giao diện bảng
     private void tuyChinhBang(JTable table) {
         table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         table.setRowHeight(30);
@@ -321,19 +314,17 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         header.setPreferredSize(new Dimension(0, 40));
         table.setFillsViewportHeight(true);
     }
-    
-    // Tùy chỉnh thanh cuộn
+
     private void tuyChinhScrollBar(JScrollPane scrollPane) {
         scrollPane.getVerticalScrollBar().setBackground(MAU_NEN_INPUT);
         scrollPane.getHorizontalScrollBar().setBackground(MAU_NEN_INPUT);
     }
-    
-    // Thực hiện tính toán thống kê và cập nhật giao diện
+
     private void thucHienThongKe() {
         Date tuNgay = dcTuNgay.getDate();
-        Date denNgay = dcDenNgay.getDate();        
+        Date denNgay = dcDenNgay.getDate();
         if (tuNgay == null || denNgay == null) {
-            return; 
+            return;
         }
         if (tuNgay.after(denNgay)) {
             if (this.isShowing()) {
@@ -341,19 +332,24 @@ public class ThongKeKhuyenMai_UI extends JPanel {
             }
             return;
         }
-        BigDecimal tongTien = khuyenMaiDAO.getTongTienGiam(tuNgay, denNgay);
-        int tongLuot = khuyenMaiDAO.getTongLuotSuDung(tuNgay, denNgay);
-        lblTongTienGiam.setText(currencyFormat.format(tongTien));
-        lblTongLuotDung.setText(numberFormat.format(tongLuot));
 
-        Map<Date, BigDecimal> dataChart = khuyenMaiDAO.getTienGiamTheoNgay(tuNgay, denNgay);
-        capNhatBieuDo(dataChart);
+        try {
+            BigDecimal tongTien = khuyenMaiDAO.getTongTienGiam(tuNgay, denNgay);
+            int tongLuot = khuyenMaiDAO.getTongLuotSuDung(tuNgay, denNgay);
+            lblTongTienGiam.setText(currencyFormat.format(tongTien));
+            lblTongLuotDung.setText(numberFormat.format(tongLuot));
 
-        List<Object[]> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
-        capNhatBang(listKM);
+            Map<Date, BigDecimal> dataChart = khuyenMaiDAO.getTienGiamTheoNgay(tuNgay, denNgay);
+            capNhatBieuDo(dataChart);
+
+            List<Object[]> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
+            capNhatBang(listKM);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    // Vẽ và cập nhật biểu đồ cột
     private void capNhatBieuDo(Map<Date, BigDecimal> data) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         if (data != null && !data.isEmpty()) {
@@ -365,9 +361,9 @@ public class ThongKeKhuyenMai_UI extends JPanel {
             }
         }
         JFreeChart barChart = ChartFactory.createBarChart(
-            "Biến Động Tiền Giảm Giá Theo Ngày", 
-            "Ngày", "Số tiền (VNĐ)",
-            dataset, PlotOrientation.VERTICAL, false, true, false
+                "Biến Động Tiền Giảm Giá Theo Ngày",
+                "Ngày", "Số tiền (VNĐ)",
+                dataset, PlotOrientation.VERTICAL, false, true, false
         );
         barChart.setBackgroundPaint(MAU_NEN_TAB);
         barChart.getTitle().setPaint(MAU_CHU_CHUNG);
@@ -389,7 +385,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
 
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
         renderer.setSeriesPaint(0, MAU_XANH_LUC);
-        renderer.setBarPainter(new org.jfree.chart.renderer.category.StandardBarPainter()); 
+        renderer.setBarPainter(new org.jfree.chart.renderer.category.StandardBarPainter());
         renderer.setShadowVisible(false);
 
         chartPanel.setChart(barChart);
@@ -397,12 +393,11 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         panelBieuDoContainer.repaint();
     }
 
-    // Đổ dữ liệu vào bảng thống kê
     private void capNhatBang(List<Object[]> list) {
         modelThongKe.setRowCount(0);
         int stt = 1;
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        
+
         for (Object[] row : list) {
             String ma = (String) row[0];
             String ten = (String) row[1];
@@ -410,46 +405,45 @@ public class ThongKeKhuyenMai_UI extends JPanel {
             BigDecimal tongTien = (BigDecimal) row[3];
             Date bd = (Date) row[4];
             Date kt = (Date) row[5];
-            
+
             modelThongKe.addRow(new Object[]{
-                stt++, 
-                ma, 
-                ten, 
-                numberFormat.format(soLuot),
-                currencyFormat.format(tongTien),
-                sdf.format(bd), 
-                sdf.format(kt)
+                    stt++,
+                    ma,
+                    ten,
+                    numberFormat.format(soLuot),
+                    currencyFormat.format(tongTien),
+                    sdf.format(bd),
+                    sdf.format(kt)
             });
         }
     }
 
-    // Xuất dữ liệu thống kê ra file Excel
     private void xuatFileExcel() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Lưu báo cáo khuyến mãi");
         fileChooser.setSelectedFile(new File("ThongKeKhuyenMai.xlsx"));
-        
+
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File f = fileChooser.getSelectedFile();
             if (!f.getName().endsWith(".xlsx")) f = new File(f.getAbsolutePath() + ".xlsx");
-            
+
             try (Workbook wb = new XSSFWorkbook(); FileOutputStream fos = new FileOutputStream(f)) {
                 Sheet sheet = wb.createSheet("KhuyenMai");
-                
+
                 CellStyle titleStyle = wb.createCellStyle();
                 org.apache.poi.ss.usermodel.Font titleFont = wb.createFont();
                 titleFont.setBold(true);
                 titleFont.setFontHeightInPoints((short) 16);
                 titleStyle.setFont(titleFont);
                 titleStyle.setAlignment(HorizontalAlignment.CENTER);
-                
+
                 CellStyle timeStyle = wb.createCellStyle();
                 org.apache.poi.ss.usermodel.Font timeFont = wb.createFont();
                 timeFont.setItalic(true);
                 timeFont.setFontHeightInPoints((short) 12);
                 timeStyle.setFont(timeFont);
                 timeStyle.setAlignment(HorizontalAlignment.CENTER);
-                
+
                 CellStyle headerStyle = wb.createCellStyle();
                 org.apache.poi.ss.usermodel.Font font = wb.createFont();
                 font.setBold(true);
@@ -460,13 +454,13 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                 headerStyle.setBorderTop(BorderStyle.THIN);
                 headerStyle.setBorderLeft(BorderStyle.THIN);
                 headerStyle.setBorderRight(BorderStyle.THIN);
-                
+
                 CellStyle dataStyle = wb.createCellStyle();
                 dataStyle.setBorderBottom(BorderStyle.THIN);
                 dataStyle.setBorderTop(BorderStyle.THIN);
                 dataStyle.setBorderLeft(BorderStyle.THIN);
                 dataStyle.setBorderRight(BorderStyle.THIN);
-                
+
                 Row rowTitle = sheet.createRow(0);
                 Cell cellTitle = rowTitle.createCell(0);
                 cellTitle.setCellValue("BÁO CÁO THỐNG KÊ KHUYẾN MÃI");
@@ -480,7 +474,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                 String s = (dcTuNgay.getDate() != null) ? sdf.format(dcTuNgay.getDate()) : "?";
                 String e = (dcDenNgay.getDate() != null) ? sdf.format(dcDenNgay.getDate()) : "?";
                 timeString = "Từ ngày: " + s + "  -  Đến ngày: " + e;
-                
+
                 cellTime.setCellValue(timeString);
                 cellTime.setCellStyle(timeStyle);
                 sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 6));
@@ -492,7 +486,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                     cell.setCellValue(modelThongKe.getColumnName(i));
                     cell.setCellStyle(headerStyle);
                 }
-                
+
                 for(int i=0; i<modelThongKe.getRowCount(); i++) {
                     Row r = sheet.createRow(startRow + 1 + i);
                     for(int j=0; j<modelThongKe.getColumnCount(); j++) {
@@ -502,32 +496,30 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                         cell.setCellStyle(dataStyle);
                     }
                 }
-                
+
                 for(int i=0; i<modelThongKe.getColumnCount(); i++) sheet.autoSizeColumn(i);
 
                 wb.write(fos);
                 JOptionPane.showMessageDialog(this, "Xuất file thành công!\n" + f.getAbsolutePath());
-            } catch (Exception ex) { 
+            } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Lỗi khi xuất file: " + ex.getMessage());
             }
         }
     }
-    
-    // Đánh dấu nút thời gian đang active
+
     private void setButtonActive(JButton activeBtn) {
         JButton[] buttons = {btnHomNay, btnTuanNay, btnThangNay, btnNamNay};
-        
+
         for (JButton btn : buttons) {
             if (btn == activeBtn) {
-                btn.setBackground(MAU_XANH_LUC); 
+                btn.setBackground(MAU_XANH_LUC);
             } else {
                 btn.setBackground(MAU_THANH_TIM_KIEM);
             }
         }
     }
 
-    // Lấy thời điểm bắt đầu của ngày
     private Date getStartOfDay(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -538,7 +530,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         return cal.getTime();
     }
 
-    // Lấy thời điểm kết thúc của ngày
     private Date getEndOfDay(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -549,7 +540,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         return cal.getTime();
     }
 
-    // Đặt khoảng thời gian là hôm nay
     private void datThoiGianHomNay() {
         Date now = new Date();
         dcTuNgay.setDate(getStartOfDay(now));
@@ -557,7 +547,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         thucHienThongKe();
     }
 
-    // Đặt khoảng thời gian là tuần này
     private void datThoiGianTuanNay() {
         Calendar c = Calendar.getInstance();
         c.setFirstDayOfWeek(Calendar.MONDAY);
@@ -568,7 +557,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         thucHienThongKe();
     }
 
-    // Đặt khoảng thời gian là tháng này
     private void datThoiGianThangNay() {
         Calendar c = Calendar.getInstance();
         c.set(Calendar.DAY_OF_MONTH, 1);
@@ -577,12 +565,11 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         thucHienThongKe();
     }
 
-    // Đặt khoảng thời gian là năm nay
     private void datThoiGianNamNay() {
         Calendar c = Calendar.getInstance();
-        c.set(Calendar.DAY_OF_YEAR, 1);     
+        c.set(Calendar.DAY_OF_YEAR, 1);
         dcTuNgay.setDate(getStartOfDay(c.getTime()));
-        dcDenNgay.setDate(getEndOfDay(new Date()));      
+        dcDenNgay.setDate(getEndOfDay(new Date()));
         thucHienThongKe();
     }
 }

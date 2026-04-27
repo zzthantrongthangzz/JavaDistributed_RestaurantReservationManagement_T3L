@@ -2,7 +2,6 @@ package ui.khuyenmai;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import javax.swing.*;
@@ -14,13 +13,15 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
 import com.toedter.calendar.JDateChooser;
 import java.text.SimpleDateFormat;
-import connect.DBConnect;
-import dao_impl.KhuyenMai_DAO;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+
+import rmi_interfaces.IKhuyenMai_DAO;
 import entity.KhuyenMai;
 
 public class TraCuuKhuyenMai_UI extends JPanel {
-    
-	private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
+
+    private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
     private final Color MAU_NEN_TAB = new Color(48, 52, 56);
     private final Color MAU_NEN_ITEM = new Color(31, 32, 44);
     private final Color MAU_CHU_CHUNG = Color.WHITE;
@@ -51,26 +52,24 @@ public class TraCuuKhuyenMai_UI extends JPanel {
     private JTable table;
     private DefaultTableModel tableModel;
     private JTextField txtTimKiemMa, txtTimKiemTen;
-    private JComboBox<String> cmbTimKiemLoai; 
+    private JComboBox<String> cmbTimKiemLoai;
     private JDateChooser dateLocBatDau, dateLocKetThuc;
     private JComboBox<String> cmbSapXep, cmbLocTheoGiaTri;
     private JButton btnLamMoi;
     private JPanel panelChinh;
-    private KhuyenMai_DAO kmDAO;
+    private IKhuyenMai_DAO kmDAO;
 
-    // Khởi tạo giao diện và kết nối database
     public TraCuuKhuyenMai_UI() {
         try {
-            kmDAO = new KhuyenMai_DAO(DBConnect.getConnection());
-        } catch (SQLException e) {
+            kmDAO = (IKhuyenMai_DAO) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+        } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối database: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
         khoiTaoGiaoDien();
         docDuLieuTuSQL();
     }
 
-    // Thiết lập bố cục chính
     private void khoiTaoGiaoDien() {
         setLayout(new BorderLayout());
         setBackground(MAU_NEN_TAB);
@@ -81,12 +80,11 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         panelChinh.setFocusable(true);
         panelChinh.add(taoPanelDieuKhien(), BorderLayout.NORTH);
         panelChinh.add(taoPanelNoiDung(), BorderLayout.CENTER);
-        
+
         add(panelChinh, BorderLayout.CENTER);
         panelChinh.requestFocusInWindow();
     }
 
-    // Tạo panel điều khiển chứa bộ lọc và nút
     private JPanel taoPanelDieuKhien() {
         JPanel panel = new JPanel(new BorderLayout(15, 0));
         panel.setBackground(MAU_NEN_TAB);
@@ -99,29 +97,29 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         JPanel panelTimKiem = new JPanel();
         panelTimKiem.setLayout(new BoxLayout(panelTimKiem, BoxLayout.X_AXIS));
         panelTimKiem.setBackground(MAU_NEN_TAB);
-        
+
         JPanel wrapperMa = taoWrapperTimKiemCoNhan("Mã KM:", PLACEHOLDER_MA);
         txtTimKiemMa = (JTextField) wrapperMa.getComponent(1);
-        
+
         JPanel wrapperTen = taoWrapperTimKiemCoNhan("Tên KM:", PLACEHOLDER_TEN);
         txtTimKiemTen = (JTextField) wrapperTen.getComponent(1);
-        
+
         JPanel panelLoaiKM = new JPanel(new BorderLayout(5, 0));
         panelLoaiKM.setBackground(MAU_NEN_TAB);
         JLabel lblLoaiKM = new JLabel("Loại KM:");
         lblLoaiKM.setFont(FONT_NHAN);
         lblLoaiKM.setForeground(MAU_CHU_LABEL);
-        lblLoaiKM.setBackground(new Color(124, 124, 124)); 
+        lblLoaiKM.setBackground(new Color(124, 124, 124));
         lblLoaiKM.setOpaque(true);
         lblLoaiKM.setHorizontalAlignment(SwingConstants.CENTER);
         lblLoaiKM.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
 
         cmbTimKiemLoai = taoComboBox(new String[]{"Tất cả loại", "Giảm %", "Giảm tiền"}, KICH_THUOC_THANH_TIM_KIEM);
-        cmbTimKiemLoai.addActionListener(e -> apDungTatCaBoLoc()); 
-        
+        cmbTimKiemLoai.addActionListener(e -> apDungTatCaBoLoc());
+
         panelLoaiKM.add(lblLoaiKM, BorderLayout.WEST);
         panelLoaiKM.add(cmbTimKiemLoai, BorderLayout.CENTER);
-        
+
         int chuanChieuCao = 40;
         Dimension maxSize = new Dimension(450, chuanChieuCao);
         wrapperMa.setMaximumSize(maxSize);
@@ -138,14 +136,14 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         JPanel panelLoc = new JPanel();
         panelLoc.setLayout(new BoxLayout(panelLoc, BoxLayout.X_AXIS));
         panelLoc.setBackground(MAU_NEN_TAB);
-        
-        cmbLocTheoGiaTri = taoComboBox(new String[]{"Lọc theo giá trị", "Dưới 50K", "50K-100K", "100K-200K", "Trên 200K"}, 
-            new Dimension(165, 40));
+
+        cmbLocTheoGiaTri = taoComboBox(new String[]{"Lọc theo giá trị", "Dưới 50K", "50K-100K", "100K-200K", "Trên 200K"},
+                new Dimension(165, 40));
         cmbLocTheoGiaTri.addActionListener(e -> apDungTatCaBoLoc());
-        
+
         cmbSapXep = taoComboBox(new String[]{"Sắp xếp", "Tên A-Z", "Tên Z-A", "Giá trị cao-thấp", "Giá trị thấp-cao"}, KICH_THUOC_COMBO_BOX);
         cmbSapXep.addActionListener(e -> apDungTatCaBoLoc());
-        
+
         JPanel panelNgayBatDau = new JPanel(new BorderLayout(5, 0));
         panelNgayBatDau.setBackground(MAU_NEN_TAB);
         JLabel lblNgayBD = new JLabel("Từ ngày:");
@@ -156,7 +154,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         panelNgayBatDau.add(lblNgayBD, BorderLayout.WEST);
         panelNgayBatDau.add(dateLocBatDau, BorderLayout.CENTER);
         panelNgayBatDau.setMaximumSize(new Dimension(200, 40));
-        
+
         JPanel panelNgayKetThuc = new JPanel(new BorderLayout(5, 0));
         panelNgayKetThuc.setBackground(MAU_NEN_TAB);
         JLabel lblNgayKT = new JLabel("Đến ngày:");
@@ -167,7 +165,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         panelNgayKetThuc.add(lblNgayKT, BorderLayout.WEST);
         panelNgayKetThuc.add(dateLocKetThuc, BorderLayout.CENTER);
         panelNgayKetThuc.setMaximumSize(new Dimension(200, 40));
-        
+
         panelLoc.add(cmbLocTheoGiaTri);
         panelLoc.add(Box.createRigidArea(new Dimension(10, 0)));
         panelLoc.add(cmbSapXep);
@@ -183,25 +181,24 @@ public class TraCuuKhuyenMai_UI extends JPanel {
 
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         panelNut.setBackground(MAU_NEN_TAB);
-                
+
         btnLamMoi = taoNutChucNang("Làm mới", new Color(33, 150, 243));
         btnLamMoi.addActionListener(e -> lamMoiGiaoDien());
-        
+
         panelNut.add(Box.createVerticalStrut(50));
         panelNut.add(btnLamMoi);
-        
+
         JLabel lblTieuDe = new JLabel("TRA CỨU KHUYẾN MÃI", SwingConstants.CENTER);
         lblTieuDe.setFont(new Font("Segoe UI", Font.BOLD, 35));
         lblTieuDe.setForeground(Color.WHITE);
         panel.add(lblTieuDe, BorderLayout.NORTH);
-        
+
         panel.add(containerTimKiemVaLoc, BorderLayout.WEST);
         panel.add(panelNut, BorderLayout.EAST);
 
         return panel;
     }
 
-    // Tạo wrapper tìm kiếm có nhãn
     private JPanel taoWrapperTimKiemCoNhan(String labelText, String placeholder) {
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setBackground(MAU_NEN_TAB);
@@ -222,7 +219,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return wrapper;
     }
 
-    // Tạo text field tìm kiếm
     private JTextField taoTextFieldTimKiem(String holder) {
         JTextField txt = new JTextField() {
             @Override
@@ -249,8 +245,8 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         txt.setPreferredSize(KICH_THUOC_THANH_TIM_KIEM);
         txt.setMaximumSize(KICH_THUOC_THANH_TIM_KIEM);
         txt.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
-            new EmptyBorder(8, 15, 8, 40)
+                BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
+                new EmptyBorder(8, 15, 8, 40)
         ));
 
         txt.addActionListener(e -> apDungTatCaBoLoc());
@@ -271,9 +267,9 @@ public class TraCuuKhuyenMai_UI extends JPanel {
             public void mouseMoved(MouseEvent e) {
                 int iconX = txt.getWidth() - KICH_THUOC_ICON - 10;
                 Rectangle iconBounds = new Rectangle(iconX, 0, KICH_THUOC_ICON + 10, txt.getHeight());
-                txt.setCursor(iconBounds.contains(e.getPoint()) ? 
-                    Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : 
-                    Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
+                txt.setCursor(iconBounds.contains(e.getPoint()) ?
+                        Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) :
+                        Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
             }
         });
 
@@ -298,7 +294,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return txt;
     }
 
-    // Tạo combo box
     private JComboBox<String> taoComboBox(String[] items, Dimension size) {
         JComboBox<String> cmb = new JComboBox<>(items);
         cmb.setFont(FONT_NHAN);
@@ -309,8 +304,8 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         cmb.setPreferredSize(size);
         cmb.setMaximumSize(size);
         cmb.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
-            new EmptyBorder(0, 15, 0, 5)
+                BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1),
+                new EmptyBorder(0, 15, 0, 5)
         ));
 
         cmb.setUI(new BasicComboBoxUI() {
@@ -335,7 +330,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return cmb;
     }
 
-    // Tạo nút chức năng
     private JButton taoNutChucNang(String text, Color mauNen) {
         JButton btn = new JButton(text);
         btn.setFont(FONT_NHAN);
@@ -358,7 +352,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return btn;
     }
 
-    // Tạo panel nội dung
     private JPanel taoPanelNoiDung() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(MAU_NEN_TAB);
@@ -367,7 +360,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return panel;
     }
 
-    // Tạo panel chứa bảng dữ liệu
     private JPanel taoPanelBang() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(MAU_NEN_TAB);
@@ -414,8 +406,8 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                 label.setOpaque(true);
                 label.setHorizontalAlignment(JLabel.CENTER);
                 label.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_LUOI_BANG),
-                    new EmptyBorder(10, 5, 10, 5)
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_LUOI_BANG),
+                        new EmptyBorder(10, 5, 10, 5)
                 ));
                 return label;
             }
@@ -443,39 +435,36 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return panel;
     }
 
-    // Đọc dữ liệu từ database
     private void docDuLieuTuSQL() {
         try {
             List<KhuyenMai> danhSach = kmDAO.getAllList();
             hienThiDanhSach(danhSach);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + e.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Lỗi khi đọc dữ liệu từ database: " + e.getMessage(),
-                "Lỗi", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi khi đọc dữ liệu từ database: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
 
-    // Hiển thị danh sách lên bảng
     private void hienThiDanhSach(List<KhuyenMai> danhSach) {
         tableModel.setRowCount(0);
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         for (KhuyenMai km : danhSach) {
-        	String ngayBatDau = sdf.format(km.getNgayBatDau());
+            String ngayBatDau = sdf.format(km.getNgayBatDau());
             String ngayKetThuc = sdf.format(km.getNgayKetThuc());
             tableModel.addRow(new Object[]{
-                km.getMaKhuyenMai(),
-                km.getTenKhuyenMai(),
-                km.getLoaiKhuyenMai(),
-                km.getGiaTriGiam(),
-                ngayBatDau,
-                ngayKetThuc
+                    km.getMaKhuyenMai(),
+                    km.getTenKhuyenMai(),
+                    km.getLoaiKhuyenMai(),
+                    km.getGiaTriGiam(),
+                    ngayBatDau,
+                    ngayKetThuc
             });
         }
     }
-    
-    // Áp dụng các bộ lọc tìm kiếm
+
     private void apDungTatCaBoLoc() {
         String tuKhoaMa = txtTimKiemMa.getText().trim();
         String tuKhoaTen = txtTimKiemTen.getText().trim();
@@ -495,41 +484,45 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         Date tuNgay = dateLocBatDau.getDate();
         Date denNgay = dateLocKetThuc.getDate();
 
-        List<KhuyenMai> ketQua = kmDAO.locDanhSach(
-            tuKhoaMa, tuKhoaTen, loaiKM, giaTriFilter, tuNgay, denNgay, sapXep
-        );
+        try {
+            List<KhuyenMai> ketQua = kmDAO.locDanhSach(
+                    tuKhoaMa, tuKhoaTen, loaiKM, giaTriFilter, tuNgay, denNgay, sapXep
+            );
 
-        hienThiDanhSach(ketQua);
+            hienThiDanhSach(ketQua);
 
-        if (ketQua.isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Không tìm thấy khuyến mãi phù hợp.", 
-                "Kết quả tìm kiếm", 
-                JOptionPane.INFORMATION_MESSAGE);
+            if (ketQua.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "Không tìm thấy khuyến mãi phù hợp.",
+                        "Kết quả tìm kiếm",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+            panelChinh.requestFocusInWindow();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
         }
-        panelChinh.requestFocusInWindow();
     }
 
-    // Tạo date chooser
     private JDateChooser taoDateChooser() {
         JDateChooser dateChooser = new JDateChooser();
         dateChooser.setDateFormatString("dd/MM/yyyy");
         dateChooser.setPreferredSize(new Dimension(140, 40));
         dateChooser.setBackground(MAU_THANH_TIM_KIEM);
         dateChooser.setForeground(MAU_CHU_CHUNG);
-        
+
         dateChooser.setBorder(BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1));
-        
+
         JButton calendarButton = dateChooser.getCalendarButton();
         calendarButton.setBackground(MAU_THANH_TIM_KIEM);
         calendarButton.setForeground(MAU_CHU_CHUNG);
         calendarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        calendarButton.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5)); // Padding nhẹ cho icon
-               
+        calendarButton.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+
         JTextField dateEditor = (JTextField) dateChooser.getDateEditor().getUiComponent();
 
         dateEditor.setBorder(new EmptyBorder(0, 10, 0, 0));
-        
+
         dateEditor.setBackground(MAU_THANH_TIM_KIEM);
         dateEditor.setForeground(Color.WHITE);
         dateEditor.setCaretColor(Color.WHITE);
@@ -540,9 +533,9 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         dateEditor.setOpaque(true);
 
         dateEditor.addPropertyChangeListener(evt -> {
-            if ("foreground".equals(evt.getPropertyName()) || 
-                "disabledTextColor".equals(evt.getPropertyName()) ||
-                "enabled".equals(evt.getPropertyName())) {
+            if ("foreground".equals(evt.getPropertyName()) ||
+                    "disabledTextColor".equals(evt.getPropertyName()) ||
+                    "enabled".equals(evt.getPropertyName())) {
                 SwingUtilities.invokeLater(() -> {
                     dateEditor.setForeground(Color.WHITE);
                     dateEditor.setDisabledTextColor(Color.WHITE);
@@ -570,31 +563,29 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                 });
             }
         });
-        
+
         return dateChooser;
     }
 
-    // Làm mới toàn bộ giao diện
     private void lamMoiGiaoDien() {
         txtTimKiemMa.setText(PLACEHOLDER_MA);
         txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
         txtTimKiemTen.setText(PLACEHOLDER_TEN);
         txtTimKiemTen.setForeground(MAU_PLACEHOLDER);
-        
+
         cmbTimKiemLoai.setSelectedIndex(0);
-        
+
         dateLocBatDau.setDate(null);
         dateLocKetThuc.setDate(null);
-        
+
         cmbSapXep.setSelectedIndex(0);
         cmbLocTheoGiaTri.setSelectedIndex(0);
-        
+
         docDuLieuTuSQL();
-        
+
         panelChinh.requestFocusInWindow();
     }
-    
-    // Tùy chỉnh thanh cuộn
+
     private void tuyChinhScrollBar(JScrollPane scrollPane) {
         JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
         verticalScrollBar.setPreferredSize(new Dimension(8, 0));

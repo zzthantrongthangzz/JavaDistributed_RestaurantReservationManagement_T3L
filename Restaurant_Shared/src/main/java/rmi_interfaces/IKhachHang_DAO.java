@@ -31,4 +31,6 @@ public interface IKhachHang_DAO extends Remote {
     public List<Object[]> getTopKhachHangDayDu(int topN, Date tu, Date den) throws RemoteException;
     public List<KhachHang> docDanhSachKhachHangDaXoa() throws RemoteException;
     public boolean khoiPhucKhachHang(String ma) throws RemoteException;
+    public List<KhachHang> getKhachHangDaXoa() throws RemoteException;
+
 }

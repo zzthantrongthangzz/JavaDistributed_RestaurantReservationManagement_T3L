@@ -4,14 +4,15 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import com.toedter.calendar.JDateChooser;
 
-import connect.DBConnect;
-import dao_impl.KhuyenMai_DAO;
-import entity.KhuyenMai;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.sql.SQLException;
 import java.util.Date;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+
+import rmi_interfaces.IKhuyenMai_DAO;
+import entity.KhuyenMai;
 
 public class ThemKhuyenMai_UI extends JPanel {
 
@@ -22,24 +23,23 @@ public class ThemKhuyenMai_UI extends JPanel {
     private JDateChooser dateNgayBatDau;
     private JDateChooser dateNgayKetThuc;
     private Image backgroundImage;
-    private KhuyenMai_DAO khuyenMaiDAO;
+    private IKhuyenMai_DAO khuyenMaiDAO;
 
     private final Color bgColor = new Color(48, 52, 56);
     private final Color componentColor = new Color(124, 124, 124);
     private final Color textColor = Color.WHITE;
 
-    // Khởi tạo giao diện
     public ThemKhuyenMai_UI() {
-    	try {
-            khuyenMaiDAO = new KhuyenMai_DAO(DBConnect.getConnection());
-        } catch (SQLException e) {
+        try {
+            khuyenMaiDAO = (IKhuyenMai_DAO) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+        } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối database: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
-        
+
         setBackground(bgColor);
         setLayout(null);
-        
+
         try {
             backgroundImage = new ImageIcon(getClass().getResource("/img/vipbackground2.png")).getImage();
         } catch (Exception e) {
@@ -118,7 +118,6 @@ public class ThemKhuyenMai_UI extends JPanel {
         }
     }
 
-    // Tạo label theo style
     private JLabel createStyledLabel(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(textColor);
@@ -126,7 +125,6 @@ public class ThemKhuyenMai_UI extends JPanel {
         return label;
     }
 
-    // Tạo text field theo style
     private JTextField createStyledTextField() {
         JTextField textField = new JTextField();
         textField.setBackground(componentColor);
@@ -137,37 +135,35 @@ public class ThemKhuyenMai_UI extends JPanel {
         return textField;
     }
 
-    // Tạo combo box theo style
     private JComboBox<String> createStyledComboBox(String[] items) {
         JComboBox<String> comboBox = new JComboBox<>(items);
         comboBox.setBackground(componentColor);
         comboBox.setForeground(textColor);
         comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         comboBox.setBorder(BorderFactory.createEmptyBorder());
-        comboBox.setFocusable(false);   
+        comboBox.setFocusable(false);
         return comboBox;
     }
 
-    // Tạo date chooser theo style
     private JDateChooser createStyledDateChooser() {
         JDateChooser dateChooser = new JDateChooser();
         dateChooser.setDateFormatString("dd/MM/yyyy");
         dateChooser.setBackground(componentColor);
         dateChooser.setForeground(textColor);
         dateChooser.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-        
+
         JButton calendarButton = dateChooser.getCalendarButton();
-        calendarButton.setBackground(componentColor); 
+        calendarButton.setBackground(componentColor);
         calendarButton.setBorder(BorderFactory.createEmptyBorder());
         calendarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
+
         JTextField dateTextField = ((JTextField) dateChooser.getDateEditor().getUiComponent());
         dateTextField.setBackground(componentColor);
         dateTextField.setForeground(textColor);
         dateTextField.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         dateTextField.setBorder(new EmptyBorder(5, 10, 5, 10));
         dateTextField.setCaretColor(Color.WHITE);
-        
+
         JTextField dateEditor = (JTextField) dateChooser.getDateEditor().getUiComponent();
 
         dateEditor.setForeground(Color.WHITE);
@@ -177,9 +173,9 @@ public class ThemKhuyenMai_UI extends JPanel {
         dateEditor.setOpaque(true);
 
         dateEditor.addPropertyChangeListener(evt -> {
-            if ("foreground".equals(evt.getPropertyName()) || 
-                "disabledTextColor".equals(evt.getPropertyName()) ||
-                "enabled".equals(evt.getPropertyName())) {
+            if ("foreground".equals(evt.getPropertyName()) ||
+                    "disabledTextColor".equals(evt.getPropertyName()) ||
+                    "enabled".equals(evt.getPropertyName())) {
                 SwingUtilities.invokeLater(() -> {
                     dateEditor.setForeground(Color.WHITE);
                     dateEditor.setDisabledTextColor(Color.WHITE);
@@ -211,7 +207,6 @@ public class ThemKhuyenMai_UI extends JPanel {
         return dateChooser;
     }
 
-    // Tạo button theo style
     private JButton createStyledButton(String text, String iconPath) {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -232,7 +227,6 @@ public class ThemKhuyenMai_UI extends JPanel {
         return button;
     }
 
-    // Làm mới form nhập liệu
     private void lamMoi() {
         taoMaKhuyenMaiTuDong();
         txtTenKhuyenMai.setText("");
@@ -242,18 +236,19 @@ public class ThemKhuyenMai_UI extends JPanel {
         dateNgayKetThuc.setDate(null);
         txtTenKhuyenMai.requestFocus();
         cmbLoaiKhuyenMai.setSelectedItem(null);
-        
     }
 
-    // Tạo mã khuyến mãi tự động từ database
     private void taoMaKhuyenMaiTuDong() {
-        if (khuyenMaiDAO != null) {
-            String maKM = khuyenMaiDAO.taoMaKhuyenMaiTuDong();
-            txtMaKhuyenMai.setText(maKM);
+        try {
+            if (khuyenMaiDAO != null) {
+                String maKM = khuyenMaiDAO.taoMaKhuyenMaiTuDong();
+                txtMaKhuyenMai.setText(maKM);
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 
-    // Xử lý thêm khuyến mãi mới
     private void themKhuyenMai() {
         String maKM = txtMaKhuyenMai.getText().trim();
         String tenKM = txtTenKhuyenMai.getText().trim();
@@ -261,30 +256,30 @@ public class ThemKhuyenMai_UI extends JPanel {
         String loaiKM = (String) cmbLoaiKhuyenMai.getSelectedItem();
         Date ngayBatDau = dateNgayBatDau.getDate();
         Date ngayKetThuc = dateNgayKetThuc.getDate();
-                
+
         if (tenKM.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập tên khuyến mãi!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             txtTenKhuyenMai.requestFocus();
             return;
-        }        
-        
+        }
+
         String regex = "^[A-ZÀ-Ỹ].*$";
 
         if (!tenKM.matches(regex)) {
-            JOptionPane.showMessageDialog(this, 
+            JOptionPane.showMessageDialog(this,
                     "Tên khuyến mãi không hợp lệ!\n" +
-                    "Vui lòng viết hoa chữ cái đầu tiên.", 
+                            "Vui lòng viết hoa chữ cái đầu tiên.",
                     "Thông báo", JOptionPane.WARNING_MESSAGE);
             txtTenKhuyenMai.requestFocus();
             return;
         }
-        
+
         if (giaTriStr.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập giá trị khuyến mãi!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             txtGiaTri.requestFocus();
             return;
         }
-        
+
         double giaTri;
         try {
             giaTri = Double.parseDouble(giaTriStr);
@@ -298,57 +293,61 @@ public class ThemKhuyenMai_UI extends JPanel {
             txtGiaTri.requestFocus();
             return;
         }
-        
+
         if (loaiKM == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn loại khuyến mãi!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
-        // Nếu là giảm % thì không quá 100
+
         if (loaiKM.equals("Giảm %") && giaTri > 100) {
-            JOptionPane.showMessageDialog(this, 
-                "Loại giảm giá là 'Giảm %' thì giá trị chỉ được từ 1-100!", 
-                "Thông báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Loại giảm giá là 'Giảm %' thì giá trị chỉ được từ 1-100!",
+                    "Thông báo", JOptionPane.WARNING_MESSAGE);
             txtGiaTri.requestFocus();
             return;
         }
-        
+
         if (ngayBatDau == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày bắt đầu!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         if (ngayKetThuc == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày kết thúc!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         if (ngayKetThuc.before(ngayBatDau)) {
             JOptionPane.showMessageDialog(this, "Ngày kết thúc phải sau ngày bắt đầu!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
-        if (khuyenMaiDAO.kiemTraMaTonTai(maKM)) {
-            JOptionPane.showMessageDialog(this, "Mã khuyến mãi đã tồn tại! Vui lòng nhập mã khác.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            txtMaKhuyenMai.requestFocus();
-            return;
-        }
-        
-        int confirm = JOptionPane.showConfirmDialog(this, 
-            "Bạn có chắc chắn muốn thêm khuyến mãi này?", 
-            "Xác nhận", 
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (confirm == JOptionPane.YES_OPTION) {
-            KhuyenMai km = new KhuyenMai(maKM, tenKM, loaiKM, ngayBatDau, ngayKetThuc, giaTri, 1);
-            
-            if (khuyenMaiDAO.themKhuyenMai(km)) {
-                JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                lamMoi();
-            } else {
-                JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+
+        try {
+            if (khuyenMaiDAO.kiemTraMaTonTai(maKM)) {
+                JOptionPane.showMessageDialog(this, "Mã khuyến mãi đã tồn tại! Vui lòng nhập mã khác.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                txtMaKhuyenMai.requestFocus();
+                return;
             }
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Bạn có chắc chắn muốn thêm khuyến mãi này?",
+                    "Xác nhận",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                KhuyenMai km = new KhuyenMai(maKM, tenKM, loaiKM, ngayBatDau, ngayKetThuc, giaTri, 1);
+
+                if (khuyenMaiDAO.themKhuyenMai(km)) {
+                    JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    lamMoi();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -358,5 +357,4 @@ public class ThemKhuyenMai_UI extends JPanel {
     public String getLoaiKhuyenMai() { return (String) cmbLoaiKhuyenMai.getSelectedItem(); }
     public Date getNgayBatDau() { return dateNgayBatDau.getDate(); }
     public Date getNgayKetThuc() { return dateNgayKetThuc.getDate(); }
-    
 }

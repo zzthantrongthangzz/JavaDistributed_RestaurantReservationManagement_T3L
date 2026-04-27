@@ -1,35 +1,34 @@
 package ui.banan;
 
-import dao_impl.BanAn_DAO;
-import dao_impl.Khu_DAO;
-import dao_impl.Tang_DAO;
+import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.IKhu_DAO;
+import rmi_interfaces.ITang_DAO;
 import entity.BanAn;
-import entity.Khu; 
-import entity.Tang; 
+import entity.Khu;
+import entity.Tang;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.rmi.Naming;
 import java.util.List;
 
 public class ThemBan_UI extends JDialog {
 
-    // ========== COMPONENTS ==========
     private JTextField txtMaBan;
     private JTextField txtTenBan;
     private JComboBox<String> cmbLoaiBan;
     private JTextField txtSucChua;
-    private JComboBox<String> cmbTang; 
-    private JComboBox<String> cmbKhu;  
+    private JComboBox<String> cmbTang;
+    private JComboBox<String> cmbKhu;
 
-    private BanAn_DAO banAnDAO;
-    private Khu_DAO khuDAO; 
-    private Tang_DAO tangDAO; 
+    private IBanAn_DAO banAnDAO;
+    private IKhu_DAO khuDAO;
+    private ITang_DAO tangDAO;
     private Runnable onTableAdded;
 
-    // ========== BIẾN MÀU SẮC ==========
     private final Color MAU_NEN = new Color(48, 52, 56);
     private final Color MAU_NEN_FORM = new Color(48, 52, 56);
     private final Color MAU_NEN_INPUT = new Color(60, 64, 68);
@@ -41,28 +40,30 @@ public class ThemBan_UI extends JDialog {
     private final Color MAU_NUT_HUY = new Color(231, 76, 60);
     private final Color MAU_NUT_HUY_HOVER = new Color(192, 57, 43);
     private final Color MAU_VIEN_DUOI = new Color(70, 72, 87);
-    
-    private final Color MAU_NUT_CAP_NHAT = new Color(255, 193, 7); 
-    private final Color MAU_NUT_XOA = new Color(244, 67, 54); 
 
-    // ========== KÍCH THƯỚC ==========
+    private final Color MAU_NUT_CAP_NHAT = new Color(255, 193, 7);
+    private final Color MAU_NUT_XOA = new Color(244, 67, 54);
+
     private final Dimension KICH_THUOC_O_NHAP = new Dimension(400, 40);
     private final Dimension KICH_THUOC_LOAI_BAN = new Dimension(400, 40);
     private final Dimension KICH_THUOC_NUT = new Dimension(150, 45);
 
-    // ========== FONT CHỮ ==========
     private final Font FONT_TIEU_DE = new Font("Segoe UI", Font.BOLD, 32);
     private final Font FONT_NHAN = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_O_NHAP = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 16);
 
-    // Khởi tạo giao diện thêm bàn ăn
     public ThemBan_UI(Frame parent, Runnable onTableAdded) {
         super(parent, "Thêm bàn ăn", true);
         this.onTableAdded = onTableAdded;
-        banAnDAO = new BanAn_DAO();
-        khuDAO = new Khu_DAO(); 
-        tangDAO = new Tang_DAO(); 
+
+        try {
+            banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            khuDAO = (IKhu_DAO) Naming.lookup("rmi://localhost:1099/Khu_DAO");
+            tangDAO = (ITang_DAO) Naming.lookup("rmi://localhost:1099/Tang_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         khoiTaoGiaoDien();
 
@@ -73,11 +74,10 @@ public class ThemBan_UI extends JDialog {
         setLocationRelativeTo(parent);
         setResizable(false);
     }
-    
+
     public ThemBan_UI() { this(null, null); }
     public ThemBan_UI(Frame parent) { this(parent, null); }
 
-    // Thiết lập cấu trúc giao diện chính
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(MAU_NEN);
@@ -93,7 +93,6 @@ public class ThemBan_UI extends JDialog {
         getContentPane().add(mainPanel);
     }
 
-    // Tạo panel chứa tiêu đề
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         panel.setBackground(MAU_NEN);
@@ -104,14 +103,13 @@ public class ThemBan_UI extends JDialog {
         panel.add(lblTieuDe);
 
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, MAU_VIEN_DUOI),
-            new EmptyBorder(0, 0, 15, 0)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, MAU_VIEN_DUOI),
+                new EmptyBorder(0, 0, 15, 0)
         ));
 
         return panel;
     }
 
-    // Tạo panel chứa các trường nhập liệu
     private JPanel taoPanelForm() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -124,15 +122,15 @@ public class ThemBan_UI extends JDialog {
         txtMaBan.setBackground(MAU_NEN_INPUT.darker());
         taoMaBanTuDong();
 
-        panel.add(taoPanelComboVoiNut("Tầng:", 
-            cmbTang = taoComboBox(new String[]{"Đang tải..."}),
-            e -> hienThiDialogThemTang() 
+        panel.add(taoPanelComboVoiNut("Tầng:",
+                cmbTang = taoComboBox(new String[]{"Đang tải..."}),
+                e -> hienThiDialogThemTang()
         ));
         cmbTang.addActionListener(e -> capNhatDanhSachKhu());
 
-        panel.add(taoPanelComboVoiNut("Khu:", 
-            cmbKhu = taoComboBox(new String[]{"Vui lòng chọn tầng"}),
-            e -> hienThiDialogThemKhu() 
+        panel.add(taoPanelComboVoiNut("Khu:",
+                cmbKhu = taoComboBox(new String[]{"Vui lòng chọn tầng"}),
+                e -> hienThiDialogThemKhu()
         ));
 
         cmbLoaiBan = taoComboBoxCoNhan(panel, "Loại bàn:", new String[]{"Bàn nhỏ", "Bàn vừa", "Bàn lớn", "Phòng VIP"});
@@ -142,7 +140,7 @@ public class ThemBan_UI extends JDialog {
         txtTenBan.setEditable(false);
         txtTenBan.setFocusable(false);
         txtTenBan.setBackground(MAU_NEN_INPUT.darker());
-        
+
         txtSucChua = taoFieldCoNhan(panel, "Sức chứa:", false, "");
         txtSucChua.setEditable(false);
         txtSucChua.setFocusable(false);
@@ -150,8 +148,7 @@ public class ThemBan_UI extends JDialog {
 
         return panel;
     }
-    
-    // Tạo panel chứa ComboBox và nút thêm nhanh
+
     private JPanel taoPanelComboVoiNut(String nhan, JComboBox<String> comboBox, java.awt.event.ActionListener buttonAction) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -170,7 +167,7 @@ public class ThemBan_UI extends JDialog {
         innerPanel.setBackground(MAU_NEN_FORM);
         innerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); 
+        comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         innerPanel.add(comboBox);
         innerPanel.add(Box.createHorizontalStrut(5));
 
@@ -179,14 +176,13 @@ public class ThemBan_UI extends JDialog {
         button.setMaximumSize(new Dimension(40, 40));
         button.addActionListener(buttonAction);
         innerPanel.add(button);
-        
+
         panel.add(innerPanel);
         panel.add(Box.createVerticalStrut(8));
-        
+
         return panel;
     }
 
-    // Tạo nút bấm có icon
     private JButton createIconButton(String iconPath, Color backgroundColor, int iconSize) {
         JButton button = new JButton();
         button.setBackground(backgroundColor);
@@ -199,10 +195,9 @@ public class ThemBan_UI extends JDialog {
             Image scaledIcon = icon.getImage().getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
             button.setIcon(new ImageIcon(scaledIcon));
         } catch (Exception e) {
-            System.err.println("Không tìm thấy icon: " + iconPath);
             button.setText("+");
         }
-        
+
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -216,7 +211,6 @@ public class ThemBan_UI extends JDialog {
         return button;
     }
 
-    // Tạo trường nhập liệu kèm nhãn
     private JTextField taoFieldCoNhan(JPanel panel, String nhan, boolean batBuoc, String placeholder) {
         JPanel fieldPanel = new JPanel();
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
@@ -240,7 +234,6 @@ public class ThemBan_UI extends JDialog {
         return textField;
     }
 
-    // Tạo và định dạng TextField
     private JTextField taoTextField(String placeholder) {
         JTextField textField = new JTextField();
         textField.setPreferredSize(KICH_THUOC_O_NHAP);
@@ -250,13 +243,12 @@ public class ThemBan_UI extends JDialog {
         textField.setForeground(MAU_CHU_TRANG);
         textField.setCaretColor(MAU_CHU_TRANG);
         textField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
-            new EmptyBorder(5, 10, 5, 10)
+                BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1),
+                new EmptyBorder(5, 10, 5, 10)
         ));
         return textField;
     }
 
-    // Tạo ComboBox kèm nhãn
     private JComboBox<String> taoComboBoxCoNhan(JPanel panel, String nhan, String[] items) {
         JPanel comboPanel = new JPanel();
         comboPanel.setLayout(new BoxLayout(comboPanel, BoxLayout.Y_AXIS));
@@ -280,7 +272,6 @@ public class ThemBan_UI extends JDialog {
         return comboBox;
     }
 
-    // Tạo và định dạng ComboBox
     private JComboBox<String> taoComboBox(String[] items) {
         JComboBox<String> comboBox = new JComboBox<>(items);
         comboBox.setFont(FONT_O_NHAP);
@@ -290,7 +281,6 @@ public class ThemBan_UI extends JDialog {
         return comboBox;
     }
 
-    // Tạo panel chứa các nút tác vụ
     private JPanel taoPanelNut() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         panel.setBackground(MAU_NEN);
@@ -307,7 +297,6 @@ public class ThemBan_UI extends JDialog {
         return panel;
     }
 
-    // Tạo và định dạng nút bấm
     private JButton taoNut(String text, Color mauNen, Color mauHover) {
         JButton button = new JButton(text);
         button.setPreferredSize(KICH_THUOC_NUT);
@@ -331,31 +320,29 @@ public class ThemBan_UI extends JDialog {
         return button;
     }
 
-    // Tải dữ liệu tầng vào ComboBox
     private void loadDuLieuTang() {
         try {
-            List<String> dsTang = tangDAO.docDanhSachTenTang(); 
-            dsTang.remove("Tất cả"); 
-            
+            List<String> dsTang = tangDAO.docDanhSachTenTang();
+            dsTang.remove("Tất cả");
+
             cmbTang.setModel(new DefaultComboBoxModel<>(dsTang.toArray(new String[0])));
-            capNhatDanhSachKhu(); 
+            capNhatDanhSachKhu();
         } catch (Exception e) {
             cmbTang.setModel(new DefaultComboBoxModel<>(new String[]{"Lỗi tải tầng"}));
         }
     }
-    
-    // Cập nhật danh sách khu dựa trên tầng đã chọn
+
     private void capNhatDanhSachKhu() {
         String tenTang = (String) cmbTang.getSelectedItem();
         if (tenTang == null || tenTang.equals("Lỗi tải tầng")) {
             cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Vui lòng chọn tầng"}));
             return;
         }
-        
+
         try {
-            List<String> dsKhu = banAnDAO.docDanhSachTenKhuTheoTang(tenTang); 
+            List<String> dsKhu = banAnDAO.docDanhSachTenKhuTheoTang(tenTang);
             dsKhu.remove("Tất cả");
-            
+
             if (dsKhu.isEmpty()) {
                 cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Không có khu"}));
             } else {
@@ -366,7 +353,6 @@ public class ThemBan_UI extends JDialog {
         }
     }
 
-    // Xử lý logic thêm bàn mới
     private void xuLyThemBan() {
         try {
             String maBan = txtMaBan.getText().trim();
@@ -379,7 +365,7 @@ public class ThemBan_UI extends JDialog {
             if (tenKhu == null || tenKhu.startsWith("Vui lòng") || tenKhu.startsWith("Không có")) {
                 throw new IllegalArgumentException("Vui lòng chọn Khu vực hợp lệ.");
             }
-            String maKhu = khuDAO.layMaKhuTheoTen(tenKhu); 
+            String maKhu = khuDAO.layMaKhuTheoTen(tenKhu);
             if (maKhu == null) throw new IllegalArgumentException("Khu vực không tồn tại.");
 
             int sucChua;
@@ -406,12 +392,11 @@ public class ThemBan_UI extends JDialog {
         }
     }
 
-    // Tự động sinh mã bàn tiếp theo
     private void taoMaBanTuDong() {
-         try {
+        try {
             List<BanAn> danhSachBan = banAnDAO.docDanhSachBan();
             int soThuTu = 1;
-            
+
             if (!danhSachBan.isEmpty()) {
                 for (BanAn ban : danhSachBan) {
                     String maBan = ban.getMaBan();
@@ -433,29 +418,28 @@ public class ThemBan_UI extends JDialog {
         }
     }
 
-    // Cập nhật tên bàn và sức chứa dựa trên loại bàn
     private void capNhatTenBanVaSucChua() {
         try {
             String loaiBanDuocChon = (String) cmbLoaiBan.getSelectedItem();
             if (loaiBanDuocChon == null) {
-                return; 
+                return;
             }
 
             List<BanAn> danhSachBan = banAnDAO.docDanhSachBan();
             int soPhongVipHienCo = 0;
-            int soBanThuongHienCo = 0; 
-            
+            int soBanThuongHienCo = 0;
+
             for (BanAn ban : danhSachBan) {
                 String loaiBanHienTai = ban.getLoaiBan();
                 if ("Phòng VIP".equals(loaiBanHienTai)) {
                     soPhongVipHienCo++;
-                } else if ("Bàn nhỏ".equals(loaiBanHienTai) || 
-                           "Bàn vừa".equals(loaiBanHienTai) || 
-                           "Bàn lớn".equals(loaiBanHienTai)) {
+                } else if ("Bàn nhỏ".equals(loaiBanHienTai) ||
+                        "Bàn vừa".equals(loaiBanHienTai) ||
+                        "Bàn lớn".equals(loaiBanHienTai)) {
                     soBanThuongHienCo++;
                 }
             }
-            
+
             String tenBan;
             if ("Phòng VIP".equals(loaiBanDuocChon)) {
                 int soThuTuVIP = soPhongVipHienCo + 1;
@@ -464,9 +448,9 @@ public class ThemBan_UI extends JDialog {
                 int soThuTuBanThuong = soBanThuongHienCo + 1;
                 tenBan = String.format("Bàn %03d", soThuTuBanThuong);
             }
-            
+
             txtTenBan.setText(tenBan);
-            
+
             int sucChua;
             switch (loaiBanDuocChon) {
                 case "Bàn nhỏ":
@@ -485,20 +469,18 @@ public class ThemBan_UI extends JDialog {
                     sucChua = 0;
             }
             txtSucChua.setText(String.valueOf(sucChua));
-            
+
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                "Lỗi khi cập nhật tên bàn và sức chứa: " + e.getMessage(),
-                "Lỗi",
-                JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace(); 
+                    "Lỗi khi cập nhật tên bàn và sức chứa: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    // Hiển thị hộp thoại thêm tầng mới
+
     private void hienThiDialogThemTang() {
         JDialog dialog = new JDialog(this, "Thêm Tầng Mới", true);
-        dialog.setSize(400, 450); 
+        dialog.setSize(400, 450);
         dialog.setLocationRelativeTo(this);
         dialog.setResizable(false);
         dialog.getContentPane().setBackground(MAU_NEN);
@@ -531,64 +513,63 @@ public class ThemBan_UI extends JDialog {
         listTangHienCo.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JScrollPane scrollPane = new JScrollPane(listTangHienCo);
-        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150)); 
+        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
         scrollPane.getViewport().setBackground(MAU_NEN_INPUT);
         scrollPane.setBorder(BorderFactory.createLineBorder(MAU_VIEN_INPUT));
-        
+
         pnlForm.add(scrollPane);
         pnlForm.add(Box.createVerticalStrut(20));
         JPanel pnlThemMoi = new JPanel(new BorderLayout(0, 5));
-        pnlThemMoi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70)); 
+        pnlThemMoi.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
         pnlThemMoi.setOpaque(false);
-        pnlThemMoi.setAlignmentX(Component.LEFT_ALIGNMENT); 
-        
+        pnlThemMoi.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         JLabel lblThemMoi = new JLabel("Tên Tầng Mới:");
         lblThemMoi.setFont(FONT_NHAN);
         lblThemMoi.setForeground(MAU_CHU_TRANG);
         JTextField txtTenTangMoi = taoTextField("");
-        
+
         pnlThemMoi.add(lblThemMoi, BorderLayout.NORTH);
         pnlThemMoi.add(txtTenTangMoi, BorderLayout.CENTER);
-        
+
         pnlForm.add(pnlThemMoi);
         JPanel pnlButton = taoPanelNutDialog(
-            e -> {
-                String tenMoi = txtTenTangMoi.getText().trim();
-                if (tenMoi.isEmpty()) {
-                    JOptionPane.showMessageDialog(dialog, "Tên tầng không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                try {
-                    if (tangDAO.timTangTheoTen(tenMoi) != null) {
-                        JOptionPane.showMessageDialog(dialog, "Tầng này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    } else {
-                        String maMoi = tangDAO.sinhMaTangTuDong();
-                        Tang tangMoi = new Tang(maMoi, tenMoi);
-                        
-                        if(tangDAO.themTang(tangMoi)) {
-                            loadDuLieuTang();
-                            cmbTang.setSelectedItem(tenMoi);
-                            JOptionPane.showMessageDialog(dialog, "Đã thêm tầng mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            dialog.dispose();
-                        } else {
-                             JOptionPane.showMessageDialog(dialog, "Thêm tầng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        }
+                e -> {
+                    String tenMoi = txtTenTangMoi.getText().trim();
+                    if (tenMoi.isEmpty()) {
+                        JOptionPane.showMessageDialog(dialog, "Tên tầng không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        return;
                     }
-                } catch (Exception ex) {
-                     JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm tầng: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
-            },
-            e -> dialog.dispose()
+                    try {
+                        if (tangDAO.timTangTheoTen(tenMoi) != null) {
+                            JOptionPane.showMessageDialog(dialog, "Tầng này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                        } else {
+                            String maMoi = tangDAO.sinhMaTangTuDong();
+                            Tang tangMoi = new Tang(maMoi, tenMoi);
+
+                            if(tangDAO.themTang(tangMoi)) {
+                                loadDuLieuTang();
+                                cmbTang.setSelectedItem(tenMoi);
+                                JOptionPane.showMessageDialog(dialog, "Đã thêm tầng mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                                dialog.dispose();
+                            } else {
+                                JOptionPane.showMessageDialog(dialog, "Thêm tầng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm tầng: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                },
+                e -> dialog.dispose()
         );
-        mainPanel.add(pnlForm, BorderLayout.CENTER); 
+        mainPanel.add(pnlForm, BorderLayout.CENTER);
         mainPanel.add(pnlButton, BorderLayout.SOUTH);
-        
+
         dialog.add(mainPanel);
         dialog.setVisible(true);
     }
-    
-    // Hiển thị hộp thoại thêm khu vực mới
+
     private void hienThiDialogThemKhu() {
         JDialog dialog = new JDialog(this, "Thêm Khu Mới", true);
         dialog.setSize(400, 280);
@@ -607,9 +588,9 @@ public class ThemBan_UI extends JDialog {
         JLabel lblChonTang = new JLabel("Thêm khu vào tầng:");
         lblChonTang.setFont(FONT_NHAN);
         lblChonTang.setForeground(MAU_CHU_TRANG);
-        lblChonTang.setAlignmentX(Component.LEFT_ALIGNMENT); 
+        lblChonTang.setAlignmentX(Component.LEFT_ALIGNMENT);
         pnlForm.add(lblChonTang);
-        
+
         JComboBox<String> cmbChonTang = taoComboBox(new String[]{});
         DefaultComboBoxModel<String> modelTang = new DefaultComboBoxModel<>();
         for (int i = 0; i < cmbTang.getItemCount(); i++) {
@@ -618,78 +599,77 @@ public class ThemBan_UI extends JDialog {
         cmbChonTang.setModel(modelTang);
         cmbChonTang.setSelectedItem(cmbTang.getSelectedItem());
 
-        cmbChonTang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30)); 
+        cmbChonTang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
         cmbChonTang.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         pnlForm.add(cmbChonTang);
         pnlForm.add(Box.createVerticalStrut(15));
-        
+
         JLabel lblThemMoi = new JLabel("Tên Khu Mới:");
         lblThemMoi.setFont(FONT_NHAN);
         lblThemMoi.setForeground(MAU_CHU_TRANG);
         lblThemMoi.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+
         JTextField txtTenKhuMoi = taoTextField("");
         txtTenKhuMoi.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+
         pnlForm.add(lblThemMoi);
         pnlForm.add(txtTenKhuMoi);
 
         JPanel pnlButton = taoPanelNutDialog(
-            e -> {
-                String tenKhuMoi = txtTenKhuMoi.getText().trim();
-                String tenTangDuocChon = (String) cmbChonTang.getSelectedItem();
+                e -> {
+                    String tenKhuMoi = txtTenKhuMoi.getText().trim();
+                    String tenTangDuocChon = (String) cmbChonTang.getSelectedItem();
 
-                if (tenKhuMoi.isEmpty()) {
-                    JOptionPane.showMessageDialog(dialog, "Tên khu không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                if (tenTangDuocChon == null) {
-                    JOptionPane.showMessageDialog(dialog, "Bạn phải chọn một tầng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                
-                try {
-                    if (khuDAO.timKhuTheoTen(tenKhuMoi) != null) {
-                        JOptionPane.showMessageDialog(dialog, "Tên khu này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                    } else {
-                        Tang tang = tangDAO.timTangTheoTen(tenTangDuocChon);
-                        if (tang == null) {
-                            JOptionPane.showMessageDialog(dialog, "Không tìm thấy tầng đã chọn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                        
-                        String maKhuMoi = khuDAO.sinhMaKhuTuDong();
-                        Khu khuMoi = new Khu(maKhuMoi, tenKhuMoi, tang.getMaTang());
-                        
-                        if(khuDAO.themKhu(khuMoi)) {
-                            capNhatDanhSachKhu();
-                            cmbKhu.setSelectedItem(tenKhuMoi);
-                            JOptionPane.showMessageDialog(dialog, "Đã thêm khu mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                            dialog.dispose();
-                        } else {
-                             JOptionPane.showMessageDialog(dialog, "Thêm khu thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        }
+                    if (tenKhuMoi.isEmpty()) {
+                        JOptionPane.showMessageDialog(dialog, "Tên khu không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        return;
                     }
-                } catch (Exception ex) {
-                     JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm khu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
-            },
-            e -> dialog.dispose()
+                    if (tenTangDuocChon == null) {
+                        JOptionPane.showMessageDialog(dialog, "Bạn phải chọn một tầng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    try {
+                        if (khuDAO.timKhuTheoTen(tenKhuMoi) != null) {
+                            JOptionPane.showMessageDialog(dialog, "Tên khu này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                        } else {
+                            Tang tang = tangDAO.timTangTheoTen(tenTangDuocChon);
+                            if (tang == null) {
+                                JOptionPane.showMessageDialog(dialog, "Không tìm thấy tầng đã chọn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+
+                            String maKhuMoi = khuDAO.sinhMaKhuTuDong();
+                            Khu khuMoi = new Khu(maKhuMoi, tenKhuMoi, tang.getMaTang());
+
+                            if(khuDAO.themKhu(khuMoi)) {
+                                capNhatDanhSachKhu();
+                                cmbKhu.setSelectedItem(tenKhuMoi);
+                                JOptionPane.showMessageDialog(dialog, "Đã thêm khu mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                                dialog.dispose();
+                            } else {
+                                JOptionPane.showMessageDialog(dialog, "Thêm khu thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm khu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                },
+                e -> dialog.dispose()
         );
 
         mainPanel.add(pnlForm, BorderLayout.CENTER);
         mainPanel.add(pnlButton, BorderLayout.SOUTH);
-        
+
         dialog.add(mainPanel);
         dialog.setVisible(true);
     }
-    
-    // Tạo panel nút cho các hộp thoại con
+
     private JPanel taoPanelNutDialog(java.awt.event.ActionListener themAction, java.awt.event.ActionListener huyAction) {
         JPanel pnlButton = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         pnlButton.setOpaque(false);
-        
+
         JButton btnThem = new JButton("Thêm");
         btnThem.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnThem.setBackground(MAU_NUT_THEM);
@@ -724,7 +704,7 @@ public class ThemBan_UI extends JDialog {
         pnlButton.add(btnThem);
         pnlButton.add(Box.createRigidArea(new Dimension(10, 0)));
         pnlButton.add(btnHuy);
-        
+
         return pnlButton;
     }
 }

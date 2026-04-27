@@ -1,8 +1,8 @@
 package ui.banan;
 
-import dao_impl.HoaDon_DAO;
-import dao_impl.HoaDon_Ban_DAO;
-import dao_impl.KhachHang_DAO;
+import rmi_interfaces.IHoaDon_DAO;
+import rmi_interfaces.IHoaDon_Ban_DAO;
+import rmi_interfaces.IKhachHang_DAO;
 import entity.BanAn;
 import entity.HoaDon;
 import entity.KhachHang;
@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.rmi.Naming;
 
 import ui.khachhang.ThemKhachHang_UI;
 
@@ -35,9 +36,9 @@ public class DatBanNgay_UI extends JDialog {
     private JButton btnDatBan;
     private JButton btnHuy;
 
-    private final KhachHang_DAO khachHangDAO;
-    private final HoaDon_DAO hoaDonDAO;
-    private final HoaDon_Ban_DAO hoaDonBanDAO;
+    private IKhachHang_DAO khachHangDAO;
+    private IHoaDon_DAO hoaDonDAO;
+    private IHoaDon_Ban_DAO hoaDonBanDAO;
 
     private final List<BanAn> danhSachBanChon;
 
@@ -71,15 +72,19 @@ public class DatBanNgay_UI extends JDialog {
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 15);
     private final Font FONT_SECTION = new Font("Segoe UI", Font.BOLD, 17);
 
-    // Khởi tạo giao diện đặt bàn ngay
     public DatBanNgay_UI(Frame parent, List<BanAn> dsBan) {
         super(parent, "Đặt bàn ngay", true);
         this.parentFrame = parent;
         this.danhSachBanChon = dsBan;
-        this.khachHangDAO = new KhachHang_DAO();
-        this.hoaDonDAO = new HoaDon_DAO();
-        this.hoaDonBanDAO = new HoaDon_Ban_DAO();
         this.khachHangHienTai = null;
+
+        try {
+            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+            this.hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         khoiTaoGiaoDien();
         setSize(620, 820);
@@ -91,7 +96,6 @@ public class DatBanNgay_UI extends JDialog {
         this(parent, new ArrayList<>(Arrays.asList(ban)));
     }
 
-    // Thiết lập bố cục giao diện
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(MAU_NEN);
@@ -107,7 +111,6 @@ public class DatBanNgay_UI extends JDialog {
         getContentPane().add(mainPanel);
     }
 
-    // Tạo tiêu đề hiển thị danh sách bàn được chọn
     private JPanel taoPanelTieuDe() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -145,7 +148,6 @@ public class DatBanNgay_UI extends JDialog {
         return panel;
     }
 
-    // Tạo form nhập liệu và hiển thị thông tin khách hàng
     private JPanel taoPanelForm() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -193,7 +195,6 @@ public class DatBanNgay_UI extends JDialog {
         return panel;
     }
 
-    // Tạo panel tìm kiếm khách hàng theo số điện thoại
     private JPanel taoPanelTimKiem() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -346,7 +347,6 @@ public class DatBanNgay_UI extends JDialog {
         return button;
     }
 
-    // Kiểm tra sự tồn tại của khách hàng trong hệ thống
     private void xuLyKiemTraKhachHang() {
         String soDienThoai = txtSoDienThoai.getText().trim();
 
@@ -379,7 +379,6 @@ public class DatBanNgay_UI extends JDialog {
         }
     }
 
-    // Điền thông tin khách hàng vào các trường text
     private void hienThiThongTinKhachHang(KhachHang kh) {
         txtMaKH.setText(kh.getMaKhachHang());
         txtHoTen.setText(kh.getHoTen());
@@ -395,7 +394,6 @@ public class DatBanNgay_UI extends JDialog {
         khachHangHienTai = null;
     }
 
-    // Mở giao diện thêm khách hàng mới nếu chưa tồn tại
     private void xuLyThemKhachHangMoi(String soDienThoai) {
         ThemKhachHang_UI themKhachHangUI = new ThemKhachHang_UI(
                 (Frame) SwingUtilities.getWindowAncestor(this),
@@ -407,7 +405,6 @@ public class DatBanNgay_UI extends JDialog {
         themKhachHangUI.setVisible(true);
     }
 
-    // Xử lý logic tạo hóa đơn và đặt bàn cho khách
     private void xuLyDatBan() {
         if (khachHangHienTai == null) {
             hienThiLoi("Vui lòng kiểm tra thông tin khách hàng trước!");
@@ -435,41 +432,46 @@ public class DatBanNgay_UI extends JDialog {
                 return;
             }
 
-            String maHoaDonMoi = hoaDonDAO.sinhMaHoaDonTuDong();
+            try {
+                String maHoaDonMoi = hoaDonDAO.sinhMaHoaDonTuDong();
 
-            HoaDon hoaDonMoi = new HoaDon(
-                    maHoaDonMoi,
-                    "Chưa thanh toán",
-                    new Date(),
-                    BigDecimal.ZERO,
-                    nhanVienHienTai.getMaNhanVien(),
-                    null,
-                    khachHangHienTai.getMaKhachHang(),
-                    null,
-                    null,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO);
+                HoaDon hoaDonMoi = new HoaDon(
+                        maHoaDonMoi,
+                        "Chưa thanh toán",
+                        new Date(),
+                        BigDecimal.ZERO,
+                        nhanVienHienTai.getMaNhanVien(),
+                        null,
+                        khachHangHienTai.getMaKhachHang(),
+                        null,
+                        null,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO);
 
-            boolean themThanhCong = hoaDonDAO.themHoaDon(hoaDonMoi);
+                boolean themThanhCong = hoaDonDAO.themHoaDon(hoaDonMoi);
 
-            if (themThanhCong) {
-                for (BanAn ban : danhSachBanChon) {
-                    hoaDonBanDAO.themHoaDon_Ban(maHoaDonMoi, ban.getMaBan());
+                if (themThanhCong) {
+                    for (BanAn ban : danhSachBanChon) {
+                        hoaDonBanDAO.themHoaDon_Ban(maHoaDonMoi, ban.getMaBan());
+                    }
+
+                    hienThiThanhCong("Đặt bàn thành công! Vui lòng thêm món.");
+
+                    this.dispose();
+
+                    DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
+                            parentFrame,
+                            danhSachBanChon,
+                            hoaDonMoi);
+                    themMonUI.setVisible(true);
+
+                } else {
+                    hienThiLoi("Đã xảy ra lỗi khi tạo hóa đơn. Vui lòng thử lại.");
                 }
-
-                hienThiThanhCong("Đặt bàn thành công! Vui lòng thêm món.");
-
-                this.dispose();
-
-                DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
-                        parentFrame,
-                        danhSachBanChon,
-                        hoaDonMoi);
-                themMonUI.setVisible(true);
-
-            } else {
-                hienThiLoi("Đã xảy ra lỗi khi tạo hóa đơn. Vui lòng thử lại.");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                hienThiLoi("Lỗi kết nối máy chủ RMI khi đặt bàn!");
             }
         }
     }

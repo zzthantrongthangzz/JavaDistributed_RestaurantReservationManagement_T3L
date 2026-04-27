@@ -1,6 +1,6 @@
 package ui.banan;
 
-import dao_impl.BanAn_DAO;
+import rmi_interfaces.IBanAn_DAO;
 import entity.BanAn;
 
 import javax.swing.*;
@@ -12,6 +12,8 @@ import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.rmi.Naming;
+import java.util.ArrayList;
 import java.util.List;
 
 public class CapNhatBan_UI extends JPanel {
@@ -39,12 +41,15 @@ public class CapNhatBan_UI extends JPanel {
     private JComboBox<String> cmbLoaiBan;
     private JTable table;
     private DefaultTableModel tableModel;
-    private BanAn_DAO banAnDAO;
+    private IBanAn_DAO banAnDAO;
     private List<BanAn> danhSachBanHienThi;
 
-    // Khởi tạo panel cập nhật thông tin bàn
     public CapNhatBan_UI() {
-        banAnDAO = new BanAn_DAO();
+        try {
+            banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         setBackground(bgColor);
         setLayout(new BorderLayout());
@@ -59,7 +64,6 @@ public class CapNhatBan_UI extends JPanel {
         docDuLieuVaoBang();
     }
 
-    // Tạo panel nhập liệu thông tin bàn
     private JPanel taoPanelNhapLieu() {
         JPanel panel = new JPanel(new BorderLayout(20, 20));
         panel.setOpaque(false);
@@ -126,7 +130,6 @@ public class CapNhatBan_UI extends JPanel {
         return panel;
     }
 
-    // Tạo panel hiển thị danh sách bàn
     private JPanel taoPanelBang() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
@@ -165,7 +168,6 @@ public class CapNhatBan_UI extends JPanel {
         return panel;
     }
 
-    // Tùy chỉnh thanh cuộn
     private void tuyChinhScrollBar(JScrollPane scrollPane) {
         JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
         verticalScrollBar.setPreferredSize(new Dimension(8, 0));
@@ -254,7 +256,6 @@ public class CapNhatBan_UI extends JPanel {
         });
     }
 
-    // Tạo nhãn với style chung
     private JLabel createStyledLabel(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(textColor);
@@ -262,7 +263,6 @@ public class CapNhatBan_UI extends JPanel {
         return label;
     }
 
-    // Tạo ô nhập liệu với style chung
     private JTextField createStyledTextField() {
         JTextField textField = new JTextField();
         textField.setBackground(componentColor);
@@ -273,7 +273,6 @@ public class CapNhatBan_UI extends JPanel {
         return textField;
     }
 
-    // Tạo nút bấm với style chung
     private JButton createStyledButton(String text, Color color) {
         JButton button = new JButton(text);
         button.setFont(FONT_NHAN);
@@ -296,7 +295,6 @@ public class CapNhatBan_UI extends JPanel {
         return button;
     }
 
-    // Thiết lập giao diện cho bảng
     private void setupTableStyle() {
         table.setBackground(MAU_NEN_ITEM);
         table.setForeground(textColor);
@@ -317,7 +315,7 @@ public class CapNhatBan_UI extends JPanel {
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int column) {
+                                                           boolean hasFocus, int row, int column) {
                 JLabel label = new JLabel(value.toString());
                 label.setFont(FONT_HEADER_BANG);
                 label.setForeground(textColor);
@@ -339,24 +337,28 @@ public class CapNhatBan_UI extends JPanel {
         }
     }
 
-    // Đọc dữ liệu từ database vào bảng
     private void docDuLieuVaoBang() {
-        danhSachBanHienThi = banAnDAO.docDanhSachBan();
-        tableModel.setRowCount(0);
-        for (BanAn ban : danhSachBanHienThi) {
-            tableModel.addRow(new Object[] {
-                    ban.getMaBan(),
-                    ban.getTenBan(),
-                    ban.getTenKhu(),
-                    ban.getTenTang(),
-                    ban.getLoaiBan(),
-                    ban.getSucChua(),
-                    ban.getTrangThai()
-            });
+        try {
+            danhSachBanHienThi = banAnDAO.docDanhSachBan();
+            tableModel.setRowCount(0);
+            if (danhSachBanHienThi != null) {
+                for (BanAn ban : danhSachBanHienThi) {
+                    tableModel.addRow(new Object[] {
+                            ban.getMaBan(),
+                            ban.getTenBan(),
+                            ban.getTenKhu(),
+                            ban.getTenTang(),
+                            ban.getLoaiBan(),
+                            ban.getSucChua(),
+                            ban.getTrangThai()
+                    });
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    // Hiển thị dữ liệu từ dòng chọn lên form nhập liệu
     private void hienThiDuLieuLenForm(int row) {
         txtMaBan.setText(tableModel.getValueAt(row, 0).toString());
         txtTenBan.setText(tableModel.getValueAt(row, 1).toString());
@@ -365,7 +367,6 @@ public class CapNhatBan_UI extends JPanel {
         txtTrangThai.setText(tableModel.getValueAt(row, 6).toString());
     }
 
-    // Làm mới các trường nhập liệu
     private void lamMoiForm() {
         txtMaBan.setText("");
         txtTenBan.setText("");
@@ -375,7 +376,6 @@ public class CapNhatBan_UI extends JPanel {
         table.clearSelection();
     }
 
-    // Cập nhật thông tin bàn
     private void capNhatBan() {
         String maBan = txtMaBan.getText().trim();
         if (maBan.isEmpty()) {
@@ -433,7 +433,6 @@ public class CapNhatBan_UI extends JPanel {
         }
     }
 
-    // Xóa bàn khỏi hệ thống
     private void xoaBan() {
         String maBan = txtMaBan.getText().trim();
         if (maBan.isEmpty()) {
@@ -454,18 +453,21 @@ public class CapNhatBan_UI extends JPanel {
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            if (banAnDAO.xoaBan(maBan)) {
-                JOptionPane.showMessageDialog(this, "Xóa bàn thành công!", "Thành công",
-                        JOptionPane.INFORMATION_MESSAGE);
-                docDuLieuVaoBang();
-                lamMoiForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Xóa bàn thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            try {
+                if (banAnDAO.xoaBan(maBan)) {
+                    JOptionPane.showMessageDialog(this, "Xóa bàn thành công!", "Thành công",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    docDuLieuVaoBang();
+                    lamMoiForm();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Xóa bàn thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
 
-    // Chọn bàn để cập nhật theo mã
     public void chonBanDeCapNhat(String maBan) {
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             if (tableModel.getValueAt(i, 0).toString().equals(maBan)) {

@@ -7,16 +7,18 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.Date; 
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
-import dao_impl.NhanVien_DAO;
-import dao_impl.ChucVu_DAO;
+import rmi_interfaces.INhanVien_DAO;
+import rmi_interfaces.IChucVu_DAO;
 import entity.NhanVien;
 import entity.ChucVu;
 
@@ -26,31 +28,34 @@ public class ThemNhanVien_UI extends JPanel {
     private JTextField txtSDT;
     private JTextField txtEmail;
     private JTextField txtDiaChi;
-    private JDateChooser dateChooserNgaySinh; 
+    private JDateChooser dateChooserNgaySinh;
     private JComboBox<String> cmbGioiTinh;
     private JComboBox<ChucVu> cmbChucVu;
     private Image backgroundImage;
-    private NhanVien_DAO nhanVienDAO;
-    private ChucVu_DAO chucVuDAO;
+    private INhanVien_DAO nhanVienDAO;
+    private IChucVu_DAO chucVuDAO;
     private final Color bgColor = new Color(48, 52, 56);
     private final Color componentColor = new Color(124, 124, 124);
     private final Color textColor = Color.WHITE;
 
-    private final Color MAU_NUT_CAP_NHAT = new Color(255, 193, 7); 
-    private final Color MAU_NUT_XOA = new Color(244, 67, 54); 
+    private final Color MAU_NUT_CAP_NHAT = new Color(255, 193, 7);
+    private final Color MAU_NUT_XOA = new Color(244, 67, 54);
 
-    // Khởi tạo giao diện thêm nhân viên
     public ThemNhanVien_UI() {
-        nhanVienDAO = new NhanVien_DAO();
-        chucVuDAO = new ChucVu_DAO();
-        
+        try {
+            nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+            chucVuDAO = (IChucVu_DAO) Naming.lookup("rmi://localhost:1099/ChucVu_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+        }
+
         setBackground(bgColor);
         setLayout(null);
-        
+
         try {
             backgroundImage = new ImageIcon(getClass().getResource("/img/vipbackground2.png")).getImage();
         } catch (Exception e) {
-            System.err.println("Không tìm thấy ảnh nền: " + e.getMessage());
             backgroundImage = null;
         }
 
@@ -87,7 +92,6 @@ public class ThemNhanVien_UI extends JPanel {
         txtEmail = createStyledTextField();
         txtEmail.setBounds(370, 437, 365, 45);
         add(txtEmail);
-        
 
         JLabel lblNgaySinh = createStyledLabel("Ngày sinh:");
         lblNgaySinh.setBounds(850, 200, 160, 34);
@@ -96,12 +100,12 @@ public class ThemNhanVien_UI extends JPanel {
         dateChooserNgaySinh.setBounds(1020, 197, 365, 45);
         dateChooserNgaySinh.setDateFormatString("dd-MM-yyyy");
         dateChooserNgaySinh.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-        
+
         JButton calendarButton = dateChooserNgaySinh.getCalendarButton();
-        calendarButton.setBackground(componentColor); 
-        calendarButton.setBorder(BorderFactory.createEmptyBorder()); 
+        calendarButton.setBackground(componentColor);
+        calendarButton.setBorder(BorderFactory.createEmptyBorder());
         calendarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
+
         JTextField dateEditor = (JTextField) dateChooserNgaySinh.getDateEditor().getUiComponent();
         dateEditor.setBackground(componentColor);
         dateEditor.setBorder(new EmptyBorder(5, 10, 5, 10));
@@ -112,9 +116,9 @@ public class ThemNhanVien_UI extends JPanel {
         dateEditor.setOpaque(true);
 
         dateEditor.addPropertyChangeListener(evt -> {
-            if ("foreground".equals(evt.getPropertyName()) || 
-                "disabledTextColor".equals(evt.getPropertyName()) ||
-                "enabled".equals(evt.getPropertyName())) {
+            if ("foreground".equals(evt.getPropertyName()) ||
+                    "disabledTextColor".equals(evt.getPropertyName()) ||
+                    "enabled".equals(evt.getPropertyName())) {
                 SwingUtilities.invokeLater(() -> {
                     dateEditor.setForeground(Color.WHITE);
                     dateEditor.setDisabledTextColor(Color.WHITE);
@@ -143,7 +147,7 @@ public class ThemNhanVien_UI extends JPanel {
                 });
             }
         });
-        
+
         add(dateChooserNgaySinh);
 
         JLabel lblDiaChi = createStyledLabel("Địa chỉ:");
@@ -156,7 +160,7 @@ public class ThemNhanVien_UI extends JPanel {
         JLabel lblChucVu = createStyledLabel("Chức vụ:");
         lblChucVu.setBounds(850, 360, 160, 34);
         add(lblChucVu);
-        
+
         cmbChucVu = new JComboBox<ChucVu>();
         setupComboBoxUI(cmbChucVu);
         cmbChucVu.setBounds(1020, 357, 315, 45);
@@ -176,11 +180,10 @@ public class ThemNhanVien_UI extends JPanel {
         btnLamMoi.setBounds(850, 550, 150, 40);
         add(btnLamMoi);
         btnLamMoi.addActionListener(e -> lamMoi());
-        
+
         taiDuLieuChucVu();
     }
 
-    // Vẽ hình nền cho Panel
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -192,7 +195,6 @@ public class ThemNhanVien_UI extends JPanel {
         }
     }
 
-    // Tạo Label với style chung
     private JLabel createStyledLabel(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(textColor);
@@ -200,7 +202,6 @@ public class ThemNhanVien_UI extends JPanel {
         return label;
     }
 
-    // Tạo TextField với style chung
     private JTextField createStyledTextField() {
         JTextField textField = new JTextField();
         textField.setBackground(componentColor);
@@ -212,7 +213,6 @@ public class ThemNhanVien_UI extends JPanel {
         return textField;
     }
 
-    // Thiết lập giao diện cho ComboBox
     private <T> void setupComboBoxUI(JComboBox<T> comboBox) {
         comboBox.setBackground(componentColor);
         comboBox.setForeground(textColor);
@@ -230,19 +230,17 @@ public class ThemNhanVien_UI extends JPanel {
         });
         comboBox.setFocusable(false);
         comboBox.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(componentColor, 2),
-            new EmptyBorder(5, 10, 5, 10)
+                BorderFactory.createLineBorder(componentColor, 2),
+                new EmptyBorder(5, 10, 5, 10)
         ));
     }
-    
-    // Tạo ComboBox String với style chung
+
     private JComboBox<String> createStyledComboBox(String[] items) {
         JComboBox<String> comboBox = new JComboBox<>(items);
         setupComboBoxUI(comboBox);
         return comboBox;
     }
 
-    // Tạo nút bấm có icon và text
     private JButton createStyledButton(String text, String iconPath) {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -256,14 +254,11 @@ public class ThemNhanVien_UI extends JPanel {
             ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
             Image scaledIcon = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
             button.setIcon(new ImageIcon(scaledIcon));
-        } catch (Exception e) {
-            System.err.println("Không tìm thấy icon: " + iconPath);
-        }
+        } catch (Exception e) {}
 
         return button;
     }
-    
-    // Tạo nút bấm chỉ có icon
+
     private JButton createIconButton(String iconPath, Color backgroundColor, int iconSize) {
         JButton button = new JButton();
         button.setBackground(backgroundColor);
@@ -276,10 +271,9 @@ public class ThemNhanVien_UI extends JPanel {
             Image scaledIcon = icon.getImage().getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
             button.setIcon(new ImageIcon(scaledIcon));
         } catch (Exception e) {
-            System.err.println("Không tìm thấy icon: " + iconPath);
             button.setText("+");
         }
-        
+
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -293,7 +287,6 @@ public class ThemNhanVien_UI extends JPanel {
         return button;
     }
 
-    // Tải dữ liệu chức vụ lên ComboBox
     private void taiDuLieuChucVu() {
         try {
             List<ChucVu> dsChucVu = chucVuDAO.docDanhSachChucVu();
@@ -302,15 +295,13 @@ public class ThemNhanVien_UI extends JPanel {
                 cmbChucVu.addItem(cv);
             }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải danh sách chức vụ: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
-    
-    // Hiển thị dialog để thêm chức vụ mới
+
     private void hienThiDialogThemChucVu() {
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thêm chức vụ", Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setSize(400, 350); 
+        dialog.setSize(400, 350);
         dialog.setLocationRelativeTo(this);
         dialog.setResizable(false);
 
@@ -322,12 +313,12 @@ public class ThemNhanVien_UI extends JPanel {
         pnlHienCo.setOpaque(false);
         JLabel lblHienCo = createStyledLabel("Chức vụ hiện có:");
         lblHienCo.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        
+
         DefaultListModel<ChucVu> listModel = new DefaultListModel<>();
         for (int i = 0; i < cmbChucVu.getItemCount(); i++) {
             listModel.addElement(cmbChucVu.getItemAt(i));
         }
-        
+
         JList<ChucVu> listHienCo = new JList<>(listModel);
         listHienCo.setBackground(componentColor);
         listHienCo.setForeground(textColor);
@@ -335,26 +326,26 @@ public class ThemNhanVien_UI extends JPanel {
         listHienCo.setSelectionBackground(MAU_NUT_CAP_NHAT.darker());
         listHienCo.setSelectionForeground(Color.WHITE);
         listHienCo.setBorder(new EmptyBorder(5, 10, 5, 10));
-        
+
         JScrollPane scrollPane = new JScrollPane(listHienCo);
         scrollPane.setBorder(BorderFactory.createLineBorder(componentColor, 1));
-        
+
         pnlHienCo.add(lblHienCo, BorderLayout.NORTH);
         pnlHienCo.add(scrollPane, BorderLayout.CENTER);
-        pnlHienCo.setPreferredSize(new Dimension(0, 150)); 
+        pnlHienCo.setPreferredSize(new Dimension(0, 150));
 
         JPanel pnlThemMoi = new JPanel(new BorderLayout(0, 5));
         pnlThemMoi.setOpaque(false);
         JLabel lblThemMoi = createStyledLabel("Tên chức vụ mới:");
         lblThemMoi.setFont(new Font("Segoe UI", Font.BOLD, 18));
         JTextField txtTenChucVuMoi = createStyledTextField();
-        
+
         pnlThemMoi.add(lblThemMoi, BorderLayout.NORTH);
         pnlThemMoi.add(txtTenChucVuMoi, BorderLayout.CENTER);
 
         JPanel pnlButton = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         pnlButton.setOpaque(false);
-        
+
         JButton btnThem = new JButton("Thêm");
         btnThem.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnThem.setBackground(MAU_NUT_CAP_NHAT);
@@ -400,33 +391,33 @@ public class ThemNhanVien_UI extends JPanel {
                 return;
             }
 
-            ChucVu cvTonTai = chucVuDAO.timChucVuTheoTen(tenMoi);
+            try {
+                ChucVu cvTonTai = chucVuDAO.timChucVuTheoTen(tenMoi);
 
-            if (cvTonTai != null) {
-                JOptionPane.showMessageDialog(dialog, "Chức vụ này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            } else {
-                try {
+                if (cvTonTai != null) {
+                    JOptionPane.showMessageDialog(dialog, "Chức vụ này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                } else {
                     String maMoi = chucVuDAO.sinhMaChucVuTuDong();
                     ChucVu cvMoi = new ChucVu(maMoi, tenMoi);
-                    
+
                     boolean themThanhCong = chucVuDAO.themChucVu(cvMoi);
-                    
+
                     if(themThanhCong) {
                         cmbChucVu.addItem(cvMoi);
                         cmbChucVu.setSelectedItem(cvMoi);
                         listModel.addElement(cvMoi);
-                        listHienCo.ensureIndexIsVisible(listModel.getSize() - 1); 
-                        
+                        listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
+
                         JOptionPane.showMessageDialog(dialog, "Đã thêm chức vụ mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                        
+
                         txtTenChucVuMoi.setText("");
                         txtTenChucVuMoi.requestFocus();
                     } else {
-                         JOptionPane.showMessageDialog(dialog, "Thêm chức vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(dialog, "Thêm chức vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
-                } catch (Exception ex) {
-                     JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm chức vụ: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm chức vụ: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -434,7 +425,6 @@ public class ThemNhanVien_UI extends JPanel {
         dialog.setVisible(true);
     }
 
-    // Xử lý logic thêm nhân viên
     private void themNhanVien() {
         String hoTen = txtHoTen.getText().trim();
         String sdt = txtSDT.getText().trim();
@@ -448,9 +438,9 @@ public class ThemNhanVien_UI extends JPanel {
             txtHoTen.requestFocus();
             return;
         }
-        
+
         if (!hoTen.matches("^[A-ZÀ-Ỹ][a-zà-ỹ]*(\\s[A-ZÀ-Ỹ][a-zà-ỹ]*)*$")) {
-            JOptionPane.showMessageDialog(this, "Tên khách hàng chỉ chứa chữ cái, phải viết hoa chữ cái đầu mỗi từ, cho phép khoảng trắng. Ví dụ: Nguyễn Văn A", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Tên khách hàng chỉ chứa chữ cái, phải viết hoa chữ cái đầu mỗi từ.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtHoTen.requestFocus();
             return;
         }
@@ -473,7 +463,7 @@ public class ThemNhanVien_UI extends JPanel {
         }
 
         if (!sdt.matches("^0\\d{9}$")) {
-            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ! (Phải có 10 số vầ bắt đầu bằng số 0)", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtSDT.requestFocus();
             return;
         }
@@ -485,7 +475,7 @@ public class ThemNhanVien_UI extends JPanel {
         }
 
         if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
-            JOptionPane.showMessageDialog(this," Địa chỉ email không hợp lệ (ví dụ: example@gmail.com).", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this," Địa chỉ email không hợp lệ.", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtEmail.requestFocus();
             return;
         }
@@ -511,8 +501,8 @@ public class ThemNhanVien_UI extends JPanel {
 
             if (nhanVienDAO.themNhanVien(nv)) {
                 JOptionPane.showMessageDialog(this,
-                    "Thêm nhân viên '" + hoTen + "' (Mã: " + maNV_Moi + ") thành công!",
-                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        "Thêm nhân viên '" + hoTen + "' (Mã: " + maNV_Moi + ") thành công!",
+                        "Thông báo", JOptionPane.INFORMATION_MESSAGE);
 
                 lamMoi();
 
@@ -521,13 +511,12 @@ public class ThemNhanVien_UI extends JPanel {
                 ThemTaiKhoan_UI themTaiKhoanDialog = new ThemTaiKhoan_UI(parentFrame, maNV_Moi,tenChucVu);
                 themTaiKhoanDialog.setVisible(true);
                 if(!themTaiKhoanDialog.isThemThanhCong()) {
-                	try {
-                		nhanVienDAO.xoaSachNhanVien(maNV_Moi);
-                		JOptionPane.showMessageDialog(this, "Đã tự xoá nhân viên khi tài khoản không được thêm!","Thông báo",JOptionPane.WARNING_MESSAGE);
-                	}catch (Exception e) {
-						// TODO: handle exception
-                		JOptionPane.showMessageDialog(this, "Lỗi! Không thể xoá nhân viên, vui lòng liên hệ quản trị viên");
-					}
+                    try {
+                        nhanVienDAO.xoaSachNhanVien(maNV_Moi);
+                        JOptionPane.showMessageDialog(this, "Đã tự xoá nhân viên khi tài khoản không được thêm!","Thông báo",JOptionPane.WARNING_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(this, "Lỗi! Không thể xoá nhân viên, vui lòng liên hệ quản trị viên");
+                    }
                 }
             } else {
                 JOptionPane.showMessageDialog(this, "Thêm nhân viên thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -539,15 +528,14 @@ public class ThemNhanVien_UI extends JPanel {
         }
     }
 
-    // Làm mới các trường nhập liệu
     private void lamMoi() {
         txtHoTen.setText("");
         txtSDT.setText("");
         txtEmail.setText("");
         txtDiaChi.setText("");
-        dateChooserNgaySinh.setDate(null); 
+        dateChooserNgaySinh.setDate(null);
         cmbGioiTinh.setSelectedIndex(0);
         if (cmbChucVu.getItemCount() > 0) cmbChucVu.setSelectedIndex(0);
-        txtHoTen.requestFocus(); 
+        txtHoTen.requestFocus();
     }
 }

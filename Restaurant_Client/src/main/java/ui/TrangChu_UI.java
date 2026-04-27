@@ -549,10 +549,10 @@ public class TrangChu_UI extends JFrame {
             Runnable refreshCallback = () -> {
                  Component currentPanel = mainContentPanel.getComponent(0);
                  if (currentPanel instanceof TraCuuKhachHang_UI) {
-                     ((TraCuuKhachHang_UI) currentPanel).lamMoiBang();
+                     ((TraCuuKhachHang_UI) currentPanel).lamMoiGiaoDien();
                  }
             };
-            new ThemKhachHang_UI(this, refreshCallback).setVisible(true);
+            new ThemKhachHang_UI(TrangChu_UI.this, "", refreshCallback).setVisible(true);
             
             chonMenuTheoTen(tenTabHienTai);
             return;

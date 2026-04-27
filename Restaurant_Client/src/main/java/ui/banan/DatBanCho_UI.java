@@ -1,23 +1,20 @@
 package ui.banan;
 
-import dao_impl.BanAn_DAO;
-import dao_impl.KhachHang_DAO;
-import entity.BanAn;
-import entity.KhachHang;
+import entity.*;
+import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.IKhachHang_DAO;
 import ui.khachhang.ThemKhachHang_UI;
-import dao_impl.HoaDon_DAO;
-import entity.NhanVien;
-import entity.PhieuDatBan;
-import entity.ChiTietPhieuDatBan;
+import rmi_interfaces.IHoaDon_DAO;
 import ui.Auth;
 import ui.PhieuDatBanPDF;
-import dao_impl.PhieuDatBan_DAO;
-import dao_impl.PhieuDatBan_Ban_DAO;
-import dao_impl.ChiTietPhieuDatBan_DAO;
+import rmi_interfaces.IPhieuDatBan_DAO;
+import rmi_interfaces.IPhieuDatBan_Ban_DAO;
+import rmi_interfaces.IChiTietPhieuDatBan_DAO;
 
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
+import java.rmi.Naming;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -27,8 +24,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Calendar;
-import com.toedter.calendar.JDateChooser;
-import com.toedter.calendar.JTextFieldDateEditor;
 
 public class DatBanCho_UI extends JDialog {
 
@@ -46,14 +41,15 @@ public class DatBanCho_UI extends JDialog {
     private JSpinner spinGio;
     private JSpinner spinPhut;
 
-    private KhachHang_DAO khachHangDAO;
-    private final HoaDon_DAO hoaDonDAO;
+    private IKhachHang_DAO khachHangDAO;
+    private IHoaDon_DAO hoaDonDAO;
+    private IBanAn_DAO banAnDAO;
     private List<BanAn> danhSachBanChon;
     private KhachHang khachHangHienTai;
-    private final BanAn_DAO banAnDAO;
 
     private final Frame parentFrame;
 
+    private final Color MAU_THANH_TIM_KIEM = new Color(60, 64, 68);
     private final Color MAU_NEN = new Color(26, 28, 32);
     private final Color MAU_NEN_FORM = new Color(32, 35, 40);
     private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
@@ -74,7 +70,6 @@ public class DatBanCho_UI extends JDialog {
     private final Color MAU_VIEN_THANH_TIM_KIEM = new Color(70, 72, 87);
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
     private final Color MAU_CHU_CHUNG = Color.WHITE;
-    private final Color MAU_THANH_TIM_KIEM = new Color(60, 64, 68);
     private final Dimension KICH_THUOC_NUT = new Dimension(160, 44);
 
     private final Font FONT_TIEU_DE = new Font("Segoe UI", Font.BOLD, 28);
@@ -84,16 +79,20 @@ public class DatBanCho_UI extends JDialog {
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 15);
     private final Font FONT_SECTION = new Font("Segoe UI", Font.BOLD, 17);
 
-    // Khởi tạo giao diện đặt bàn chờ
     public DatBanCho_UI(Frame parent, List<BanAn> dsBan, Date ngayChon) {
         super(parent, "Đặt bàn chờ", true);
         this.parentFrame = parent;
         this.danhSachBanChon = dsBan;
         this.ngayNhanTuTrangChu = ngayChon;
-        this.khachHangDAO = new KhachHang_DAO();
-        this.hoaDonDAO = new HoaDon_DAO();
-        this.banAnDAO = new BanAn_DAO();
         this.khachHangHienTai = null;
+
+        try {
+            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         khoiTaoGiaoDien();
         setSize(620, 950);
@@ -145,7 +144,6 @@ public class DatBanCho_UI extends JDialog {
         return panel;
     }
 
-    // Tạo form nhập liệu: ngày giờ, khách hàng, ghi chú
     private JPanel taoPanelForm() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -183,7 +181,6 @@ public class DatBanCho_UI extends JDialog {
         txtNgayNhan.setEditable(false);
         txtNgayNhan.setFocusable(false);
 
-        // Cấu hình hiển thị ngày nhận bàn
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
         String strNgay = "";
         if (this.ngayNhanTuTrangChu != null) {
@@ -204,8 +201,7 @@ public class DatBanCho_UI extends JDialog {
         JLabel lblGio = new JLabel("Giờ:");
         lblGio.setFont(FONT_NHAN);
         lblGio.setForeground(MAU_CHU_TRANG);
-        SpinnerNumberModel gioModel = new SpinnerNumberModel(Calendar.getInstance().get(Calendar.HOUR_OF_DAY), 0, 23,
-                1);
+        SpinnerNumberModel gioModel = new SpinnerNumberModel(Calendar.getInstance().get(Calendar.HOUR_OF_DAY), 0, 23, 1);
         spinGio = new JSpinner(gioModel);
         styleSpinner(spinGio);
         JLabel lblPhut = new JLabel("Phút:");
@@ -277,7 +273,6 @@ public class DatBanCho_UI extends JDialog {
         btnKiemTra.setPreferredSize(new Dimension(130, 42));
         btnKiemTra.addActionListener(e -> xuLyKiemTraKhachHang());
         txtSoDienThoai.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
                 btnKiemTra.doClick();
@@ -327,7 +322,6 @@ public class DatBanCho_UI extends JDialog {
                 textField.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(MAU_VIEN_INPUT_FOCUS, 2, true), new EmptyBorder(7, 13, 7, 13)));
             }
-
             public void focusLost(java.awt.event.FocusEvent evt) {
                 textField.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1, true), new EmptyBorder(8, 14, 8, 14)));
@@ -443,7 +437,6 @@ public class DatBanCho_UI extends JDialog {
         themKhachHangUI.setVisible(true);
     }
 
-    // Logic chính: Kiểm tra trùng lịch, tính tiền cọc, tạo phiếu đặt
     private void xuLyDatBan() {
         if (khachHangHienTai == null) {
             hienThiLoi("Vui lòng kiểm tra thông tin khách hàng trước!");
@@ -454,148 +447,156 @@ public class DatBanCho_UI extends JDialog {
             hienThiLoi("Lỗi: Không xác định được ngày nhận bàn!");
             return;
         }
-        PhieuDatBan_DAO phieuDAO_Check = new PhieuDatBan_DAO();
-        java.util.Map<String, String> mapBanDaDat = phieuDAO_Check.layThongTinBanDatVaTenKhach(selectedDate);
 
-        StringBuilder trungBanMsg = new StringBuilder();
-        boolean coTrungLap = false;
-        for (BanAn banMuonDat : danhSachBanChon) {
-            if (mapBanDaDat.containsKey(banMuonDat.getMaBan())) {
-                coTrungLap = true;
-                trungBanMsg.append(banMuonDat.getTenBan()).append(", ");
+        try {
+            IPhieuDatBan_DAO phieuDAO_Check = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            java.util.Map<String, String> mapBanDaDat = phieuDAO_Check.layThongTinBanDatVaTenKhach(selectedDate);
+
+            StringBuilder trungBanMsg = new StringBuilder();
+            boolean coTrungLap = false;
+            for (BanAn banMuonDat : danhSachBanChon) {
+                if (mapBanDaDat.containsKey(banMuonDat.getMaBan())) {
+                    coTrungLap = true;
+                    trungBanMsg.append(banMuonDat.getTenBan()).append(", ");
+                }
             }
-        }
-        if (coTrungLap) {
-            if (trungBanMsg.length() > 2) {
-                trungBanMsg.setLength(trungBanMsg.length() - 2);
+            if (coTrungLap) {
+                if (trungBanMsg.length() > 2) {
+                    trungBanMsg.setLength(trungBanMsg.length() - 2);
+                }
+
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                String ngayString = sdf.format(selectedDate);
+
+                hienThiLoi("Không thể đặt bàn!\n " + trungBanMsg.toString() +
+                        "\nĐã được đặt trước vào ngày " + ngayString + " rồi.");
+                return;
+            }
+            StringBuilder sbTenBan = new StringBuilder();
+            for (BanAn b : danhSachBanChon)
+                sbTenBan.append(b.getTenBan()).append(", ");
+            String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length() - 2) : sbTenBan.toString();
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    String.format("Xác nhận đặt bàn chờ cho các bàn: %s\nKhách hàng: %s?",
+                            strTenBan, khachHangHienTai.getHoTen()),
+                    "Xác nhận đặt bàn", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
             }
 
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-            String ngayString = sdf.format(selectedDate);
-
-            hienThiLoi("Không thể đặt bàn!\n " + trungBanMsg.toString() +
-                    "\nĐã được đặt trước vào ngày " + ngayString + " rồi.");
-            return;
-        }
-        StringBuilder sbTenBan = new StringBuilder();
-        for (BanAn b : danhSachBanChon)
-            sbTenBan.append(b.getTenBan()).append(", ");
-        String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length() - 2) : sbTenBan.toString();
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                String.format("Xác nhận đặt bàn chờ cho các bàn: %s\nKhách hàng: %s?",
-                        strTenBan, khachHangHienTai.getHoTen()),
-                "Xác nhận đặt bàn", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        NhanVien nhanVienHienTai = Auth.getCurrentNhanVien();
-        if (nhanVienHienTai == null) {
-            hienThiLoi("Lỗi: Không tìm thấy thông tin nhân viên.");
-            return;
-        }
-
-        Integer selectedHour = (Integer) spinGio.getValue();
-        Integer selectedMinute = (Integer) spinPhut.getValue();
-
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(selectedDate);
-        cal.set(Calendar.HOUR_OF_DAY, selectedHour);
-        cal.set(Calendar.MINUTE, selectedMinute);
-        cal.set(Calendar.SECOND, 0);
-        Date gioNhanDuKien = cal.getTime();
-
-        Calendar nowPlus1Min = Calendar.getInstance();
-        nowPlus1Min.add(Calendar.MINUTE, 1);
-        if (gioNhanDuKien.before(nowPlus1Min.getTime())) {
-            hienThiLoi("Giờ nhận bàn dự kiến phải sau thời điểm hiện tại ít nhất 1 phút!");
-            return;
-        }
-
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd");
-        boolean isDatChoHomNay = sdf.format(gioNhanDuKien).equals(sdf.format(new Date()));
-
-        PhieuDatBan_DAO phieuDAO = new PhieuDatBan_DAO();
-        PhieuDatBan_Ban_DAO phieuBanDAO = new PhieuDatBan_Ban_DAO();
-        String maPhieuDat = phieuDAO.sinhMaPhieuDatTuDong();
-        double tienCocBanDau = 0.0;
-        String ghiChu = txtGhiChu.getText().trim();
-        if (ghiChu.isEmpty()) {
-            ghiChu = "";
-        }
-        PhieuDatBan phieuMoi = new PhieuDatBan(
-                maPhieuDat,
-                gioNhanDuKien,
-                "Đang chờ",
-                khachHangHienTai.getMaKhachHang(),
-                nhanVienHienTai.getMaNhanVien(),
-                tienCocBanDau,
-                ghiChu);
-
-        if (!phieuDAO.themPhieuDatBan(phieuMoi)) {
-            hienThiLoi("Lỗi khi tạo phiếu đặt bàn!");
-            return;
-        }
-
-        for (BanAn ban : danhSachBanChon) {
-            phieuBanDAO.themPhieuDatBan_Ban(maPhieuDat, ban.getMaBan());
-
-            if (isDatChoHomNay) {
-                banAnDAO.capNhatTrangThaiBan(ban.getMaBan(), "Bàn đang chờ");
+            NhanVien nhanVienHienTai = Auth.getCurrentNhanVien();
+            if (nhanVienHienTai == null) {
+                hienThiLoi("Lỗi: Không tìm thấy thông tin nhân viên.");
+                return;
             }
-        }
 
-        double tienDatCocSauCung = 0.0;
-        ChiTietPhieuDatBan_DAO ctPhieuDao = new ChiTietPhieuDatBan_DAO();
-        List<ChiTietPhieuDatBan> dsChiTiet = new ArrayList<>();
+            Integer selectedHour = (Integer) spinGio.getValue();
+            Integer selectedMinute = (Integer) spinPhut.getValue();
 
-        int datMonConfirm = JOptionPane.showConfirmDialog(this, "Bạn có muốn đặt món trước cho nhóm này không?",
-                "Đặt món trước",
-                JOptionPane.YES_NO_OPTION);
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(selectedDate);
+            cal.set(Calendar.HOUR_OF_DAY, selectedHour);
+            cal.set(Calendar.MINUTE, selectedMinute);
+            cal.set(Calendar.SECOND, 0);
+            Date gioNhanDuKien = cal.getTime();
 
-        if (datMonConfirm == JOptionPane.YES_OPTION) {
-            DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
-                    parentFrame,
-                    danhSachBanChon,
-                    maPhieuDat);
-            themMonUI.setVisible(true);
+            Calendar nowPlus1Min = Calendar.getInstance();
+            nowPlus1Min.add(Calendar.MINUTE, 1);
+            if (gioNhanDuKien.before(nowPlus1Min.getTime())) {
+                hienThiLoi("Giờ nhận bàn dự kiến phải sau thời điểm hiện tại ít nhất 1 phút!");
+                return;
+            }
 
-            dsChiTiet = ctPhieuDao.getChiTietTheoPhieu(maPhieuDat);
-        }
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd");
+            boolean isDatChoHomNay = sdf.format(gioNhanDuKien).equals(sdf.format(new Date()));
 
-        tienDatCocSauCung = tinhTienDatCoc(danhSachBanChon, dsChiTiet);
+            IPhieuDatBan_DAO phieuDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            IPhieuDatBan_Ban_DAO phieuBanDAO = (IPhieuDatBan_Ban_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
+            String maPhieuDat = phieuDAO.sinhMaPhieuDatTuDong();
+            double tienCocBanDau = 0.0;
+            String ghiChu = txtGhiChu.getText().trim();
+            if (ghiChu.isEmpty()) {
+                ghiChu = "";
+            }
+            PhieuDatBan phieuMoi = new PhieuDatBan(
+                    maPhieuDat,
+                    gioNhanDuKien,
+                    "Đang chờ",
+                    khachHangHienTai.getMaKhachHang(),
+                    nhanVienHienTai.getMaNhanVien(),
+                    tienCocBanDau,
+                    ghiChu);
 
-        if (tienDatCocSauCung > 0) {
-            phieuMoi.setTienDatCoc(tienDatCocSauCung);
-            phieuDAO.capNhatTienCoc(maPhieuDat, tienDatCocSauCung);
-        }
+            if (!phieuDAO.themPhieuDatBan(phieuMoi)) {
+                hienThiLoi("Lỗi khi tạo phiếu đặt bàn!");
+                return;
+            }
 
-        dispose();
+            for (BanAn ban : danhSachBanChon) {
+                // Giả định rmi_interfaces có IPhieuDatBan_Ban_DAO tương ứng với cấu trúc entity
+                // Nếu chưa có, bạn có thể gọi gián tiếp qua DAO chung.
+                // Ở đây bám sát code gốc của bạn đã được chuyển RMI
+                phieuBanDAO.themPhieuDatBan_Ban(maPhieuDat, ban.getMaBan());
 
-        String message = String.format(
-                "Đặt bàn thành công!\nSố tiền cọc cần thanh toán: %,.0f VNĐ.\n\nBạn có muốn xuất phiếu đặt bàn (PDF) không?",
-                tienDatCocSauCung);
+                if (isDatChoHomNay) {
+                    banAnDAO.capNhatTrangThaiBan(ban.getMaBan(), "Bàn đang chờ");
+                }
+            }
 
-        int confirmPDF = JOptionPane.showConfirmDialog(this,
-                message,
-                "Thành công",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.INFORMATION_MESSAGE);
+            double tienDatCocSauCung = 0.0;
+            IChiTietPhieuDatBan_DAO ctPhieuDao = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+            List<ChiTietPhieuDatBan> dsChiTiet = new ArrayList<>();
 
-        if (confirmPDF == JOptionPane.YES_OPTION) {
-            PhieuDatBanPDF.xuatPhieuDatBanPDF(
-                    phieuMoi,
-                    khachHangHienTai,
-                    nhanVienHienTai,
-                    danhSachBanChon,
+            int datMonConfirm = JOptionPane.showConfirmDialog(this, "Bạn có muốn đặt món trước cho nhóm này không?",
+                    "Đặt món trước",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (datMonConfirm == JOptionPane.YES_OPTION) {
+                DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
+                        parentFrame,
+                        danhSachBanChon,
+                        maPhieuDat);
+                themMonUI.setVisible(true);
+
+                dsChiTiet = ctPhieuDao.getChiTietTheoPhieu(maPhieuDat);
+            }
+
+            tienDatCocSauCung = tinhTienDatCoc(danhSachBanChon, dsChiTiet);
+
+            if (tienDatCocSauCung > 0) {
+                phieuMoi.setTienDatCoc(tienDatCocSauCung);
+                phieuDAO.capNhatTienCoc(maPhieuDat, tienDatCocSauCung);
+            }
+
+            dispose();
+
+            String message = String.format(
+                    "Đặt bàn thành công!\nSố tiền cọc cần thanh toán: %,.0f VNĐ.\n\nBạn có muốn xuất phiếu đặt bàn (PDF) không?",
                     tienDatCocSauCung);
-        }
 
+            int confirmPDF = JOptionPane.showConfirmDialog(this,
+                    message,
+                    "Thành công",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            if (confirmPDF == JOptionPane.YES_OPTION) {
+                PhieuDatBanPDF.xuatPhieuDatBanPDF(
+                        phieuMoi,
+                        khachHangHienTai,
+                        nhanVienHienTai,
+                        danhSachBanChon,
+                        tienDatCocSauCung);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            hienThiLoi("Lỗi kết nối RMI khi đặt bàn chờ!");
+        }
     }
 
-    // Tính toán số tiền cọc dựa trên loại bàn và món ăn đặt trước
     private double tinhTienDatCoc(List<BanAn> dsBan, List<ChiTietPhieuDatBan> dsChiTiet) {
         double tongTienCocCoBan = 0.0;
 
@@ -628,7 +629,6 @@ public class DatBanCho_UI extends JDialog {
         }
     }
 
-    // Tùy chỉnh giao diện cho JSpinner chọn giờ phút
     private void styleSpinner(JSpinner spinner) {
         spinner.setFont(FONT_O_NHAP);
         spinner.setPreferredSize(new Dimension(80, 42));

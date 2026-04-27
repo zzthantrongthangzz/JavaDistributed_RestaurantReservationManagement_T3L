@@ -9,13 +9,15 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.io.File;
-import dao_impl.MonAn_DAO;
-import dao_impl.LoaiMon_DAO;
+import rmi_interfaces.IMonAn_DAO;
+import rmi_interfaces.ILoaiMon_DAO;
 import entity.MonAn;
-import entity.LoaiMon; 
+import entity.LoaiMon;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.List; 
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.util.List;
 
 public class ThemMonAn_UI extends JPanel {
 
@@ -24,31 +26,35 @@ public class ThemMonAn_UI extends JPanel {
 	private JTextField txtGia;
 	private JTextField txtDonVi;
 	private JComboBox<String> cmbTinhTrang;
-	private JComboBox<LoaiMon> cmbLoai; 
+	private JComboBox<LoaiMon> cmbLoai;
 	private JTextArea txtMoTa;
 	private File selectedFile;
 	private ImagePreviewPanel pnlImagePreview;
 	private Image backgroundImage;
 	private JButton btnThemNhieu;
 
-	private MonAn_DAO monAnDAO;
-	private LoaiMon_DAO loaiMonDAO; 
+	private IMonAn_DAO monAnDAO;
+	private ILoaiMon_DAO loaiMonDAO;
 
 	private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
 	private final Color bgColor = new Color(48, 52, 56);
 	private final Color componentColor = new Color(124, 124, 124);
 	private final Color textColor = Color.WHITE;
 
-	private final Color MAU_NUT_CAP_NHAT = new Color(255, 193, 7); 
-	private final Color MAU_NUT_XOA = new Color(244, 67, 54); 
+	private final Color MAU_NUT_CAP_NHAT = new Color(255, 193, 7);
+	private final Color MAU_NUT_XOA = new Color(244, 67, 54);
 	private final Color MAU_NUT_THEM = new Color(76, 175, 80);
 	private final Color MAU_NUT_LAM_MOI = new Color(30, 144, 255);
 	private final Color MAU_NUT_THEM_NHIEU = new Color(156, 39, 176);
 
-	// Khởi tạo giao diện thêm món
 	public ThemMonAn_UI() {
-		monAnDAO = new MonAn_DAO();
-		loaiMonDAO = new LoaiMon_DAO(); 
+		try {
+			monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+			loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+		} catch (Exception e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+		}
 
 		setBackground(bgColor);
 		setLayout(null);
@@ -81,7 +87,11 @@ public class ThemMonAn_UI extends JPanel {
 		txtMaMon.setBounds(636, 287, 365, 45);
 		txtMaMon.setEditable(false);
 		txtMaMon.setBackground(new Color(80, 80, 80));
-		txtMaMon.setText(monAnDAO.sinhMaMonTuDong());
+		try {
+			if(monAnDAO != null) txtMaMon.setText(monAnDAO.sinhMaMonTuDong());
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 		add(txtMaMon);
 
 		JLabel lblTenMon = createStyledLabel("Tên món:");
@@ -117,12 +127,12 @@ public class ThemMonAn_UI extends JPanel {
 		add(lblLoai);
 
 		cmbLoai = new JComboBox<LoaiMon>();
-		setupComboBoxUI(cmbLoai); 
-		cmbLoai.setBounds(1228, 381, 315, 45); 
+		setupComboBoxUI(cmbLoai);
+		cmbLoai.setBounds(1228, 381, 315, 45);
 		add(cmbLoai);
 
 		JButton btnThemLoai = createIconButton("/IMG/add_32px.png", componentColor, 24);
-		btnThemLoai.setBounds(1228 + 315 + 5, 381, 45, 45); 
+		btnThemLoai.setBounds(1228 + 315 + 5, 381, 45, 45);
 		add(btnThemLoai);
 		btnThemLoai.addActionListener(e -> hienThiDialogThemLoai());
 
@@ -143,51 +153,49 @@ public class ThemMonAn_UI extends JPanel {
 		add(scrollMoTa);
 
 		JButton btnThem = taoNutChucNang("Thêm", MAU_NUT_THEM);
-	    btnThem.setBounds(845, 685, 150, 40);
-	    btnThem.addActionListener(e -> xuLyThemMonAn());
-	    add(btnThem);
+		btnThem.setBounds(845, 685, 150, 40);
+		btnThem.addActionListener(e -> xuLyThemMonAn());
+		add(btnThem);
 
-	    JButton btnLamMoi = taoNutChucNang("Làm mới", MAU_NUT_LAM_MOI);
-	    btnLamMoi.setBounds(1076, 686, 150, 40);
-	    add(btnLamMoi);
-	    btnLamMoi.addActionListener(e -> lamMoi());
-	    
-	 btnThemNhieu = taoNutChucNang("Thêm nhiều", MAU_NUT_THEM_NHIEU);
-	 btnThemNhieu.setBounds(1307, 685, 150, 40); 
-	 btnThemNhieu.addActionListener(e -> hienThiGiaoDienThemNhieu());
-	 add(btnThemNhieu);
+		JButton btnLamMoi = taoNutChucNang("Làm mới", MAU_NUT_LAM_MOI);
+		btnLamMoi.setBounds(1076, 686, 150, 40);
+		add(btnLamMoi);
+		btnLamMoi.addActionListener(e -> lamMoi());
+
+		btnThemNhieu = taoNutChucNang("Thêm nhiều", MAU_NUT_THEM_NHIEU);
+		btnThemNhieu.setBounds(1307, 685, 150, 40);
+		btnThemNhieu.addActionListener(e -> hienThiGiaoDienThemNhieu());
+		add(btnThemNhieu);
 
 		taiDuLieuLoaiMon();
 	}
-	
-	// Tạo nút chức năng
+
 	private JButton taoNutChucNang(String text, Color mauNen) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        button.setForeground(Color.WHITE); 
-        button.setBackground(mauNen);      
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setOpaque(true);
-        button.setBorder(new EmptyBorder(10, 20, 10, 20));
+		JButton button = new JButton(text);
+		button.setFont(new Font("Segoe UI", Font.BOLD, 16));
+		button.setForeground(Color.WHITE);
+		button.setBackground(mauNen);
+		button.setFocusPainted(false);
+		button.setBorderPainted(false);
+		button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		button.setOpaque(true);
+		button.setBorder(new EmptyBorder(10, 20, 10, 20));
 
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(mauNen.brighter());
-            }
+		button.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				button.setBackground(mauNen.brighter());
+			}
 
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(mauNen);
-            }
-        });
+			@Override
+			public void mouseExited(MouseEvent e) {
+				button.setBackground(mauNen);
+			}
+		});
 
-        return button;
-    }
+		return button;
+	}
 
-	// Vẽ ảnh nền
 	@Override
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
@@ -199,7 +207,6 @@ public class ThemMonAn_UI extends JPanel {
 		}
 	}
 
-	// Panel xem trước ảnh
 	private class ImagePreviewPanel extends JPanel {
 		private Image image;
 
@@ -236,7 +243,6 @@ public class ThemMonAn_UI extends JPanel {
 		}
 	}
 
-	// Tạo Label
 	private JLabel createStyledLabel(String text) {
 		JLabel label = new JLabel(text);
 		label.setForeground(textColor);
@@ -244,7 +250,6 @@ public class ThemMonAn_UI extends JPanel {
 		return label;
 	}
 
-	// Tạo TextField
 	private JTextField createStyledTextField() {
 		JTextField textField = new JTextField();
 		textField.setBackground(componentColor);
@@ -255,7 +260,6 @@ public class ThemMonAn_UI extends JPanel {
 		return textField;
 	}
 
-	// Thiết lập UI ComboBox
 	private <T> void setupComboBoxUI(JComboBox<T> comboBox) {
 		comboBox.setBackground(componentColor);
 		comboBox.setForeground(textColor);
@@ -277,14 +281,12 @@ public class ThemMonAn_UI extends JPanel {
 		comboBox.setBorder(BorderFactory.createCompoundBorder(border, padding));
 	}
 
-	// Tạo ComboBox
 	private JComboBox<String> createStyledComboBox(String[] items) {
 		JComboBox<String> comboBox = new JComboBox<>(items);
-		setupComboBoxUI(comboBox); 
+		setupComboBoxUI(comboBox);
 		return comboBox;
 	}
 
-	// Tạo Button
 	private JButton createStyledButton(String text, String iconPath) {
 		JButton button = new JButton(text);
 		button.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -299,13 +301,11 @@ public class ThemMonAn_UI extends JPanel {
 			Image scaledIcon = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
 			button.setIcon(new ImageIcon(scaledIcon));
 		} catch (Exception e) {
-			System.err.println("Không tìm thấy icon: " + iconPath);
 		}
 
 		return button;
 	}
 
-	// Tạo Button có màu nền
 	private JButton createStyledButton(String text, String iconPath, Color backgroundColor) {
 		JButton button = createStyledButton(text, iconPath);
 		button.setBackground(backgroundColor);
@@ -324,7 +324,6 @@ public class ThemMonAn_UI extends JPanel {
 		return button;
 	}
 
-	// Tạo nút Icon
 	private JButton createIconButton(String iconPath, Color backgroundColor, int iconSize) {
 		JButton button = new JButton();
 		button.setBackground(backgroundColor);
@@ -337,8 +336,7 @@ public class ThemMonAn_UI extends JPanel {
 			Image scaledIcon = icon.getImage().getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
 			button.setIcon(new ImageIcon(scaledIcon));
 		} catch (Exception e) {
-			System.err.println("Không tìm thấy icon: " + iconPath);
-			button.setText("+"); 
+			button.setText("+");
 		}
 		button.addMouseListener(new MouseAdapter() {
 			@Override
@@ -354,7 +352,6 @@ public class ThemMonAn_UI extends JPanel {
 		return button;
 	}
 
-	// Tải dữ liệu loại món
 	private void taiDuLieuLoaiMon() {
 		try {
 			List<LoaiMon> dsLoai = loaiMonDAO.docDanhSachLoaiMon();
@@ -364,17 +361,17 @@ public class ThemMonAn_UI extends JPanel {
 			for (LoaiMon loai : dsLoai) {
 				cmbLoai.addItem(loai);
 			}
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + e.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
 		} catch (Exception e) {
-			JOptionPane.showMessageDialog(this, "Lỗi khi tải danh sách loại món: " + e.getMessage(), "Lỗi",
-					JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Lỗi khi tải danh sách loại món: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 		}
 	}
 
-	// Hiển thị dialog thêm loại món
 	private void hienThiDialogThemLoai() {
-		JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thêm loại món",
-				Dialog.ModalityType.APPLICATION_MODAL);
+		JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thêm loại món", Dialog.ModalityType.APPLICATION_MODAL);
 		dialog.setSize(400, 350);
 		dialog.setLocationRelativeTo(this);
 		dialog.setResizable(false);
@@ -394,7 +391,7 @@ public class ThemMonAn_UI extends JPanel {
 		}
 
 		JList<LoaiMon> listHienCo = new JList<>(listModel);
-		listHienCo.setBackground(componentColor); 
+		listHienCo.setBackground(componentColor);
 		listHienCo.setForeground(textColor);
 		listHienCo.setFont(new Font("Segoe UI", Font.PLAIN, 16));
 		listHienCo.setSelectionBackground(MAU_NUT_CAP_NHAT.darker());
@@ -406,8 +403,8 @@ public class ThemMonAn_UI extends JPanel {
 		scrollPane.setBorder(BorderFactory.createLineBorder(componentColor, 1));
 
 		pnlHienCo.add(lblHienCo, BorderLayout.NORTH);
-		pnlHienCo.add(scrollPane, BorderLayout.CENTER); 
-		pnlHienCo.setPreferredSize(new Dimension(0, 150)); 
+		pnlHienCo.add(scrollPane, BorderLayout.CENTER);
+		pnlHienCo.setPreferredSize(new Dimension(0, 150));
 
 		JPanel pnlThemMoi = new JPanel(new BorderLayout(0, 5));
 		pnlThemMoi.setOpaque(false);
@@ -462,27 +459,25 @@ public class ThemMonAn_UI extends JPanel {
 		pnlButton.add(Box.createRigidArea(new Dimension(10, 0)));
 		pnlButton.add(btnHuy);
 
-		mainPanel.add(pnlHienCo, BorderLayout.NORTH); 
-		mainPanel.add(pnlThemMoi, BorderLayout.CENTER); 
-		mainPanel.add(pnlButton, BorderLayout.SOUTH); 
+		mainPanel.add(pnlHienCo, BorderLayout.NORTH);
+		mainPanel.add(pnlThemMoi, BorderLayout.CENTER);
+		mainPanel.add(pnlButton, BorderLayout.SOUTH);
 
 		btnHuy.addActionListener(e -> dialog.dispose());
 
 		btnThem.addActionListener(e -> {
 			String tenLoaiMoi = txtTenLoaiMoi.getText().trim();
 			if (tenLoaiMoi.isEmpty()) {
-				JOptionPane.showMessageDialog(dialog, "Tên loại mới không được để trống!", "Lỗi",
-						JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(dialog, "Tên loại mới không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
 
-			LoaiMon loaiTonTai = loaiMonDAO.timLoaiTheoTen(tenLoaiMoi);
+			try {
+				LoaiMon loaiTonTai = loaiMonDAO.timLoaiTheoTen(tenLoaiMoi);
 
-			if (loaiTonTai != null) {
-				JOptionPane.showMessageDialog(dialog, "Loại món này đã tồn tại!", "Thông báo",
-						JOptionPane.WARNING_MESSAGE);
-			} else {
-				try {
+				if (loaiTonTai != null) {
+					JOptionPane.showMessageDialog(dialog, "Loại món này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+				} else {
 					String maLoaiMoi = loaiMonDAO.sinhMaLoaiTuDong();
 					LoaiMon loaiMoi = new LoaiMon(maLoaiMoi, tenLoaiMoi);
 
@@ -495,20 +490,20 @@ public class ThemMonAn_UI extends JPanel {
 						listModel.addElement(loaiMoi);
 						listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
 
-						JOptionPane.showMessageDialog(dialog, "Đã thêm loại món mới!", "Thành công",
-								JOptionPane.INFORMATION_MESSAGE);
+						JOptionPane.showMessageDialog(dialog, "Đã thêm loại món mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
 						txtTenLoaiMoi.setText("");
 						txtTenLoaiMoi.requestFocus();
 
 					} else {
-						JOptionPane.showMessageDialog(dialog, "Thêm loại món mới thất bại!", "Lỗi",
-								JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(dialog, "Thêm loại món mới thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
 					}
-				} catch (Exception ex) {
-					JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm loại món: " + ex.getMessage(), "Lỗi",
-							JOptionPane.ERROR_MESSAGE);
 				}
+			} catch (RemoteException re) {
+				re.printStackTrace();
+				JOptionPane.showMessageDialog(dialog, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+			} catch (Exception ex) {
+				JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm loại món: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
 			}
 		});
 
@@ -516,7 +511,6 @@ public class ThemMonAn_UI extends JPanel {
 		dialog.setVisible(true);
 	}
 
-	// Chọn ảnh món ăn
 	private void chonAnh() {
 		JFileChooser fileChooser = new JFileChooser();
 		fileChooser.setDialogTitle("Chọn ảnh món ăn");
@@ -534,9 +528,12 @@ public class ThemMonAn_UI extends JPanel {
 		}
 	}
 
-	// Làm mới form
 	private void lamMoi() {
-		txtMaMon.setText(monAnDAO.sinhMaMonTuDong());
+		try {
+			txtMaMon.setText(monAnDAO.sinhMaMonTuDong());
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 		txtTenMon.setText("");
 		txtGia.setText("");
 		txtDonVi.setText("");
@@ -551,7 +548,6 @@ public class ThemMonAn_UI extends JPanel {
 		txtTenMon.requestFocus();
 	}
 
-	// Thêm món ăn
 	private void xuLyThemMonAn() {
 		try {
 			if (!kiemTraDuLieu()) {
@@ -568,8 +564,7 @@ public class ThemMonAn_UI extends JPanel {
 			LoaiMon loaiMon = (LoaiMon) cmbLoai.getSelectedItem();
 
 			if (loaiMon == null) {
-				JOptionPane.showMessageDialog(this, "Vui lòng chọn loại món!", "Thiếu thông tin",
-						JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(this, "Vui lòng chọn loại món!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
 				return;
 			}
 
@@ -593,8 +588,7 @@ public class ThemMonAn_UI extends JPanel {
 					File destFile = new File(new java.net.URI(resourceUrl.toString() + "/" + tenFileAnh));
 					Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 				} catch (java.io.IOException | java.net.URISyntaxException ex) {
-					JOptionPane.showMessageDialog(this, "Lỗi khi lưu file ảnh: " + ex.getMessage(), "Lỗi",
-							JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(this, "Lỗi khi lưu file ảnh: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
 					ex.printStackTrace();
 					return;
 				}
@@ -607,16 +601,17 @@ public class ThemMonAn_UI extends JPanel {
 			boolean ketQua = monAnDAO.themMonAn(monAnMoi);
 
 			if (ketQua) {
-				JOptionPane.showMessageDialog(this, "Thêm món ăn thành công!\nMã món: " + maMon, "Thành công",
-						JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(this, "Thêm món ăn thành công!\nMã món: " + maMon, "Thành công", JOptionPane.INFORMATION_MESSAGE);
 				lamMoi();
 			} else {
-				JOptionPane.showMessageDialog(this, "Thêm món ăn thất bại!\nVui lòng kiểm tra lại thông tin.", "Lỗi",
-						JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(this, "Thêm món ăn thất bại!\nVui lòng kiểm tra lại thông tin.", "Lỗi", JOptionPane.ERROR_MESSAGE);
 			}
 
 		} catch (NumberFormatException e) {
 			JOptionPane.showMessageDialog(this, "Giá phải là số hợp lệ!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
 		} catch (IllegalArgumentException e) {
 			JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi dữ liệu", JOptionPane.WARNING_MESSAGE);
 		} catch (Exception e) {
@@ -625,7 +620,6 @@ public class ThemMonAn_UI extends JPanel {
 		}
 	}
 
-	// Chuyển đổi tên file
 	private String chuyenTenMonThanhTenFile(String tenMon) {
 		String result = tenMon.toLowerCase();
 		result = result.replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a");
@@ -639,64 +633,62 @@ public class ThemMonAn_UI extends JPanel {
 		return result;
 	}
 
-	// Kiểm tra dữ liệu
 	private boolean kiemTraDuLieu() {
-	    String tenMon = txtTenMon.getText().trim();
-	    String giaStr = txtGia.getText().trim();
-	    String donVi = txtDonVi.getText().trim();
+		String tenMon = txtTenMon.getText().trim();
+		String giaStr = txtGia.getText().trim();
+		String donVi = txtDonVi.getText().trim();
 
-	    if (tenMon.isEmpty()) {
-	        showValidationError("Vui lòng nhập tên món!", txtTenMon);
-	        return false;
-	    }
-	    if (!tenMon.matches("^[A-ZÀ-Ỹ][a-zA-Zà-ỹÀ-Ỹ\\s]*$")) {
-	        showValidationError(
-	                "Tên món phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\n" +
-	                        "Ví dụ: Gà rán, Phở Bò Tái, Lẩu nấm",
-	                txtTenMon);
-	        return false;
-	    }
+		if (tenMon.isEmpty()) {
+			showValidationError("Vui lòng nhập tên món!", txtTenMon);
+			return false;
+		}
+		if (!tenMon.matches("^[A-ZÀ-Ỹ][a-zA-Zà-ỹÀ-Ỹ\\s]*$")) {
+			showValidationError(
+					"Tên món phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\n" +
+							"Ví dụ: Gà rán, Phở Bò Tái, Lẩu nấm",
+					txtTenMon);
+			return false;
+		}
 
-	    if (giaStr.isEmpty()) {
-	        showValidationError("Vui lòng nhập giá món!", txtGia);
-	        return false;
-	    }
-	    try {
-	        double gia = Double.parseDouble(giaStr);
-	        if (gia <= 0) {
-	            showValidationError("Giá phải là một số dương (lớn hơn 0)!", txtGia);
-	            return false;
-	        }
-	    } catch (NumberFormatException e) {
-	        showValidationError("Giá phải là số hợp lệ! (Ví dụ: 50000 hoặc 50000.5)", txtGia);
-	        return false;
-	    }
+		if (giaStr.isEmpty()) {
+			showValidationError("Vui lòng nhập giá món!", txtGia);
+			return false;
+		}
+		try {
+			double gia = Double.parseDouble(giaStr);
+			if (gia <= 0) {
+				showValidationError("Giá phải là một số dương (lớn hơn 0)!", txtGia);
+				return false;
+			}
+		} catch (NumberFormatException e) {
+			showValidationError("Giá phải là số hợp lệ! (Ví dụ: 50000 hoặc 50000.5)", txtGia);
+			return false;
+		}
 
-	    if (donVi.isEmpty()) {
-	        showValidationError("Vui lòng nhập đơn vị!", txtDonVi);
-	        return false;
-	    }
-	    if (!donVi.matches("^[A-ZÀ-Ỹ][a-zA-Zà-ỹÀ-Ỹ\\s]*$")) {
-	        showValidationError(
-	                "Đơn vị phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\n" +
-	                        "Ví dụ: Dĩa, Ly, Phần, Tô",
-	                txtDonVi);
-	        return false;
-	    }
+		if (donVi.isEmpty()) {
+			showValidationError("Vui lòng nhập đơn vị!", txtDonVi);
+			return false;
+		}
+		if (!donVi.matches("^[A-ZÀ-Ỹ][a-zA-Zà-ỹÀ-Ỹ\\s]*$")) {
+			showValidationError(
+					"Đơn vị phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\n" +
+							"Ví dụ: Dĩa, Ly, Phần, Tô",
+					txtDonVi);
+			return false;
+		}
 
-	    return true;
+		return true;
 	}
 
-	// Tùy chỉnh thanh cuộn
 	private void tuyChinhScrollBar(JScrollPane scrollPane) {
 		JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
-		verticalScrollBar.setPreferredSize(new Dimension(8, 0)); 
+		verticalScrollBar.setPreferredSize(new Dimension(8, 0));
 		verticalScrollBar.setBackground(MAU_NEN_INPUT);
 		verticalScrollBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
 			@Override
 			protected void configureScrollBarColors() {
-				this.thumbColor = new Color(100, 105, 120); 
-				this.trackColor = MAU_NEN_INPUT; 
+				this.thumbColor = new Color(100, 105, 120);
+				this.trackColor = MAU_NEN_INPUT;
 				this.thumbDarkShadowColor = new Color(80, 85, 100);
 				this.thumbHighlightColor = new Color(120, 125, 140);
 			}
@@ -704,14 +696,14 @@ public class ThemMonAn_UI extends JPanel {
 			@Override
 			protected JButton createDecreaseButton(int orientation) {
 				JButton button = new JButton();
-				button.setPreferredSize(new Dimension(0, 0)); 
+				button.setPreferredSize(new Dimension(0, 0));
 				return button;
 			}
 
 			@Override
 			protected JButton createIncreaseButton(int orientation) {
 				JButton button = new JButton();
-				button.setPreferredSize(new Dimension(0, 0)); 
+				button.setPreferredSize(new Dimension(0, 0));
 				return button;
 			}
 
@@ -732,7 +724,7 @@ public class ThemMonAn_UI extends JPanel {
 		});
 
 		JScrollBar horizontalScrollBar = scrollPane.getHorizontalScrollBar();
-		horizontalScrollBar.setPreferredSize(new Dimension(0, 8)); 
+		horizontalScrollBar.setPreferredSize(new Dimension(0, 8));
 		horizontalScrollBar.setBackground(MAU_NEN_INPUT);
 		horizontalScrollBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
 			@Override
@@ -773,28 +765,24 @@ public class ThemMonAn_UI extends JPanel {
 			}
 		});
 	}
-	
-	// Hiển thị lỗi validation
+
 	private void showValidationError(String message, JComponent component) {
-	    JOptionPane.showMessageDialog(this, message, "Lỗi Nhập Liệu", JOptionPane.WARNING_MESSAGE);
-	    component.requestFocus();
-	}
-	
-	// Hiển thị dialog thêm nhiều món
-	private void hienThiGiaoDienThemNhieu() {
-	    JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Import Món Ăn Từ Excel", Dialog.ModalityType.APPLICATION_MODAL);
-	    
-	    ThemNhieuMonAn_UI panelThemNhieu = new ThemNhieuMonAn_UI();	
-	    
-	    dialog.add(panelThemNhieu);
-	    
-	    dialog.setSize(1600, 750);	
-	    
-	    dialog.setLocationRelativeTo(this);	
-	    
-	    dialog.setResizable(true); 
-	    dialog.setVisible(true); 
-	    
+		JOptionPane.showMessageDialog(this, message, "Lỗi Nhập Liệu", JOptionPane.WARNING_MESSAGE);
+		component.requestFocus();
 	}
 
+	private void hienThiGiaoDienThemNhieu() {
+		JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Import Món Ăn Từ Excel", Dialog.ModalityType.APPLICATION_MODAL);
+
+		ThemNhieuMonAn_UI panelThemNhieu = new ThemNhieuMonAn_UI();
+
+		dialog.add(panelThemNhieu);
+
+		dialog.setSize(1600, 750);
+
+		dialog.setLocationRelativeTo(this);
+
+		dialog.setResizable(true);
+		dialog.setVisible(true);
+	}
 }

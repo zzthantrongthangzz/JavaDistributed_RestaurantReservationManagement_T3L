@@ -9,6 +9,7 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
+import java.rmi.Naming;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,7 +27,8 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import dao_impl.TaiKhoan_DAO;
+// ✅ Import Interface từ Shared thay vì DAO_Impl
+import rmi_interfaces.ITaiKhoan_DAO;
 
 public class QuenMatKhau_UI extends JDialog {
 	private final Color MAU_NEN_DARK = new Color(34, 40, 49);
@@ -44,17 +46,18 @@ public class QuenMatKhau_UI extends JDialog {
 	private JButton btnXacNhan;
 	private JButton btnHuy;
 
-	private TaiKhoan_DAO taiKhoanDAO;
+	// ✅ Đổi thành Interface
+	private ITaiKhoan_DAO taiKhoanDAO;
 	private String maXacThucGui;
 	private int lanThuTaiDo;
 
-    // Phương thức main để test giao diện
+	// Phương thức main để test giao diện
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
 					JFrame parentFrame = new JFrame();
-					parentFrame.setUndecorated(true); 
+					parentFrame.setUndecorated(true);
 					parentFrame.setLocationRelativeTo(null);
 					parentFrame.setVisible(true);
 
@@ -75,17 +78,25 @@ public class QuenMatKhau_UI extends JDialog {
 		});
 	}
 
-    // Constructor khởi tạo giao diện
+	// Constructor khởi tạo giao diện
 	public QuenMatKhau_UI(JFrame parent) {
 		super(parent, "Quên Mật Khẩu", true);
-		taiKhoanDAO = new TaiKhoan_DAO();
+
+		// ✅ Khởi tạo qua RMI Lookup thay vì new Object
+		try {
+			taiKhoanDAO = (ITaiKhoan_DAO) Naming.lookup("rmi://localhost:1099/TaiKhoan_DAO");
+		} catch (Exception e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
+		}
+
 		maXacThucGui = null;
 		lanThuTaiDo = 0;
 
 		setSize(450, 550);
 		setLocationRelativeTo(parent);
 		setResizable(false);
-		
+
 		JPanel contentPane = new JPanel(new BorderLayout(10, 20));
 		contentPane.setBackground(MAU_NEN_DARK);
 		contentPane.setBorder(new EmptyBorder(20, 25, 20, 25));
@@ -101,16 +112,16 @@ public class QuenMatKhau_UI extends JDialog {
 		JPanel formPanel = new JPanel();
 		formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
 		formPanel.setOpaque(false);
-		
+
 		JPanel pnlTaiKhoan = new JPanel(new BorderLayout(10, 0));
 		pnlTaiKhoan.setOpaque(false);
 		txtTaiKhoan = taoTextField();
-		
+
 		btnGuiMa = taoNutChucNang("Gửi Mã", MAU_ACCENT, MAU_ACCENT.brighter());
 		btnGuiMa.setFont(new Font("Segoe UI", Font.BOLD, 13));
 		pnlTaiKhoan.add(txtTaiKhoan, BorderLayout.CENTER);
 		pnlTaiKhoan.add(btnGuiMa, BorderLayout.EAST);
-		
+
 		formPanel.add(taoPanelInput("Tài khoản:", pnlTaiKhoan));
 		formPanel.add(Box.createVerticalStrut(15));
 
@@ -124,26 +135,26 @@ public class QuenMatKhau_UI extends JDialog {
 
 		txtNhacLaiMatKhau = taoPasswordField();
 		formPanel.add(taoPanelInput("Nhắc lại mật khẩu:", txtNhacLaiMatKhau));
-		
+
 		contentPane.add(formPanel, BorderLayout.CENTER);
 
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
 		buttonPanel.setOpaque(false);
-		
+
 		btnXacNhan = taoNutChucNang("Xác Nhận", MAU_SUCCESS, MAU_SUCCESS.brighter());
 		btnHuy = taoNutChucNang("Hủy", MAU_ERROR, MAU_ERROR.brighter());
-		
+
 		buttonPanel.add(btnXacNhan);
 		buttonPanel.add(btnHuy);
-		
+
 		contentPane.add(buttonPanel, BorderLayout.SOUTH);
 
 		ganSuKien();
-		
+
 		datTrangThaiBanDau(true);
 	}
 
-    // Tạo panel chứa label và component nhập liệu
+	// Tạo panel chứa label và component nhập liệu
 	private JPanel taoPanelInput(String tenLabel, Component inputComponent) {
 		JPanel panel = new JPanel(new BorderLayout(0, 5));
 		panel.setOpaque(false);
@@ -151,13 +162,13 @@ public class QuenMatKhau_UI extends JDialog {
 		JLabel label = new JLabel(tenLabel);
 		label.setFont(new Font("Segoe UI", Font.PLAIN, 15));
 		label.setForeground(MAU_CHU_TRANG);
-		
+
 		panel.add(label, BorderLayout.NORTH);
 		panel.add(inputComponent, BorderLayout.CENTER);
 		return panel;
 	}
 
-    // Tạo TextField với định dạng chung
+	// Tạo TextField với định dạng chung
 	private JTextField taoTextField() {
 		JTextField textField = new JTextField();
 		textField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
@@ -166,13 +177,13 @@ public class QuenMatKhau_UI extends JDialog {
 		textField.setCaretColor(MAU_CHU_TRANG);
 		textField.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createLineBorder(MAU_COMPONENT.darker(), 1),
-				new EmptyBorder(8, 10, 8, 10) 
+				new EmptyBorder(8, 10, 8, 10)
 		));
 		textField.setPreferredSize(new Dimension(200, 40));
 		return textField;
 	}
 
-    // Tạo PasswordField với định dạng chung
+	// Tạo PasswordField với định dạng chung
 	private JPasswordField taoPasswordField() {
 		JPasswordField passField = new JPasswordField();
 		passField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
@@ -187,7 +198,7 @@ public class QuenMatKhau_UI extends JDialog {
 		return passField;
 	}
 
-    // Tạo nút chức năng với màu sắc tùy chỉnh
+	// Tạo nút chức năng với màu sắc tùy chỉnh
 	private JButton taoNutChucNang(String text, Color background, Color hover) {
 		JButton button = new JButton(text);
 		button.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -209,19 +220,19 @@ public class QuenMatKhau_UI extends JDialog {
 		});
 		return button;
 	}
-	
-    // Thiết lập trạng thái enable/disable của các component
+
+	// Thiết lập trạng thái enable/disable của các component
 	private void datTrangThaiBanDau(boolean trangThai) {
 		txtTaiKhoan.setEnabled(trangThai);
 		btnGuiMa.setEnabled(trangThai);
-		
+
 		txtMaXacThuc.setEnabled(!trangThai);
 		txtMatKhauMoi.setEnabled(!trangThai);
 		txtNhacLaiMatKhau.setEnabled(!trangThai);
 		btnXacNhan.setEnabled(!trangThai);
 	}
 
-    // Gắn sự kiện cho các nút bấm
+	// Gắn sự kiện cho các nút bấm
 	private void ganSuKien() {
 		btnGuiMa.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -241,7 +252,7 @@ public class QuenMatKhau_UI extends JDialog {
 			}
 		});
 		txtTaiKhoan.addActionListener(new ActionListener() {
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				btnGuiMa.doClick();
@@ -249,8 +260,13 @@ public class QuenMatKhau_UI extends JDialog {
 		});
 	}
 
-    // Gửi mã xác thực OTP qua email
+	// Gửi mã xác thực OTP qua email
 	private void guiMaXacThuc() {
+		if (taiKhoanDAO == null) {
+			JOptionPane.showMessageDialog(this, "Lỗi: Chưa kết nối được với Máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
 		String tenDangNhap = txtTaiKhoan.getText().trim();
 
 		if (tenDangNhap.isEmpty()) {
@@ -260,37 +276,48 @@ public class QuenMatKhau_UI extends JDialog {
 			return;
 		}
 
-		if (!taiKhoanDAO.kiemTraTenDangNhapTonTai(tenDangNhap)) {
-			JOptionPane.showMessageDialog(this, "Tài khoản không tồn tại!", "Lỗi",
-					JOptionPane.ERROR_MESSAGE);
-			txtTaiKhoan.requestFocusInWindow();
-			return;
-		}
+		// ✅ Bao bọc các thao tác RMI bằng try-catch
+		try {
+			if (!taiKhoanDAO.kiemTraTenDangNhapTonTai(tenDangNhap)) {
+				JOptionPane.showMessageDialog(this, "Tài khoản không tồn tại!", "Lỗi",
+						JOptionPane.ERROR_MESSAGE);
+				txtTaiKhoan.requestFocusInWindow();
+				return;
+			}
 
-		String email = taiKhoanDAO.layEmailTheoTenDangNhap(tenDangNhap);
+			String email = taiKhoanDAO.layEmailTheoTenDangNhap(tenDangNhap);
 
-		if (email == null || email.isEmpty()) {
-			JOptionPane.showMessageDialog(this, "Không tìm thấy email cho tài khoản này!", "Lỗi",
-					JOptionPane.ERROR_MESSAGE);
-			return;
-		}
+			if (email == null || email.isEmpty()) {
+				JOptionPane.showMessageDialog(this, "Không tìm thấy email cho tài khoản này!", "Lỗi",
+						JOptionPane.ERROR_MESSAGE);
+				return;
+			}
 
-		maXacThucGui = taiKhoanDAO.taoDuMaXacThuc();
+			maXacThucGui = taiKhoanDAO.taoDuMaXacThuc();
 
-		 if (taiKhoanDAO.guiEmailXacThuc(email, maXacThucGui, tenDangNhap)) {
-			JOptionPane.showMessageDialog(this,
-					"Mã xác thực đã được gửi đến email: " + email + "\n\nMã sẽ hết hiệu lực sau 10 phút.",
-					"Thành công", JOptionPane.INFORMATION_MESSAGE);
-			datTrangThaiBanDau(false);
-			
-		} else {
-			JOptionPane.showMessageDialog(this, "Lỗi gửi email! Vui lòng thử lại sau.", "Lỗi",
-					JOptionPane.ERROR_MESSAGE);
+			if (taiKhoanDAO.guiEmailXacThuc(email, maXacThucGui, tenDangNhap)) {
+				JOptionPane.showMessageDialog(this,
+						"Mã xác thực đã được gửi đến email: " + email + "\n\nMã sẽ hết hiệu lực sau 10 phút.",
+						"Thành công", JOptionPane.INFORMATION_MESSAGE);
+				datTrangThaiBanDau(false);
+
+			} else {
+				JOptionPane.showMessageDialog(this, "Lỗi gửi email! Vui lòng thử lại sau.", "Lỗi",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		} catch (java.rmi.RemoteException re) {
+			re.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Mất kết nối với máy chủ: " + re.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
-    // Xác nhận mã OTP và cập nhật mật khẩu mới
+	// Xác nhận mã OTP và cập nhật mật khẩu mới
 	private void xacNhanDatLaiMatKhau() {
+		if (taiKhoanDAO == null) {
+			JOptionPane.showMessageDialog(this, "Lỗi: Chưa kết nối được với Máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
 		String tenDangNhap = txtTaiKhoan.getText().trim();
 		String maXacThucNhap = txtMaXacThuc.getText().trim();
 		String matKhauMoi = new String(txtMatKhauMoi.getPassword()).trim();
@@ -340,14 +367,20 @@ public class QuenMatKhau_UI extends JDialog {
 			return;
 		}
 
-		if (taiKhoanDAO.capNhatMatKhauMoi(tenDangNhap, matKhauMoi)) {
-			JOptionPane.showMessageDialog(this,
-					"Đặt lại mật khẩu thành công!\nVui lòng đăng nhập lại bằng mật khẩu mới.",
-					"Thành công", JOptionPane.INFORMATION_MESSAGE);
-			dispose();
-		} else {
-			JOptionPane.showMessageDialog(this, "Lỗi cập nhật mật khẩu! Vui lòng thử lại.", "Lỗi",
-					JOptionPane.ERROR_MESSAGE);
+		// ✅ Bao bọc RMI bằng try-catch
+		try {
+			if (taiKhoanDAO.capNhatMatKhauMoi(tenDangNhap, matKhauMoi)) {
+				JOptionPane.showMessageDialog(this,
+						"Đặt lại mật khẩu thành công!\nVui lòng đăng nhập lại bằng mật khẩu mới.",
+						"Thành công", JOptionPane.INFORMATION_MESSAGE);
+				dispose();
+			} else {
+				JOptionPane.showMessageDialog(this, "Lỗi cập nhật mật khẩu! Vui lòng thử lại.", "Lỗi",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		} catch (java.rmi.RemoteException re) {
+			re.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Mất kết nối với máy chủ: " + re.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 }

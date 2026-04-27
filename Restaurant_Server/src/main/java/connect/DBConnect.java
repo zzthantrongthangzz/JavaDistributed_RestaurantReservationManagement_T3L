@@ -10,7 +10,7 @@ public class DBConnect {
 
     public static void initConnection() {
         // Thay đổi password "123456" thành mật khẩu Neo4j của bạn
-        driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("sa", "sapassword"));
+        driver = GraphDatabase.driver("bolt://localhost:7687", AuthTokens.basic("neo4j", "sapassword"));
     }
 
     public static Session getSession() {

@@ -20,14 +20,18 @@ import com.toedter.calendar.JTextFieldDateEditor;
 import java.util.Date;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.rmi.Naming;
 
-import dao_impl.BanAn_DAO;
-import dao_impl.ChiTietHoaDon_DAO;
-import dao_impl.ChiTietPhieuDatBan_DAO;
-import dao_impl.HoaDon_DAO;
-import dao_impl.HoaDon_Ban_DAO;
-import dao_impl.KhachHang_DAO;
-import dao_impl.PhieuDatBan_DAO;
+import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.IChiTietHoaDon_DAO;
+import rmi_interfaces.IChiTietPhieuDatBan_DAO;
+import rmi_interfaces.IHoaDon_DAO;
+import rmi_interfaces.IHoaDon_Ban_DAO;
+import rmi_interfaces.IKhachHang_DAO;
+import rmi_interfaces.IPhieuDatBan_DAO;
+import rmi_interfaces.ILichSuHuyDatBan_DAO;
+import rmi_interfaces.IPhieuDatBan_Ban_DAO;
+
 import entity.BanAn;
 import entity.ChiTietHoaDon;
 import entity.ChiTietPhieuDatBan;
@@ -35,13 +39,11 @@ import entity.HoaDon;
 import entity.KhachHang;
 import entity.NhanVien;
 import entity.PhieuDatBan;
+import entity.LichSuHuyDatBan;
 import ui.Auth;
-import dao_impl.LichSuHuyDatBan_DAO;
-import dao_impl.PhieuDatBan_Ban_DAO;
 
 public class QuanLyDatBan_UI extends JPanel {
 
-	// ==================== MÀU SẮC & KÍCH THƯỚC ====================
 	private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
 	private final Color MAU_NEN_TAB = new Color(48, 52, 56);
 	private final Color MAU_NEN_ITEM = new Color(31, 32, 34);
@@ -58,17 +60,21 @@ public class QuanLyDatBan_UI extends JPanel {
 	private final int KICH_THUOC_ITEM_RONG = 241;
 	private final int KICH_THUOC_ITEM_CAO = 270;
 
-	// ==================== THÀNH PHẦN GIAO DIỆN & DAO ====================
 	private JTextField searchField;
 	private JTextField searchFieldKhachHang;
-	private BanAn_DAO banAn_DAO;
-	private HoaDon_DAO hoaDon_DAO;
-	private HoaDon_Ban_DAO hoaDonBanDAO;
-	private KhachHang_DAO khachHang_DAO;
-	
-	private List<BanAn> danhSachBanTongCuaNgay; 
-	private List<BanAn> danhSachBan; 
-	
+	private IBanAn_DAO banAn_DAO;
+	private IHoaDon_DAO hoaDon_DAO;
+	private IHoaDon_Ban_DAO hoaDonBanDAO;
+	private IKhachHang_DAO khachHang_DAO;
+	private IPhieuDatBan_DAO phieuDatBanDAO;
+	private IChiTietPhieuDatBan_DAO chiTietPhieuDatBanDAO;
+	private IChiTietHoaDon_DAO chiTietHoaDonDAO;
+	private ILichSuHuyDatBan_DAO lichSuHuyDatBanDAO;
+	private IPhieuDatBan_Ban_DAO phieuDatBan_BanDAO;
+
+	private List<BanAn> danhSachBanTongCuaNgay;
+	private List<BanAn> danhSachBan;
+
 	private JPanel panelLuoiBanAn;
 	private JButton btnTrong, btnCho, btnPhucVu;
 
@@ -78,7 +84,6 @@ public class QuanLyDatBan_UI extends JPanel {
 	private java.util.Map<String, JPanel> mapBanUI = new java.util.HashMap<>();
 
 	private JDateChooser dateChooserLocNgay;
-	private PhieuDatBan_DAO phieuDatBanDAO;
 
 	private BanAn banDangChon = null;
 	private List<BanAn> danhSachBanDangChon = new ArrayList<>();
@@ -92,15 +97,24 @@ public class QuanLyDatBan_UI extends JPanel {
 	private JButton btnDatBanNgay, btnDatBanCho, btnNhanBanCho, btnHuyBanCho, btnXemChiTiet, btnChuyenBan, btnDatMon,
 			btnTinhTien;
 
-	// Khởi tạo giao diện và các thành phần
 	public QuanLyDatBan_UI() {
-		banAn_DAO = new BanAn_DAO();
-		hoaDon_DAO = new HoaDon_DAO();
-		khachHang_DAO = new KhachHang_DAO();
-		phieuDatBanDAO = new PhieuDatBan_DAO();
-		hoaDonBanDAO = new HoaDon_Ban_DAO();
-		
-		this.danhSachBan = banAn_DAO.docDanhSachBan();
+		try {
+			banAn_DAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+			hoaDon_DAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+			khachHang_DAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+			phieuDatBanDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+			hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+			chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_DAO) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
+			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
+
+			this.danhSachBan = banAn_DAO.docDanhSachBan();
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.danhSachBan = new ArrayList<>();
+		}
+
 		this.danhSachBanTongCuaNgay = new ArrayList<>(this.danhSachBan);
 
 		setLayout(new BorderLayout());
@@ -150,10 +164,10 @@ public class QuanLyDatBan_UI extends JPanel {
 		add(mainPanel, BorderLayout.CENTER);
 
 		khoiTaoKeyBindings();
-		lamMoiGiaoDien(); 
+		lamMoiGiaoDien();
 		capNhatTrangThaiCacNutChucNang();
 
-		Timer timerTuDongQuet = new Timer(120000, new ActionListener() { 
+		Timer timerTuDongQuet = new Timer(120000, new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (QuanLyDatBan_UI.this.isShowing()) {
@@ -164,7 +178,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		timerTuDongQuet.start();
 	}
 
-	// Tạo giao diện hiển thị cho từng bàn ăn
 	private JPanel taoItemsBan(BanAn ban) {
 		JPanel panelItem = new JPanel(new BorderLayout());
 		panelItem.setPreferredSize(new Dimension(KICH_THUOC_ITEM_RONG, KICH_THUOC_ITEM_CAO));
@@ -269,7 +282,7 @@ public class QuanLyDatBan_UI extends JPanel {
 					if (nhomBan.size() > 1) {
 						danhSachBanDangChon.clear();
 						danhSachBanDangChon.addAll(nhomBan);
-						banDangChon = null; 
+						banDangChon = null;
 						isMultiSelectMode = false;
 						if (btnCheDoChonNhieu != null) {
 							btnCheDoChonNhieu.setSelected(false);
@@ -281,7 +294,7 @@ public class QuanLyDatBan_UI extends JPanel {
 				else if (e.getClickCount() == 1) {
 					if (isMultiSelectMode) {
 						if (!ban.getTrangThai().equals("Bàn đang trống")) {
-							 return; 
+							return;
 						}
 						if (kiemTraBanDaChon(ban.getMaBan())) {
 							danhSachBanDangChon.removeIf(b -> b.getMaBan().equals(ban.getMaBan()));
@@ -306,7 +319,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return panelItem;
 	}
 
-	// Tạo panel phía dưới chứa các nút lọc theo trạng thái
 	private JPanel taoPanelSouth() {
 		JPanel pContent = new JPanel(new FlowLayout(FlowLayout.CENTER, 100, 0));
 		pContent.setBorder(new EmptyBorder(10, 0, 0, 0));
@@ -332,24 +344,22 @@ public class QuanLyDatBan_UI extends JPanel {
 
 		return pContent;
 	}
-	
-	// Lọc và hiển thị danh sách bàn theo trạng thái được chọn
+
 	private void locVaHienThiTheoNut(String trangThai) {
-	    locDuLieuBan(); 
-	    
-	    List<BanAn> dsLocTheoNut = new ArrayList<>();
-	    if (this.danhSachBanTongCuaNgay != null) {
-	        for (BanAn b : this.danhSachBanTongCuaNgay) {
-	            if (b.getTrangThai().equalsIgnoreCase(trangThai)) {
-	                dsLocTheoNut.add(b);
-	            }
-	        }
-	    }
-	    
-	    capNhatLuoiBan(dsLocTheoNut);
+		locDuLieuBan();
+
+		List<BanAn> dsLocTheoNut = new ArrayList<>();
+		if (this.danhSachBanTongCuaNgay != null) {
+			for (BanAn b : this.danhSachBanTongCuaNgay) {
+				if (b.getTrangThai().equalsIgnoreCase(trangThai)) {
+					dsLocTheoNut.add(b);
+				}
+			}
+		}
+
+		capNhatLuoiBan(dsLocTheoNut);
 	}
 
-	// Tạo panel phía trên chứa các nút chức năng và bộ lọc
 	private JPanel taoPanelNorth() {
 		JPanel pContent = new JPanel(new BorderLayout());
 		JPanel pCenter = new JPanel(new BorderLayout(0, 15));
@@ -407,7 +417,7 @@ public class QuanLyDatBan_UI extends JPanel {
 		lblNgay.setFont(new Font("Segoe UI", Font.PLAIN, 18));
 		lblNgay.setForeground(Color.WHITE);
 		pNgay.add(lblNgay);
-		
+
 		dateChooserLocNgay = new JDateChooser();
 		dateChooserLocNgay.setPreferredSize(new Dimension(140, 40));
 		dateChooserLocNgay.setDateFormatString("dd/MM/yyyy");
@@ -420,34 +430,34 @@ public class QuanLyDatBan_UI extends JPanel {
 		dateChooserLocNgay.setBorder(BorderFactory.createLineBorder(MAU_VIEN_THANH_TIM_KIEM, 1));
 		dateChooserLocNgay.getCalendarButton().setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JTextFieldDateEditor dateEditor = (JTextFieldDateEditor) dateChooserLocNgay.getDateEditor().getUiComponent();
-        dateEditor.setBackground(MAU_THANH_TIM_KIEM);
-        dateEditor.setForeground(Color.WHITE);
-        dateEditor.setCaretColor(Color.WHITE);
-        dateEditor.setSelectedTextColor(Color.WHITE);
-        dateEditor.setSelectionColor(MAU_VIEN_THANH_TIM_KIEM);
-        dateEditor.setFont(FONT_TEXTFIELD);
-        dateEditor.setBorder(new EmptyBorder(0, 8, 0, 0));
-        dateEditor.setOpaque(true);
-        dateEditor.setEditable(false); 
-        
-        dateChooserLocNgay.getDateEditor().addPropertyChangeListener(evt -> {
-            if ("date".equals(evt.getPropertyName())) {
-                SwingUtilities.invokeLater(() -> dateEditor.setForeground(Color.WHITE));
-            }
-        });
-        dateEditor.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) { dateEditor.setForeground(Color.WHITE); }
-            @Override
-            public void focusLost(FocusEvent e) { dateEditor.setForeground(Color.WHITE); }
-        });
+		JTextFieldDateEditor dateEditor = (JTextFieldDateEditor) dateChooserLocNgay.getDateEditor().getUiComponent();
+		dateEditor.setBackground(MAU_THANH_TIM_KIEM);
+		dateEditor.setForeground(Color.WHITE);
+		dateEditor.setCaretColor(Color.WHITE);
+		dateEditor.setSelectedTextColor(Color.WHITE);
+		dateEditor.setSelectionColor(MAU_VIEN_THANH_TIM_KIEM);
+		dateEditor.setFont(FONT_TEXTFIELD);
+		dateEditor.setBorder(new EmptyBorder(0, 8, 0, 0));
+		dateEditor.setOpaque(true);
+		dateEditor.setEditable(false);
+
+		dateChooserLocNgay.getDateEditor().addPropertyChangeListener(evt -> {
+			if ("date".equals(evt.getPropertyName())) {
+				SwingUtilities.invokeLater(() -> dateEditor.setForeground(Color.WHITE));
+			}
+		});
+		dateEditor.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent e) { dateEditor.setForeground(Color.WHITE); }
+			@Override
+			public void focusLost(FocusEvent e) { dateEditor.setForeground(Color.WHITE); }
+		});
 
 
 		pNgay.add(dateChooserLocNgay);
-		
+
 		dateChooserLocNgay.addPropertyChangeListener("date", evt -> {
-		    locDuLieuBan();
+			locDuLieuBan();
 		});
 		pFilterRow.add(pNgay);
 
@@ -458,7 +468,7 @@ public class QuanLyDatBan_UI extends JPanel {
 
 		JPanel pEast = new JPanel(new GridLayout(2, 1, 0, 15));
 		pEast.setBackground(MAU_NEN_TAB);
-		pEast.setBorder(BorderFactory.createEmptyBorder(0, 0, 50, 0)); 
+		pEast.setBorder(BorderFactory.createEmptyBorder(0, 0, 50, 0));
 
 		JButton btnLamMoi = createStyledButton("Làm mới", new Color(30, 144, 255), MAU_NEN_ITEM.brighter());
 		btnLamMoi.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -504,7 +514,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return pContent;
 	}
 
-	// Tạo panel tìm kiếm theo tên hoặc mã bàn
 	private JPanel taoSearchPanel() {
 		JPanel searchPanel = new JPanel(new BorderLayout());
 		searchPanel.setBackground(new Color(45, 47, 62));
@@ -562,10 +571,14 @@ public class QuanLyDatBan_UI extends JPanel {
 				searchFieldKhachHang.setText(placeholderKH);
 			}
 
-			if (tuKhoa.isEmpty() || tuKhoa.equals(placeholderBan)) {
-				capNhatLuoiBan(banAn_DAO.docDanhSachBan());
-			} else {
-				capNhatLuoiBan(banAn_DAO.timKiemBan(tuKhoa));
+			try {
+				if (tuKhoa.isEmpty() || tuKhoa.equals(placeholderBan)) {
+					capNhatLuoiBan(banAn_DAO.docDanhSachBan());
+				} else {
+					capNhatLuoiBan(banAn_DAO.timKiemBan(tuKhoa));
+				}
+			} catch (Exception ex) {
+				ex.printStackTrace();
 			}
 			capNhatTrangThaiCacNutChucNang();
 		};
@@ -579,7 +592,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return searchPanel;
 	}
 
-	// Tạo panel tìm kiếm theo tên hoặc số điện thoại khách hàng
 	private JPanel taoSearchPanelKhachHang() {
 		JPanel searchPanel = new JPanel(new BorderLayout());
 		searchPanel.setBackground(new Color(45, 47, 62));
@@ -638,7 +650,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return searchPanel;
 	}
 
-	// Tạo UI tùy chỉnh cho ComboBox
 	private BasicComboBoxUI createCustomComboBoxUI() {
 		return new BasicComboBoxUI() {
 			@Override
@@ -654,7 +665,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		};
 	}
 
-	// Tạo ComboBox chọn tầng
 	private JPanel taoComboBoxTang() {
 		JPanel pComboBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
 		pComboBox.setBackground(MAU_NEN_TAB);
@@ -664,8 +674,12 @@ public class QuanLyDatBan_UI extends JPanel {
 		lblTang.setForeground(Color.white);
 		pComboBox.add(lblTang);
 
-		List<String> dsTang = banAn_DAO.docDanhSachTenTang();
-		this.cmbTang = new JComboBox<>(dsTang.toArray(new String[0]));
+		try {
+			List<String> dsTang = banAn_DAO.docDanhSachTenTang();
+			this.cmbTang = new JComboBox<>(dsTang.toArray(new String[0]));
+		} catch (Exception e) {
+			this.cmbTang = new JComboBox<>(new String[]{"Tất cả"});
+		}
 
 		cmbTang.setFont(new Font("Segoe UI", Font.BOLD, 14));
 		cmbTang.setBackground(MAU_THANH_TIM_KIEM);
@@ -687,7 +701,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return pComboBox;
 	}
 
-	// Tạo ComboBox chọn khu vực
 	private JPanel taoComboBoxKhu() {
 		JPanel pComboBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
 		pComboBox.setBackground(MAU_NEN_TAB);
@@ -718,7 +731,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return pComboBox;
 	}
 
-	// Tạo ComboBox chọn loại bàn
 	private JPanel taoComboBoxLoaiBan() {
 		JPanel pComboBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
 		pComboBox.setBackground(MAU_NEN_TAB);
@@ -750,84 +762,89 @@ public class QuanLyDatBan_UI extends JPanel {
 		return pComboBox;
 	}
 
-	// Cập nhật danh sách khu vực dựa trên tầng đã chọn
 	private void capNhatDanhSachKhu() {
 		String tangChon = "Tất cả";
 		if (cmbTang != null) {
 			tangChon = (String) cmbTang.getSelectedItem();
 		}
-		List<String> dsKhu = banAn_DAO.docDanhSachTenKhuTheoTang(tangChon);
-		if (cmbKhu != null) {
-			cmbKhu.setModel(new DefaultComboBoxModel<>(dsKhu.toArray(new String[0])));
-		}
-	}
-
-	// Lọc dữ liệu bàn theo bộ lọc và logic ngày tháng
-	private void locDuLieuBan() {
-		phieuDatBanDAO.huyPhieuDatQuaGio(30);
-		String tang = (String) cmbTang.getSelectedItem();
-		String khu = (String) cmbKhu.getSelectedItem();
-		String loaiBan = (String) cmbLoaiBan.getSelectedItem();
-
-		List<BanAn> dsBanGoc = banAn_DAO.locBanAn(tang, khu, loaiBan);
-
-		java.util.Map<String, BanAn> mapBanDuyNhat = new java.util.LinkedHashMap<>();
-		for (BanAn ban : dsBanGoc) {
-			if (!mapBanDuyNhat.containsKey(ban.getMaBan())) {
-				mapBanDuyNhat.put(ban.getMaBan(), ban);
+		try {
+			List<String> dsKhu = banAn_DAO.docDanhSachTenKhuTheoTang(tangChon);
+			if (cmbKhu != null) {
+				cmbKhu.setModel(new DefaultComboBoxModel<>(dsKhu.toArray(new String[0])));
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		List<BanAn> dsBanDaXuLy = new ArrayList<>(mapBanDuyNhat.values());
-
-		Date ngayChon = dateChooserLocNgay.getDate();
-		if (ngayChon == null) {
-			ngayChon = new Date();
-		}
-
-		Date homNay = new Date();
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-		boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
-		boolean isTuongLai = ngayChon.after(homNay) && !isHomNay;
-		boolean isQuasKhu = ngayChon.before(homNay) && !isHomNay;
-
-		java.util.Map<String, String> mapDatTruoc = phieuDatBanDAO.layThongTinBanDatVaTenKhach(ngayChon);
-		List<BanAn> dsHienThi = new ArrayList<>();
-
-		for (BanAn ban : dsBanDaXuLy) {
-	        ban.setTenKhachHang("");
-	        String trangThaiGoc = ban.getTrangThai();
-
-	        if (isTuongLai || isQuasKhu) { 
-	            ban.setTrangThai("Bàn đang trống");
-	            
-	            if (mapDatTruoc.containsKey(ban.getMaBan())) {
-	                ban.setTrangThai("Bàn đang chờ");
-	                ban.setTenKhachHang(mapDatTruoc.get(ban.getMaBan()));
-	            }
-	        } else {
-	            if (trangThaiGoc.equals("Bàn đang phục vụ")) {
-	                String tenKhach = hoaDon_DAO.getTenKhachHangTheoBan(ban.getMaBan());
-	                ban.setTenKhachHang(tenKhach != null ? tenKhach : "Khách lẻ");
-	                ban.setTrangThai("Bàn đang phục vụ");
-	            } else if (trangThaiGoc.equals("Bàn đang chờ") || mapDatTruoc.containsKey(ban.getMaBan())) {
-	                ban.setTrangThai("Bàn đang chờ");
-	                ban.setTenKhachHang(mapDatTruoc.getOrDefault(ban.getMaBan(), "Khách đặt trước"));
-	            } else {
-	                ban.setTrangThai("Bàn đang trống");
-	            }
-	        }
-	        dsHienThi.add(ban);
-	    }
-		
-		this.danhSachBanTongCuaNgay = dsHienThi;
-		
-		capNhatSoLuongBan();
-
-		capNhatLuoiBan(this.danhSachBanTongCuaNgay);
-		capNhatTrangThaiCacNutChucNang();
 	}
 
-	// Factory tạo nút bấm với style chung
+	private void locDuLieuBan() {
+		try {
+			phieuDatBanDAO.huyPhieuDatQuaGio(30);
+			String tang = (String) cmbTang.getSelectedItem();
+			String khu = (String) cmbKhu.getSelectedItem();
+			String loaiBan = (String) cmbLoaiBan.getSelectedItem();
+
+			List<BanAn> dsBanGoc = banAn_DAO.locBanAn(tang, khu, loaiBan);
+
+			java.util.Map<String, BanAn> mapBanDuyNhat = new java.util.LinkedHashMap<>();
+			for (BanAn ban : dsBanGoc) {
+				if (!mapBanDuyNhat.containsKey(ban.getMaBan())) {
+					mapBanDuyNhat.put(ban.getMaBan(), ban);
+				}
+			}
+			List<BanAn> dsBanDaXuLy = new ArrayList<>(mapBanDuyNhat.values());
+
+			Date ngayChon = dateChooserLocNgay.getDate();
+			if (ngayChon == null) {
+				ngayChon = new Date();
+			}
+
+			Date homNay = new Date();
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+			boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
+			boolean isTuongLai = ngayChon.after(homNay) && !isHomNay;
+			boolean isQuasKhu = ngayChon.before(homNay) && !isHomNay;
+
+			java.util.Map<String, String> mapDatTruoc = phieuDatBanDAO.layThongTinBanDatVaTenKhach(ngayChon);
+			List<BanAn> dsHienThi = new ArrayList<>();
+
+			for (BanAn ban : dsBanDaXuLy) {
+				ban.setTenKhachHang("");
+				String trangThaiGoc = ban.getTrangThai();
+
+				if (isTuongLai || isQuasKhu) {
+					ban.setTrangThai("Bàn đang trống");
+
+					if (mapDatTruoc.containsKey(ban.getMaBan())) {
+						ban.setTrangThai("Bàn đang chờ");
+						ban.setTenKhachHang(mapDatTruoc.get(ban.getMaBan()));
+					}
+				} else {
+					if (trangThaiGoc.equals("Bàn đang phục vụ")) {
+						String tenKhach = hoaDon_DAO.getTenKhachHangTheoBan(ban.getMaBan());
+						ban.setTenKhachHang(tenKhach != null ? tenKhach : "Khách lẻ");
+						ban.setTrangThai("Bàn đang phục vụ");
+					} else if (trangThaiGoc.equals("Bàn đang chờ") || mapDatTruoc.containsKey(ban.getMaBan())) {
+						ban.setTrangThai("Bàn đang chờ");
+						ban.setTenKhachHang(mapDatTruoc.getOrDefault(ban.getMaBan(), "Khách đặt trước"));
+					} else {
+						ban.setTrangThai("Bàn đang trống");
+					}
+				}
+				dsHienThi.add(ban);
+			}
+
+			this.danhSachBanTongCuaNgay = dsHienThi;
+
+			capNhatSoLuongBan();
+
+			capNhatLuoiBan(this.danhSachBanTongCuaNgay);
+			capNhatTrangThaiCacNutChucNang();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
 	private JButton createStyledButton(String text, Color bgColor, Color hoverColor) {
 		JButton button = new JButton(text);
 		button.setFont(new Font("Segoe UI", Font.PLAIN, 18));
@@ -857,7 +874,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		return button;
 	}
 
-	// Layout tùy chỉnh để tự động xuống dòng các thành phần con
 	private class WrapFlowPanel extends JPanel implements Scrollable {
 		public WrapFlowPanel() {
 		}
@@ -907,7 +923,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		}
 	}
 
-	// Lấy đường dẫn hình ảnh bàn dựa trên loại bàn và trạng thái
 	private String layDuongDanAnhBan(BanAn ban) {
 		String loaiBan = ban.getLoaiBan();
 		String trangThai = ban.getTrangThai();
@@ -931,7 +946,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		}
 	}
 
-	// Cập nhật lại giao diện lưới bàn ăn
 	private void capNhatLuoiBan(List<BanAn> danhSachBanMoi) {
 		this.danhSachBan = danhSachBanMoi;
 
@@ -946,23 +960,22 @@ public class QuanLyDatBan_UI extends JPanel {
 
 		if (!isMultiSelectMode) {
 			banDangChon = null;
-		} 
-		
-		panelLuoiBanAn.removeAll();
-	    mapBanUI.clear(); 
+		}
 
-	    for (BanAn ban : danhSachBan) {
-	        JPanel panelBan = taoItemsBan(ban);
-	        panelLuoiBanAn.add(panelBan);
-	        mapBanUI.put(ban.getMaBan(), panelBan);
-	    }
-	    
+		panelLuoiBanAn.removeAll();
+		mapBanUI.clear();
+
+		for (BanAn ban : danhSachBan) {
+			JPanel panelBan = taoItemsBan(ban);
+			panelLuoiBanAn.add(panelBan);
+			mapBanUI.put(ban.getMaBan(), panelBan);
+		}
+
 		capNhatSoLuongBan();
 		panelLuoiBanAn.revalidate();
 		panelLuoiBanAn.repaint();
 	}
-	
-	// Kiểm tra xem bàn có đang được chọn (trong chế độ chọn nhiều) hay không
+
 	private boolean kiemTraBanDaChon(String maBan) {
 		for (BanAn b : danhSachBanDangChon) {
 			if (b.getMaBan().equals(maBan)) {
@@ -971,133 +984,133 @@ public class QuanLyDatBan_UI extends JPanel {
 		}
 		return false;
 	}
-	
-	// Cập nhật giao diện của một bàn cụ thể mà không cần vẽ lại toàn bộ
+
 	private void capNhatGiaoDienMotBan(JPanel panelItem, BanAn banMoi) {
-	    try {
-	        JPanel backgroundPanel = (JPanel) panelItem.getComponent(0);
-	        JLabel lblHinhAnh = (JLabel) backgroundPanel.getComponent(0);
-	        
-	        String imagePath = layDuongDanAnhBan(banMoi);
-	        ImageIcon icon = new ImageIcon(getClass().getResource(imagePath));
-	        Image img = icon.getImage().getScaledInstance(241 - 15, 180, Image.SCALE_SMOOTH);
-	        lblHinhAnh.setIcon(new ImageIcon(img));
-	        
-	        JPanel panelThongTin = (JPanel) backgroundPanel.getComponent(1);
-	        JLabel lblKhachHang = (JLabel) panelThongTin.getComponent(4);
-	        
-	        String tenKhach = banMoi.getTenKhachHang();
-	        if (tenKhach == null || tenKhach.isEmpty()) tenKhach = " "; 
-	        
-	        String hienThiKhach = " ";
-	        String trangThai = banMoi.getTrangThai();
-	        if (trangThai.equals("Bàn đang chờ") || trangThai.equals("Bàn đang phục vụ")) {
-	            if (tenKhach != null && !tenKhach.isEmpty()) {
-	                if (tenKhach.length() > 20) tenKhach = tenKhach.substring(0, 17) + "...";
-	                hienThiKhach = tenKhach;
-	            } else {
-	                hienThiKhach = "KH: Khách lẻ";
-	            }
-	        }
-	        lblKhachHang.setText(hienThiKhach);
-	        panelItem.repaint();
-	        
-	    } catch (Exception e) {
-	        System.err.println("Lỗi cập nhật UI bàn: " + e.getMessage());
-	    }
+		try {
+			JPanel backgroundPanel = (JPanel) panelItem.getComponent(0);
+			JLabel lblHinhAnh = (JLabel) backgroundPanel.getComponent(0);
+
+			String imagePath = layDuongDanAnhBan(banMoi);
+			ImageIcon icon = new ImageIcon(getClass().getResource(imagePath));
+			Image img = icon.getImage().getScaledInstance(241 - 15, 180, Image.SCALE_SMOOTH);
+			lblHinhAnh.setIcon(new ImageIcon(img));
+
+			JPanel panelThongTin = (JPanel) backgroundPanel.getComponent(1);
+			JLabel lblKhachHang = (JLabel) panelThongTin.getComponent(4);
+
+			String tenKhach = banMoi.getTenKhachHang();
+			if (tenKhach == null || tenKhach.isEmpty()) tenKhach = " ";
+
+			String hienThiKhach = " ";
+			String trangThai = banMoi.getTrangThai();
+			if (trangThai.equals("Bàn đang chờ") || trangThai.equals("Bàn đang phục vụ")) {
+				if (tenKhach != null && !tenKhach.isEmpty()) {
+					if (tenKhach.length() > 20) tenKhach = tenKhach.substring(0, 17) + "...";
+					hienThiKhach = tenKhach;
+				} else {
+					hienThiKhach = "KH: Khách lẻ";
+				}
+			}
+			lblKhachHang.setText(hienThiKhach);
+			panelItem.repaint();
+
+		} catch (Exception e) {
+			System.err.println("Lỗi cập nhật UI bàn: " + e.getMessage());
+		}
 	}
-	
-	// Tự động quét và cập nhật trạng thái các bàn từ cơ sở dữ liệu
+
 	private void tuDongQuetTrangThai() {
-	    phieuDatBanDAO.huyPhieuDatQuaGio(30);
+		try {
+			phieuDatBanDAO.huyPhieuDatQuaGio(30);
 
-	    List<BanAn> duLieuMoiDB = banAn_DAO.docDanhSachBan();
-	    
-	    Date ngayChon = dateChooserLocNgay.getDate();
-	    if (ngayChon == null) ngayChon = new Date();
-	    java.util.Map<String, String> mapDatTruoc = phieuDatBanDAO.layThongTinBanDatVaTenKhach(ngayChon);
-	    
-	    Date homNay = new Date();
-	    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-	    boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
-	    boolean isTuongLai = ngayChon.after(homNay) && !isHomNay;
-	    boolean isQuasKhu = ngayChon.before(homNay) && !isHomNay;
+			List<BanAn> duLieuMoiDB = banAn_DAO.docDanhSachBan();
 
-	    List<BanAn> listMoiToanBo = new ArrayList<>();
+			Date ngayChon = dateChooserLocNgay.getDate();
+			if (ngayChon == null) ngayChon = new Date();
+			java.util.Map<String, String> mapDatTruoc = phieuDatBanDAO.layThongTinBanDatVaTenKhach(ngayChon);
 
-	    for (BanAn banMoi : duLieuMoiDB) {
-	        String trangThaiGoc = banMoi.getTrangThai();
-	        banMoi.setTenKhachHang("");
+			Date homNay = new Date();
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+			boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
+			boolean isTuongLai = ngayChon.after(homNay) && !isHomNay;
+			boolean isQuasKhu = ngayChon.before(homNay) && !isHomNay;
 
-	        if (isTuongLai || isQuasKhu) {
-	            banMoi.setTrangThai("Bàn đang trống");
-	            if (mapDatTruoc.containsKey(banMoi.getMaBan())) {
-	                banMoi.setTrangThai("Bàn đang chờ");
-	                banMoi.setTenKhachHang(mapDatTruoc.get(banMoi.getMaBan()));
-	            }
-	        } else {
-	            if (trangThaiGoc.equals("Bàn đang phục vụ")) {
-	                String tenKhach = hoaDon_DAO.getTenKhachHangTheoBan(banMoi.getMaBan());
-	                banMoi.setTenKhachHang(tenKhach != null && !tenKhach.isEmpty() ? tenKhach : "Khách lẻ");
-	            } else if (trangThaiGoc.equals("Bàn đang chờ") || (trangThaiGoc.equals("Bàn đang trống") && mapDatTruoc.containsKey(banMoi.getMaBan()))) {
-	                banMoi.setTrangThai("Bàn đang chờ");
-	                banMoi.setTenKhachHang(mapDatTruoc.getOrDefault(banMoi.getMaBan(), "Khách đặt trước"));
-	            }
-	        }
-	        
-	        listMoiToanBo.add(banMoi);
+			List<BanAn> listMoiToanBo = new ArrayList<>();
 
-	        if (mapBanUI.containsKey(banMoi.getMaBan())) {
-	            JPanel panelUI = mapBanUI.get(banMoi.getMaBan());
-	            capNhatGiaoDienMotBan(panelUI, banMoi);
-	            
-	            for(BanAn bCu : danhSachBan) {
-	                if(bCu.getMaBan().equals(banMoi.getMaBan())) {
-	                    bCu.setTrangThai(banMoi.getTrangThai());
-	                    bCu.setTenKhachHang(banMoi.getTenKhachHang());
-	                    break;
-	                }
-	            }
-	        }
-	    }
-	    
-	    this.danhSachBanTongCuaNgay = listMoiToanBo;
-	    
-	    capNhatSoLuongBan();
+			for (BanAn banMoi : duLieuMoiDB) {
+				String trangThaiGoc = banMoi.getTrangThai();
+				banMoi.setTenKhachHang("");
+
+				if (isTuongLai || isQuasKhu) {
+					banMoi.setTrangThai("Bàn đang trống");
+					if (mapDatTruoc.containsKey(banMoi.getMaBan())) {
+						banMoi.setTrangThai("Bàn đang chờ");
+						banMoi.setTenKhachHang(mapDatTruoc.get(banMoi.getMaBan()));
+					}
+				} else {
+					if (trangThaiGoc.equals("Bàn đang phục vụ")) {
+						String tenKhach = hoaDon_DAO.getTenKhachHangTheoBan(banMoi.getMaBan());
+						banMoi.setTenKhachHang(tenKhach != null && !tenKhach.isEmpty() ? tenKhach : "Khách lẻ");
+					} else if (trangThaiGoc.equals("Bàn đang chờ") || (trangThaiGoc.equals("Bàn đang trống") && mapDatTruoc.containsKey(banMoi.getMaBan()))) {
+						banMoi.setTrangThai("Bàn đang chờ");
+						banMoi.setTenKhachHang(mapDatTruoc.getOrDefault(banMoi.getMaBan(), "Khách đặt trước"));
+					}
+				}
+
+				listMoiToanBo.add(banMoi);
+
+				if (mapBanUI.containsKey(banMoi.getMaBan())) {
+					JPanel panelUI = mapBanUI.get(banMoi.getMaBan());
+					capNhatGiaoDienMotBan(panelUI, banMoi);
+
+					for(BanAn bCu : danhSachBan) {
+						if(bCu.getMaBan().equals(banMoi.getMaBan())) {
+							bCu.setTrangThai(banMoi.getTrangThai());
+							bCu.setTenKhachHang(banMoi.getTenKhachHang());
+							break;
+						}
+					}
+				}
+			}
+
+			this.danhSachBanTongCuaNgay = listMoiToanBo;
+
+			capNhatSoLuongBan();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
-	// Đếm và cập nhật số lượng bàn theo trạng thái (Trống/Chờ/Phục vụ)
 	private void capNhatSoLuongBan() {
-	    if (this.danhSachBanTongCuaNgay == null) return;
+		if (this.danhSachBanTongCuaNgay == null) return;
 
-	    int trong = 0;
-	    int cho = 0;
-	    int phucVu = 0;
+		int trong = 0;
+		int cho = 0;
+		int phucVu = 0;
 
-	    for (BanAn ban : this.danhSachBanTongCuaNgay) {
-	        String trangThai = ban.getTrangThai();
-	        if ("Bàn đang trống".equalsIgnoreCase(trangThai)) {
-	            trong++;
-	        } else if ("Bàn đang chờ".equalsIgnoreCase(trangThai)) {
-	            cho++;
-	        } else if ("Bàn đang phục vụ".equalsIgnoreCase(trangThai)) {
-	            phucVu++;
-	        }
-	    }
+		for (BanAn ban : this.danhSachBanTongCuaNgay) {
+			String trangThai = ban.getTrangThai();
+			if ("Bàn đang trống".equalsIgnoreCase(trangThai)) {
+				trong++;
+			} else if ("Bàn đang chờ".equalsIgnoreCase(trangThai)) {
+				cho++;
+			} else if ("Bàn đang phục vụ".equalsIgnoreCase(trangThai)) {
+				phucVu++;
+			}
+		}
 
-	    if (btnTrong != null)
-	        btnTrong.setText(String.format("Bàn đang trống (%d)", trong));
-	    if (btnCho != null)
-	        btnCho.setText(String.format("Bàn đang chờ (%d)", cho));
-	    if (btnPhucVu != null)
-	        btnPhucVu.setText(String.format("Bàn đang phục vụ (%d)", phucVu));
-	    
-	    this.soBanTrong = trong;
-	    this.soBanCho = cho;
-	    this.soBanPhucVu = phucVu;
+		if (btnTrong != null)
+			btnTrong.setText(String.format("Bàn đang trống (%d)", trong));
+		if (btnCho != null)
+			btnCho.setText(String.format("Bàn đang chờ (%d)", cho));
+		if (btnPhucVu != null)
+			btnPhucVu.setText(String.format("Bàn đang phục vụ (%d)", phucVu));
+
+		this.soBanTrong = trong;
+		this.soBanCho = cho;
+		this.soBanPhucVu = phucVu;
 	}
 
-	// Làm mới toàn bộ giao diện và dữ liệu
 	private void lamMoiGiaoDien() {
 		locDuLieuBan();
 
@@ -1132,36 +1145,36 @@ public class QuanLyDatBan_UI extends JPanel {
 		capNhatTrangThaiCacNutChucNang();
 	}
 
-	// Xử lý tìm kiếm khách hàng
 	private void xuLyTimKiemKhachHang() {
-	    final String placeholder = "Nhập SĐT hoặc tên KH";
-	    String tuKhoa = searchFieldKhachHang.getText().trim();
+		final String placeholder = "Nhập SĐT hoặc tên KH";
+		String tuKhoa = searchFieldKhachHang.getText().trim();
 
-	    if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
-	        JOptionPane.showMessageDialog(this, "Vui lòng nhập SĐT hoặc tên khách hàng cần tìm!");
-	        return;
-	    }
+		if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
+			JOptionPane.showMessageDialog(this, "Vui lòng nhập SĐT hoặc tên khách hàng cần tìm!");
+			return;
+		}
 
-	    List<BanAn> dsTimDuoc = banAn_DAO.timKiemBanTheoKhachHang(tuKhoa);
+		try {
+			List<BanAn> dsTimDuoc = banAn_DAO.timKiemBanTheoKhachHang(tuKhoa);
 
-	    if (dsTimDuoc.isEmpty()) {
-	        JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng thỏa mãn!");
-	    } else {
-	        capNhatLuoiBan(dsTimDuoc);
-	        
-	        banDangChon = null;
-	        danhSachBanDangChon.clear();
-	        if (btnCheDoChonNhieu != null) {
-	            btnCheDoChonNhieu.setSelected(false);
-	            isMultiSelectMode = false;
-	        }
-	        capNhatTrangThaiCacNutChucNang();
-	    }
+			if (dsTimDuoc.isEmpty()) {
+				JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng thỏa mãn!");
+			} else {
+				capNhatLuoiBan(dsTimDuoc);
+
+				banDangChon = null;
+				danhSachBanDangChon.clear();
+				if (btnCheDoChonNhieu != null) {
+					btnCheDoChonNhieu.setSelected(false);
+					isMultiSelectMode = false;
+				}
+				capNhatTrangThaiCacNutChucNang();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
-	// ==================== XỬ LÝ SỰ KIỆN (ACTION) ====================
-	
-	// Xử lý đặt bàn ngay
 	private void xuLyDatBanNgay() {
 		Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
 
@@ -1184,321 +1197,316 @@ public class QuanLyDatBan_UI extends JPanel {
 		lamMoiGiaoDien();
 	}
 
-	// Xử lý đặt bàn chờ
 	private void xuLyDatBanCho() {
-	    Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
+		Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
 
-	    Date ngayHienTai = dateChooserLocNgay.getDate();
-	    if (ngayHienTai == null) {
-	        ngayHienTai = new Date(); 
-	    }
+		Date ngayHienTai = dateChooserLocNgay.getDate();
+		if (ngayHienTai == null) {
+			ngayHienTai = new Date();
+		}
 
-	    if (isMultiSelectMode && !danhSachBanDangChon.isEmpty()) {
-	        DatBanCho_UI dialog = new DatBanCho_UI(parentFrame, danhSachBanDangChon, ngayHienTai);
-	        dialog.setVisible(true);
-	    }
-	    else if (banDangChon != null) {
-	        List<BanAn> dsBanDon = new ArrayList<>();
-	        dsBanDon.add(banDangChon);
-	        DatBanCho_UI dialog = new DatBanCho_UI(parentFrame, dsBanDon, ngayHienTai);
-	        dialog.setVisible(true);
-	    }
-	    else {
-	        JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất một bàn để đặt!", "Thông báo",
-	                JOptionPane.WARNING_MESSAGE);
-	        return; 
-	    }
+		if (isMultiSelectMode && !danhSachBanDangChon.isEmpty()) {
+			DatBanCho_UI dialog = new DatBanCho_UI(parentFrame, danhSachBanDangChon, ngayHienTai);
+			dialog.setVisible(true);
+		}
+		else if (banDangChon != null) {
+			List<BanAn> dsBanDon = new ArrayList<>();
+			dsBanDon.add(banDangChon);
+			DatBanCho_UI dialog = new DatBanCho_UI(parentFrame, dsBanDon, ngayHienTai);
+			dialog.setVisible(true);
+		}
+		else {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất một bàn để đặt!", "Thông báo",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
 
-	    lamMoiGiaoDien();
+		lamMoiGiaoDien();
 	}
 
-	// Xử lý chuyển bàn
 	private void xuLyChuyenBan() {
-	    List<BanAn> dsBanCanXuLy = new ArrayList<>();
-	    
-	    if (banDangChon != null) {
-	        dsBanCanXuLy.add(banDangChon);
-	    } 
-	    else if (!danhSachBanDangChon.isEmpty()) {
-	        dsBanCanXuLy.addAll(danhSachBanDangChon);
-	    }
+		List<BanAn> dsBanCanXuLy = new ArrayList<>();
 
-	    if (dsBanCanXuLy.isEmpty()) {
-	         JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn cần chuyển!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-	         return;
-	    }
+		if (banDangChon != null) {
+			dsBanCanXuLy.add(banDangChon);
+		}
+		else if (!danhSachBanDangChon.isEmpty()) {
+			dsBanCanXuLy.addAll(danhSachBanDangChon);
+		}
 
-	    BanAn banGoc = null;
+		if (dsBanCanXuLy.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn cần chuyển!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+			return;
+		}
 
-	    if (dsBanCanXuLy.size() == 1) {
-	        banGoc = dsBanCanXuLy.get(0);
-	    } else {
-	        BanAn[] options = dsBanCanXuLy.toArray(new BanAn[0]);
-	        
-	        banGoc = (BanAn) JOptionPane.showInputDialog(
-	            this,
-	            "Bạn đang chọn một nhóm bàn.\nVui lòng chọn cụ thể bàn nào bạn muốn chuyển đi:",
-	            "Chọn bàn cần chuyển",
-	            JOptionPane.QUESTION_MESSAGE,
-	            null,
-	            options,     
-	            options[0]    
-	        );
+		BanAn banGoc = null;
 
-	        if (banGoc == null) return;
-	    }
+		if (dsBanCanXuLy.size() == 1) {
+			banGoc = dsBanCanXuLy.get(0);
+		} else {
+			BanAn[] options = dsBanCanXuLy.toArray(new BanAn[0]);
 
-	    String trangThai = banGoc.getTrangThai();
-	    if (trangThai.equals("Bàn đang trống")) {
-	         JOptionPane.showMessageDialog(this, "Không thể chuyển bàn đang trống!", "Lỗi thao tác", JOptionPane.WARNING_MESSAGE);
-	         return;
-	    }
+			banGoc = (BanAn) JOptionPane.showInputDialog(
+					this,
+					"Bạn đang chọn một nhóm bàn.\nVui lòng chọn cụ thể bàn nào bạn muốn chuyển đi:",
+					"Chọn bàn cần chuyển",
+					JOptionPane.QUESTION_MESSAGE,
+					null,
+					options,
+					options[0]
+			);
 
-	    Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
-	    Date ngayChon = dateChooserLocNgay.getDate();
-	    if (ngayChon == null) ngayChon = new Date();
+			if (banGoc == null) return;
+		}
 
-	    ChuyenBan_UI dialog = new ChuyenBan_UI(parentFrame, banGoc, ngayChon);
-	    dialog.setVisible(true);
-	    
-	    lamMoiGiaoDien();
+		String trangThai = banGoc.getTrangThai();
+		if (trangThai.equals("Bàn đang trống")) {
+			JOptionPane.showMessageDialog(this, "Không thể chuyển bàn đang trống!", "Lỗi thao tác", JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+
+		Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
+		Date ngayChon = dateChooserLocNgay.getDate();
+		if (ngayChon == null) ngayChon = new Date();
+
+		ChuyenBan_UI dialog = new ChuyenBan_UI(parentFrame, banGoc, ngayChon);
+		dialog.setVisible(true);
+
+		lamMoiGiaoDien();
 	}
 
-	// Xử lý hủy bàn chờ
 	private void xuLyHuyBanCho() {
-	    List<BanAn> dsBanCanHuy = new ArrayList<>();
-	    if (banDangChon != null) {
-	        dsBanCanHuy.add(banDangChon);
-	    } else if (!danhSachBanDangChon.isEmpty()) {
-	        dsBanCanHuy.addAll(danhSachBanDangChon);
-	    }
+		List<BanAn> dsBanCanHuy = new ArrayList<>();
+		if (banDangChon != null) {
+			dsBanCanHuy.add(banDangChon);
+		} else if (!danhSachBanDangChon.isEmpty()) {
+			dsBanCanHuy.addAll(danhSachBanDangChon);
+		}
 
-	    if (dsBanCanHuy.isEmpty()) {
-	        JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn để hủy đặt!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-	        return;
-	    }
+		if (dsBanCanHuy.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn để hủy đặt!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+			return;
+		}
 
-	    NhanVien nvHienTai = Auth.getCurrentNhanVien();
-	    if (nvHienTai == null) {
-	        JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy thông tin nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-	        return;
-	    }
+		NhanVien nvHienTai = Auth.getCurrentNhanVien();
+		if (nvHienTai == null) {
+			JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy thông tin nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 
-	    Date ngayChon = dateChooserLocNgay.getDate();
-	    if (ngayChon == null) ngayChon = new Date();
-	    Date homNay = new Date();
-	    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-	    boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
+		Date ngayChon = dateChooserLocNgay.getDate();
+		if (ngayChon == null) ngayChon = new Date();
+		Date homNay = new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+		boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
 
-	    java.util.Map<String, List<BanAn>> mapPhieuToBanHuy = new java.util.HashMap<>();
-	    
-	    for (BanAn ban : dsBanCanHuy) {
-	        String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(ban.getMaBan(), ngayChon);
-	        if (maPhieu != null) {
-	            mapPhieuToBanHuy.computeIfAbsent(maPhieu, k -> new ArrayList<>()).add(ban);
-	        }
-	    }
+		try {
+			java.util.Map<String, List<BanAn>> mapPhieuToBanHuy = new java.util.HashMap<>();
 
-	    if (mapPhieuToBanHuy.isEmpty()) {
-	        JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu đặt bàn phù hợp để hủy!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-	        return;
-	    }
+			for (BanAn ban : dsBanCanHuy) {
+				String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(ban.getMaBan(), ngayChon);
+				if (maPhieu != null) {
+					mapPhieuToBanHuy.computeIfAbsent(maPhieu, k -> new ArrayList<>()).add(ban);
+				}
+			}
 
-	    StringBuilder sbTenBan = new StringBuilder();
-	    for (BanAn b : dsBanCanHuy) sbTenBan.append(b.getTenBan()).append(", ");
-	    String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length()-2) : sbTenBan.toString();
+			if (mapPhieuToBanHuy.isEmpty()) {
+				JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu đặt bàn phù hợp để hủy!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+				return;
+			}
 
-	    String lyDoHuy = JOptionPane.showInputDialog(this, 
-	        "Xác nhận hủy đặt bàn cho: " + strTenBan + "\nNhập lý do hủy:", 
-	        "Xác nhận hủy", 
-	        JOptionPane.QUESTION_MESSAGE);
+			StringBuilder sbTenBan = new StringBuilder();
+			for (BanAn b : dsBanCanHuy) sbTenBan.append(b.getTenBan()).append(", ");
+			String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length()-2) : sbTenBan.toString();
 
-	    LichSuHuyDatBan_DAO logDAO = new LichSuHuyDatBan_DAO();
-	    PhieuDatBan_Ban_DAO phieuBanDAO = new PhieuDatBan_Ban_DAO();
-	    int soLuongThanhCong = 0;
+			String lyDoHuy = JOptionPane.showInputDialog(this,
+					"Xác nhận hủy đặt bàn cho: " + strTenBan + "\nNhập lý do hủy:",
+					"Xác nhận hủy",
+					JOptionPane.QUESTION_MESSAGE);
 
-	    for (java.util.Map.Entry<String, List<BanAn>> entry : mapPhieuToBanHuy.entrySet()) {
-	        String maPhieu = entry.getKey();
-	        List<BanAn> dsBanHuyThuocPhieu = entry.getValue();
+			int soLuongThanhCong = 0;
 
-	        int tongSoBanCuaPhieu = phieuBanDAO.demSoBanCuaPhieu(maPhieu);
-	        int soBanMuonHuy = dsBanHuyThuocPhieu.size();
+			for (java.util.Map.Entry<String, List<BanAn>> entry : mapPhieuToBanHuy.entrySet()) {
+				String maPhieu = entry.getKey();
+				List<BanAn> dsBanHuyThuocPhieu = entry.getValue();
 
-	        String tenKhach = "N/A";
-	        String sdtKhach = "N/A";
-	        PhieuDatBan phieuInfo = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieu);
-	        if (phieuInfo != null) {
-	            List<KhachHang> khs = khachHang_DAO.timKiemTheoMa(phieuInfo.getMaKhachHang());
-	            if (!khs.isEmpty()) {
-	                tenKhach = khs.get(0).getHoTen();
-	                sdtKhach = khs.get(0).getSoDienThoai();
-	            }
-	        }
+				int tongSoBanCuaPhieu = phieuDatBan_BanDAO.getDanhSachBanTheoPhieu(maPhieu).size();
+				int soBanMuonHuy = dsBanHuyThuocPhieu.size();
 
-	        StringBuilder sbTenBanLog = new StringBuilder();
-	        for (BanAn b : dsBanHuyThuocPhieu) sbTenBanLog.append(b.getTenBan()).append(", ");
-	        String strTenBanLog = sbTenBanLog.length() > 2 ? sbTenBanLog.substring(0, sbTenBanLog.length()-2) : sbTenBanLog.toString();
+				String tenKhach = "N/A";
+				String sdtKhach = "N/A";
+				PhieuDatBan phieuInfo = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieu);
+				if (phieuInfo != null) {
+					List<KhachHang> khs = khachHang_DAO.timKiemTheoMa(phieuInfo.getMaKhachHang());
+					if (!khs.isEmpty()) {
+						tenKhach = khs.get(0).getHoTen();
+						sdtKhach = khs.get(0).getSoDienThoai();
+					}
+				}
 
-	        if (soBanMuonHuy >= tongSoBanCuaPhieu) {
-	            boolean kq = phieuDatBanDAO.capNhatTrangThai(maPhieu, "Đã hủy");
-	            if (kq) {
-	                if (isHomNay) {
-	                    List<BanAn> allBan = phieuBanDAO.getDanhSachBanTheoPhieu(maPhieu);
-	                    for (BanAn b : allBan) {
-	                        banAn_DAO.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang trống");
-	                    }
-	                }
-	                
-	                entity.LichSuHuyDatBan log = new entity.LichSuHuyDatBan(
-	                    maPhieu, strTenBanLog + " (Toàn bộ)", tenKhach, sdtKhach, 
-	                    nvHienTai.getMaNhanVien(), nvHienTai.getHoTen(), lyDoHuy
-	                );
-	                logDAO.ghiLogHuyDatBan(log);
-	                soLuongThanhCong++;
-	            }
-	        } 
-	        else {
-	            boolean coLoiLe = false;
-	            for (BanAn b : dsBanHuyThuocPhieu) {
-	                boolean xoaLienKet = phieuBanDAO.xoaBanKhoiPhieu(maPhieu, b.getMaBan());
-	                if (xoaLienKet) {
-	                    if (isHomNay) {
-	                        banAn_DAO.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang trống");
-	                    }
-	                } else {
-	                    coLoiLe = true;
-	                }
-	            }
+				StringBuilder sbTenBanLog = new StringBuilder();
+				for (BanAn b : dsBanHuyThuocPhieu) sbTenBanLog.append(b.getTenBan()).append(", ");
+				String strTenBanLog = sbTenBanLog.length() > 2 ? sbTenBanLog.substring(0, sbTenBanLog.length()-2) : sbTenBanLog.toString();
 
-	            if (!coLoiLe) {
-	                entity.LichSuHuyDatBan log = new entity.LichSuHuyDatBan(
-	                    maPhieu, strTenBanLog + " (Rút bớt)", tenKhach, sdtKhach, 
-	                    nvHienTai.getMaNhanVien(), nvHienTai.getHoTen(), lyDoHuy
-	                );
-	                logDAO.ghiLogHuyDatBan(log);
-	                soLuongThanhCong++;
-	            }
-	        }
-	    }
+				if (soBanMuonHuy >= tongSoBanCuaPhieu) {
+					boolean kq = phieuDatBanDAO.capNhatTrangThai(maPhieu, "Đã hủy");
+					if (kq) {
+						if (isHomNay) {
+							List<String> allBan = phieuDatBanDAO.layDanhSachMaBanTheoPhieuDat(maPhieu);
+							for (String b : allBan) {
+								banAn_DAO.capNhatTrangThaiBan(b, "Bàn đang trống");
+							}
+						}
 
-	    if (soLuongThanhCong > 0) {
-	        JOptionPane.showMessageDialog(this, "Xử lý hủy bàn thành công!");
-	        lamMoiGiaoDien();
-	    } else {
-	        JOptionPane.showMessageDialog(this, "Có lỗi xảy ra trong quá trình hủy!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-	    }
+						entity.LichSuHuyDatBan log = new entity.LichSuHuyDatBan(
+								maPhieu, strTenBanLog + " (Toàn bộ)", tenKhach, sdtKhach,
+								nvHienTai.getMaNhanVien(), nvHienTai.getHoTen(), lyDoHuy
+						);
+						lichSuHuyDatBanDAO.ghiLogHuyDatBan(log);
+						soLuongThanhCong++;
+					}
+				}
+				else {
+					boolean coLoiLe = false;
+					for (BanAn b : dsBanHuyThuocPhieu) {
+						boolean xoaLienKet = phieuDatBan_BanDAO.xoaBanKhoiPhieu(maPhieu, b.getMaBan());
+						if (xoaLienKet) {
+							if (isHomNay) {
+								banAn_DAO.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang trống");
+							}
+						} else {
+							coLoiLe = true;
+						}
+					}
+
+					if (!coLoiLe) {
+						entity.LichSuHuyDatBan log = new entity.LichSuHuyDatBan(
+								maPhieu, strTenBanLog + " (Rút bớt)", tenKhach, sdtKhach,
+								nvHienTai.getMaNhanVien(), nvHienTai.getHoTen(), lyDoHuy
+						);
+						lichSuHuyDatBanDAO.ghiLogHuyDatBan(log);
+						soLuongThanhCong++;
+					}
+				}
+			}
+
+			if (soLuongThanhCong > 0) {
+				JOptionPane.showMessageDialog(this, "Xử lý hủy bàn thành công!");
+				lamMoiGiaoDien();
+			} else {
+				JOptionPane.showMessageDialog(this, "Có lỗi xảy ra trong quá trình hủy!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
-	// Xử lý nhận bàn chờ
 	private void xuLyNhanBanCho() {
-	    BanAn banDaiDien = banDangChon;
-	    
-	    if (banDaiDien == null && !danhSachBanDangChon.isEmpty()) {
-	        banDaiDien = danhSachBanDangChon.get(0);
-	    }
+		BanAn banDaiDien = banDangChon;
 
-	    if (banDaiDien == null) {
-	         JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn để nhận!");
-	         return;
-	    }
+		if (banDaiDien == null && !danhSachBanDangChon.isEmpty()) {
+			banDaiDien = danhSachBanDangChon.get(0);
+		}
 
-	    Date ngayChon = dateChooserLocNgay.getDate();
-	    if (ngayChon == null) ngayChon = new Date();
-	    
-	    String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(banDaiDien.getMaBan(), ngayChon);
-	    
-	    if (maPhieu == null) {
-	        JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy phiếu đặt bàn đang chờ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-	        return;
-	    }
+		if (banDaiDien == null) {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn bàn để nhận!");
+			return;
+		}
 
-	    List<String> dsMaBanThuocPhieu = phieuDatBanDAO.layDanhSachMaBanTheoPhieuDat(maPhieu);
-	    
-	    PhieuDatBan phieu = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieu);
-	    if (phieu == null) {
-	        JOptionPane.showMessageDialog(this, "Lỗi: Không lấy được thông tin phiếu đặt!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-	        return;
-	    }
+		Date ngayChon = dateChooserLocNgay.getDate();
+		if (ngayChon == null) ngayChon = new Date();
 
-	    StringBuilder sbTenBan = new StringBuilder();
-	    for (BanAn b : danhSachBan) {
-	        if (dsMaBanThuocPhieu.contains(b.getMaBan())) {
-	            sbTenBan.append(b.getTenBan()).append(", ");
-	        }
-	    }
-	    String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length()-2) : "các bàn đã đặt";
+		try {
+			String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(banDaiDien.getMaBan(), ngayChon);
 
-	    int xacNhan = JOptionPane.showConfirmDialog(this, 
-	            "Xác nhận nhận bàn cho nhóm: " + strTenBan + "?\n(Hệ thống sẽ chuyển tất cả bàn trong nhóm này sang trạng thái Phục vụ)",
-	            "Xác nhận nhận bàn", JOptionPane.YES_NO_OPTION);
+			if (maPhieu == null) {
+				JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy phiếu đặt bàn đang chờ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
 
-	    if (xacNhan != JOptionPane.YES_OPTION) return;
+			List<String> dsMaBanThuocPhieu = phieuDatBanDAO.layDanhSachMaBanTheoPhieuDat(maPhieu);
 
-	    NhanVien nvHienTai = Auth.getCurrentNhanVien();
-	    if (nvHienTai == null) {
-	        JOptionPane.showMessageDialog(this, "Vui lòng đăng nhập lại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-	        return;
-	    }
+			PhieuDatBan phieu = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieu);
+			if (phieu == null) {
+				JOptionPane.showMessageDialog(this, "Lỗi: Không lấy được thông tin phiếu đặt!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
 
-	    try {
-	        String maHD = hoaDon_DAO.sinhMaHoaDonTuDong();
-	        HoaDon hoaDonMoi = new HoaDon(
-	            maHD,
-	            "Chưa thanh toán",          
-	            new Date(),                 
-	            BigDecimal.ZERO,            
-	            nvHienTai.getMaNhanVien(),  
-	            maPhieu,                    
-	            phieu.getMaKhachHang(),     
-	            null,                       
-	            null,                       
-	            BigDecimal.valueOf(phieu.getTienDatCoc()), 
-	            BigDecimal.ZERO,            
-	            BigDecimal.ZERO             
-	        );
+			StringBuilder sbTenBan = new StringBuilder();
+			for (BanAn b : danhSachBan) {
+				if (dsMaBanThuocPhieu.contains(b.getMaBan())) {
+					sbTenBan.append(b.getTenBan()).append(", ");
+				}
+			}
+			String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length()-2) : "các bàn đã đặt";
 
-	        if (hoaDon_DAO.themHoaDon(hoaDonMoi)) {
-	            
-	            for (String maBan : dsMaBanThuocPhieu) {
-	            	hoaDonBanDAO.themHoaDon_Ban(maHD, maBan);
-	                banAn_DAO.capNhatTrangThaiBan(maBan, "Bàn đang phục vụ");
-	            }
-	            
-	            ChiTietPhieuDatBan_DAO ctPhieuDAO = new ChiTietPhieuDatBan_DAO();
-	            List<ChiTietPhieuDatBan> listMonDaDat = ctPhieuDAO.getChiTietTheoPhieu(maPhieu);
-	            
-	            if (listMonDaDat != null && !listMonDaDat.isEmpty()) {
-	                ChiTietHoaDon_DAO ctHoaDonDAO = new ChiTietHoaDon_DAO();
-	                for (ChiTietPhieuDatBan item : listMonDaDat) {
-	                    ChiTietHoaDon ctHD = new ChiTietHoaDon(
-	                        maHD, 
-	                        item.getMaMon(), 
-	                        item.getSoLuong(), 
-	                        item.getDonGia()
-	                    );
-	                    ctHoaDonDAO.themChiTietHoaDon(ctHD);
-	                }
-	            }
+			int xacNhan = JOptionPane.showConfirmDialog(this,
+					"Xác nhận nhận bàn cho nhóm: " + strTenBan + "?\n(Hệ thống sẽ chuyển tất cả bàn trong nhóm này sang trạng thái Phục vụ)",
+					"Xác nhận nhận bàn", JOptionPane.YES_NO_OPTION);
 
-	            phieuDatBanDAO.capNhatTrangThai(maPhieu, "Đã nhận");
+			if (xacNhan != JOptionPane.YES_OPTION) return;
 
-	            JOptionPane.showMessageDialog(this, "Nhận bàn thành công! Hóa đơn " + maHD + " đã được tạo.");
-	            lamMoiGiaoDien(); 
-	            
-	        } else {
-	            JOptionPane.showMessageDialog(this, "Lỗi khi tạo hóa đơn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-	        }
+			NhanVien nvHienTai = Auth.getCurrentNhanVien();
+			if (nvHienTai == null) {
+				JOptionPane.showMessageDialog(this, "Vui lòng đăng nhập lại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
 
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-	    }
+			String maHD = hoaDon_DAO.sinhMaHoaDonTuDong();
+			HoaDon hoaDonMoi = new HoaDon(
+					maHD,
+					"Chưa thanh toán",
+					new Date(),
+					BigDecimal.ZERO,
+					nvHienTai.getMaNhanVien(),
+					maPhieu,
+					phieu.getMaKhachHang(),
+					null,
+					null,
+					BigDecimal.valueOf(phieu.getTienDatCoc()),
+					BigDecimal.ZERO,
+					BigDecimal.ZERO
+			);
+
+			if (hoaDon_DAO.themHoaDon(hoaDonMoi)) {
+
+				for (String maBan : dsMaBanThuocPhieu) {
+					hoaDonBanDAO.themHoaDon_Ban(maHD, maBan);
+					banAn_DAO.capNhatTrangThaiBan(maBan, "Bàn đang phục vụ");
+				}
+
+				List<ChiTietPhieuDatBan> listMonDaDat = chiTietPhieuDatBanDAO.getChiTietTheoPhieu(maPhieu);
+
+				if (listMonDaDat != null && !listMonDaDat.isEmpty()) {
+					for (ChiTietPhieuDatBan item : listMonDaDat) {
+						ChiTietHoaDon ctHD = new ChiTietHoaDon(
+								maHD,
+								item.getMaMon(),
+								item.getSoLuong(),
+								item.getDonGia()
+						);
+						chiTietHoaDonDAO.themChiTietHoaDon(ctHD);
+					}
+				}
+
+				phieuDatBanDAO.capNhatTrangThai(maPhieu, "Đã nhận");
+
+				JOptionPane.showMessageDialog(this, "Nhận bàn thành công! Hóa đơn " + maHD + " đã được tạo.");
+				lamMoiGiaoDien();
+
+			} else {
+				JOptionPane.showMessageDialog(this, "Lỗi khi tạo hóa đơn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
-	// Xử lý sự kiện đặt món
 	private void xuLyDatMon() {
 		List<BanAn> dsBanXuLy = new ArrayList<>();
-		
+
 		if (!danhSachBanDangChon.isEmpty()) {
 			dsBanXuLy.addAll(danhSachBanDangChon);
 		} else if (banDangChon != null) {
@@ -1520,65 +1528,65 @@ public class QuanLyDatBan_UI extends JPanel {
 
 		Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
 
-		if (trangThaiDau.equalsIgnoreCase("Bàn đang phục vụ")) {
-			HoaDon_DAO hoaDonDAO = new HoaDon_DAO();
-
-			HoaDon hoaDonChuan = hoaDonDAO.timHoaDonChuaThanhToanTheoMaBan(dsBanXuLy.get(0).getMaBan());
-			if (hoaDonChuan == null) {
-				JOptionPane.showMessageDialog(this,
-						"Lỗi: Không tìm thấy hóa đơn của bàn " + dsBanXuLy.get(0).getTenBan(), "Lỗi",
-						JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-
-			for (int i = 1; i < dsBanXuLy.size(); i++) {
-				HoaDon hdKhac = hoaDonDAO.timHoaDonChuaThanhToanTheoMaBan(dsBanXuLy.get(i).getMaBan());
-				if (hdKhac == null || !hdKhac.getMaHoaDon().equals(hoaDonChuan.getMaHoaDon())) {
-					JOptionPane.showMessageDialog(this, "Không thể gọi món chung!\nBàn " + dsBanXuLy.get(i).getTenBan()
-							+ " đang sử dụng hóa đơn khác.", "Lỗi gộp đơn", JOptionPane.ERROR_MESSAGE);
+		try {
+			if (trangThaiDau.equalsIgnoreCase("Bàn đang phục vụ")) {
+				HoaDon hoaDonChuan = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(dsBanXuLy.get(0).getMaBan());
+				if (hoaDonChuan == null) {
+					JOptionPane.showMessageDialog(this,
+							"Lỗi: Không tìm thấy hóa đơn của bàn " + dsBanXuLy.get(0).getTenBan(), "Lỗi",
+							JOptionPane.ERROR_MESSAGE);
 					return;
 				}
+
+				for (int i = 1; i < dsBanXuLy.size(); i++) {
+					HoaDon hdKhac = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(dsBanXuLy.get(i).getMaBan());
+					if (hdKhac == null || !hdKhac.getMaHoaDon().equals(hoaDonChuan.getMaHoaDon())) {
+						JOptionPane.showMessageDialog(this, "Không thể gọi món chung!\nBàn " + dsBanXuLy.get(i).getTenBan()
+								+ " đang sử dụng hóa đơn khác.", "Lỗi gộp đơn", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+				}
+
+				DatMonChoBan_UI dialog = new DatMonChoBan_UI(parentFrame, dsBanXuLy, hoaDonChuan);
+				dialog.setVisible(true);
 			}
 
-			DatMonChoBan_UI dialog = new DatMonChoBan_UI(parentFrame, dsBanXuLy, hoaDonChuan);
-			dialog.setVisible(true);
-		}
+			else if (trangThaiDau.equalsIgnoreCase("Bàn đang chờ")) {
+				Date ngayChon = dateChooserLocNgay.getDate();
+				if (ngayChon == null)
+					ngayChon = new Date();
 
-		else if (trangThaiDau.equalsIgnoreCase("Bàn đang chờ")) {
-			PhieuDatBan_DAO phieuDAO = new PhieuDatBan_DAO();
-			Date ngayChon = dateChooserLocNgay.getDate();
-			if (ngayChon == null)
-				ngayChon = new Date();
-
-			String maPhieuChuan = phieuDAO.timMaPhieuDatDangChoTheoBan(dsBanXuLy.get(0).getMaBan(), ngayChon);
-			if (maPhieuChuan == null) {
-				JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu đặt của bàn " + dsBanXuLy.get(0).getTenBan(),
-						"Lỗi", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-
-			for (int i = 1; i < dsBanXuLy.size(); i++) {
-				String maPhieuKhac = phieuDAO.timMaPhieuDatDangChoTheoBan(dsBanXuLy.get(i).getMaBan(), ngayChon);
-				if (!maPhieuChuan.equals(maPhieuKhac)) {
-					JOptionPane.showMessageDialog(this, "Không thể đặt món chung!\nBàn " + dsBanXuLy.get(i).getTenBan()
-							+ " thuộc phiếu đặt bàn khác.", "Lỗi logic", JOptionPane.ERROR_MESSAGE);
+				String maPhieuChuan = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(dsBanXuLy.get(0).getMaBan(), ngayChon);
+				if (maPhieuChuan == null) {
+					JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu đặt của bàn " + dsBanXuLy.get(0).getTenBan(),
+							"Lỗi", JOptionPane.ERROR_MESSAGE);
 					return;
 				}
+
+				for (int i = 1; i < dsBanXuLy.size(); i++) {
+					String maPhieuKhac = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(dsBanXuLy.get(i).getMaBan(), ngayChon);
+					if (!maPhieuChuan.equals(maPhieuKhac)) {
+						JOptionPane.showMessageDialog(this, "Không thể đặt món chung!\nBàn " + dsBanXuLy.get(i).getTenBan()
+								+ " thuộc phiếu đặt bàn khác.", "Lỗi logic", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+				}
+
+				DatMonChoBan_UI dialog = new DatMonChoBan_UI(parentFrame, dsBanXuLy, maPhieuChuan);
+				dialog.setVisible(true);
 			}
 
-			DatMonChoBan_UI dialog = new DatMonChoBan_UI(parentFrame, dsBanXuLy, maPhieuChuan);
-			dialog.setVisible(true);
-		}
-
-		else {
-			JOptionPane.showMessageDialog(this, "Chỉ có thể đặt món cho bàn Đang chờ hoặc Đang phục vụ!", "Thông báo",
-					JOptionPane.WARNING_MESSAGE);
+			else {
+				JOptionPane.showMessageDialog(this, "Chỉ có thể đặt món cho bàn Đang chờ hoặc Đang phục vụ!", "Thông báo",
+						JOptionPane.WARNING_MESSAGE);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		lamMoiGiaoDien();
 	}
 
-	// Xử lý xem chi tiết bàn
 	private void xuLyChiTiet() {
 		BanAn banCanXem = (banDangChon != null) ? banDangChon
 				: (danhSachBanDangChon.isEmpty() ? null : danhSachBanDangChon.get(0));
@@ -1593,35 +1601,36 @@ public class QuanLyDatBan_UI extends JPanel {
 		Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
 		String trangThai = banCanXem.getTrangThai();
 
-		if (trangThai.equalsIgnoreCase("Bàn đang phục vụ")) {
-			HoaDon_DAO hoaDonDAO = new HoaDon_DAO();
-			HoaDon hoaDon = hoaDonDAO.timHoaDonChuaThanhToanTheoMaBan(banCanXem.getMaBan());
+		try {
+			if (trangThai.equalsIgnoreCase("Bàn đang phục vụ")) {
+				HoaDon hoaDon = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(banCanXem.getMaBan());
 
-			if (hoaDon == null) {
-				JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn chưa thanh toán!", "Lỗi",
-						JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			ChiTietBan_UI dialog = new ChiTietBan_UI(parentFrame, banCanXem, hoaDon);
-			dialog.setVisible(true);
-		} else if (trangThai.equalsIgnoreCase("Bàn đang chờ")) {
-			PhieuDatBan_DAO phieuDAO = new PhieuDatBan_DAO();
-			Date ngayChon = dateChooserLocNgay.getDate();
-			if (ngayChon == null)
-				ngayChon = new Date();
-			String maPhieu = phieuDAO.timMaPhieuDatDangChoTheoBan(banCanXem.getMaBan(), ngayChon);
+				if (hoaDon == null) {
+					JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn chưa thanh toán!", "Lỗi",
+							JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				ChiTietBan_UI dialog = new ChiTietBan_UI(parentFrame, banCanXem, hoaDon);
+				dialog.setVisible(true);
+			} else if (trangThai.equalsIgnoreCase("Bàn đang chờ")) {
+				Date ngayChon = dateChooserLocNgay.getDate();
+				if (ngayChon == null)
+					ngayChon = new Date();
+				String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(banCanXem.getMaBan(), ngayChon);
 
-			if (maPhieu == null) {
-				JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu đặt chờ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-				return;
+				if (maPhieu == null) {
+					JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu đặt chờ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				ChiTietBan_UI dialog = new ChiTietBan_UI(parentFrame, banCanXem, maPhieu);
+				dialog.setVisible(true);
 			}
-			ChiTietBan_UI dialog = new ChiTietBan_UI(parentFrame, banCanXem, maPhieu);
-			dialog.setVisible(true);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		lamMoiGiaoDien();
 	}
 
-	// Xử lý tính tiền
 	private void xuLyTinhTien() {
 		List<BanAn> dsBanDuocChon = new ArrayList<>();
 
@@ -1646,54 +1655,56 @@ public class QuanLyDatBan_UI extends JPanel {
 			}
 		}
 
-		HoaDon_DAO hdDAO = new HoaDon_DAO();
-		String maHDChuan = null;
+		try {
+			String maHDChuan = null;
 
-		HoaDon hdDau = hdDAO.timHoaDonChuaThanhToanTheoMaBan(dsBanDuocChon.get(0).getMaBan());
-		if (hdDau == null) {
-			JOptionPane.showMessageDialog(this,
-					"Lỗi: Không tìm thấy hóa đơn cho bàn " + dsBanDuocChon.get(0).getTenBan());
-			return;
-		}
-		maHDChuan = hdDau.getMaHoaDon();
-
-		for (int i = 1; i < dsBanDuocChon.size(); i++) {
-			HoaDon hdKhac = hdDAO.timHoaDonChuaThanhToanTheoMaBan(dsBanDuocChon.get(i).getMaBan());
-			if (hdKhac == null || !hdKhac.getMaHoaDon().equals(maHDChuan)) {
-				JOptionPane.showMessageDialog(this, "Không thể tính tiền gộp!\nBàn "
-						+ dsBanDuocChon.get(i).getTenBan() + " thuộc hóa đơn khác.", "Lỗi khác hóa đơn",
-						JOptionPane.ERROR_MESSAGE);
+			HoaDon hdDau = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(dsBanDuocChon.get(0).getMaBan());
+			if (hdDau == null) {
+				JOptionPane.showMessageDialog(this,
+						"Lỗi: Không tìm thấy hóa đơn cho bàn " + dsBanDuocChon.get(0).getTenBan());
 				return;
 			}
-		}
+			maHDChuan = hdDau.getMaHoaDon();
 
-		List<String> tatCaMaBanTrongNhom = hoaDonBanDAO.layDanhSachMaBanTheoHoaDon(maHDChuan);
-		
-		List<BanAn> dsBanThanhToanFull = new ArrayList<>();
-		
-		for (BanAn b : this.danhSachBan) {
-			if (tatCaMaBanTrongNhom.contains(b.getMaBan())) {
-				dsBanThanhToanFull.add(b);
+			for (int i = 1; i < dsBanDuocChon.size(); i++) {
+				HoaDon hdKhac = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(dsBanDuocChon.get(i).getMaBan());
+				if (hdKhac == null || !hdKhac.getMaHoaDon().equals(maHDChuan)) {
+					JOptionPane.showMessageDialog(this, "Không thể tính tiền gộp!\nBàn "
+									+ dsBanDuocChon.get(i).getTenBan() + " thuộc hóa đơn khác.", "Lỗi khác hóa đơn",
+							JOptionPane.ERROR_MESSAGE);
+					return;
+				}
 			}
+
+			List<String> tatCaMaBanTrongNhom = hoaDonBanDAO.layDanhSachMaBanTheoHoaDon(maHDChuan);
+
+			List<BanAn> dsBanThanhToanFull = new ArrayList<>();
+
+			for (BanAn b : this.danhSachBan) {
+				if (tatCaMaBanTrongNhom.contains(b.getMaBan())) {
+					dsBanThanhToanFull.add(b);
+				}
+			}
+
+			Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
+
+			if (dsBanThanhToanFull.size() > dsBanDuocChon.size()) {
+				int confirm = JOptionPane.showConfirmDialog(this,
+						"Bàn bạn chọn thuộc một nhóm " + dsBanThanhToanFull.size() + " bàn dùng chung hóa đơn.\n"
+								+ "Hệ thống sẽ thực hiện thanh toán cho TOÀN BỘ nhóm bàn này.\nTiếp tục?",
+						"Xác nhận thanh toán gộp", JOptionPane.YES_NO_OPTION);
+				if (confirm != JOptionPane.YES_OPTION) return;
+			}
+
+			TinhTien_UI dialog = new TinhTien_UI(parentFrame, dsBanThanhToanFull);
+			dialog.setVisible(true);
+
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-
-		Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
-		
-		if (dsBanThanhToanFull.size() > dsBanDuocChon.size()) {
-			int confirm = JOptionPane.showConfirmDialog(this, 
-				"Bàn bạn chọn thuộc một nhóm " + dsBanThanhToanFull.size() + " bàn dùng chung hóa đơn.\n"
-				+ "Hệ thống sẽ thực hiện thanh toán cho TOÀN BỘ nhóm bàn này.\nTiếp tục?",
-				"Xác nhận thanh toán gộp", JOptionPane.YES_NO_OPTION);
-			if (confirm != JOptionPane.YES_OPTION) return;
-		}
-
-		TinhTien_UI dialog = new TinhTien_UI(parentFrame, dsBanThanhToanFull); 
-		dialog.setVisible(true);
-
 		lamMoiGiaoDien();
 	}
 
-	// Tùy chỉnh thanh cuộn
 	private void tuyChinhScrollBar(JScrollPane scrollPane) {
 		JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
 		verticalScrollBar.setPreferredSize(new Dimension(8, 0));
@@ -1789,7 +1800,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		}
 	}
 
-	// Cập nhật trạng thái kích hoạt của các nút chức năng dựa trên bàn được chọn
 	private void capNhatTrangThaiCacNutChucNang() {
 		Date ngayChon = dateChooserLocNgay.getDate();
 		if (ngayChon == null)
@@ -1850,7 +1860,7 @@ public class QuanLyDatBan_UI extends JPanel {
 				setNutChucNang(btnTinhTien, true);
 			}
 
-			return; 
+			return;
 		}
 
 		if (banDangChon == null) {
@@ -1861,50 +1871,50 @@ public class QuanLyDatBan_UI extends JPanel {
 		String trangThai = banDangChon.getTrangThai();
 
 		switch (trangThai) {
-		case "Bàn đang trống":
-			if (isTuongLai) {
-				setNutChucNang(btnDatBanNgay, false);
-			} else {
-				setNutChucNang(btnDatBanNgay, true);
-			}
-			setNutChucNang(btnDatBanCho, true);
-			setNutChucNang(btnNhanBanCho, false);
-			setNutChucNang(btnHuyBanCho, false);
-			setNutChucNang(btnXemChiTiet, false);
-			setNutChucNang(btnChuyenBan, false);
-			setNutChucNang(btnDatMon, false);
-			setNutChucNang(btnTinhTien, false);
-			break;
-
-		case "Bàn đang chờ":
-			setNutChucNang(btnDatBanNgay, false);
-			setNutChucNang(btnDatBanCho, false);
-			if (isTuongLai) {
+			case "Bàn đang trống":
+				if (isTuongLai) {
+					setNutChucNang(btnDatBanNgay, false);
+				} else {
+					setNutChucNang(btnDatBanNgay, true);
+				}
+				setNutChucNang(btnDatBanCho, true);
 				setNutChucNang(btnNhanBanCho, false);
-			} else {
-				setNutChucNang(btnNhanBanCho, true);
-			}
-			setNutChucNang(btnHuyBanCho, true);
-			setNutChucNang(btnXemChiTiet, true);
-			setNutChucNang(btnChuyenBan, true);
-			setNutChucNang(btnDatMon, false);
-			setNutChucNang(btnTinhTien, false);
-			break;
+				setNutChucNang(btnHuyBanCho, false);
+				setNutChucNang(btnXemChiTiet, false);
+				setNutChucNang(btnChuyenBan, false);
+				setNutChucNang(btnDatMon, false);
+				setNutChucNang(btnTinhTien, false);
+				break;
 
-		case "Bàn đang phục vụ":
-			setNutChucNang(btnDatBanNgay, false);
-			setNutChucNang(btnDatBanCho, false);
-			setNutChucNang(btnNhanBanCho, false);
-			setNutChucNang(btnHuyBanCho, false);
-			setNutChucNang(btnXemChiTiet, true);
-			setNutChucNang(btnChuyenBan, true);
-			setNutChucNang(btnDatMon, true);
-			setNutChucNang(btnTinhTien, true);
-			break;
+			case "Bàn đang chờ":
+				setNutChucNang(btnDatBanNgay, false);
+				setNutChucNang(btnDatBanCho, false);
+				if (isTuongLai) {
+					setNutChucNang(btnNhanBanCho, false);
+				} else {
+					setNutChucNang(btnNhanBanCho, true);
+				}
+				setNutChucNang(btnHuyBanCho, true);
+				setNutChucNang(btnXemChiTiet, true);
+				setNutChucNang(btnChuyenBan, true);
+				setNutChucNang(btnDatMon, false);
+				setNutChucNang(btnTinhTien, false);
+				break;
 
-		default:
-			tatCaCacNut();
-			break;
+			case "Bàn đang phục vụ":
+				setNutChucNang(btnDatBanNgay, false);
+				setNutChucNang(btnDatBanCho, false);
+				setNutChucNang(btnNhanBanCho, false);
+				setNutChucNang(btnHuyBanCho, false);
+				setNutChucNang(btnXemChiTiet, true);
+				setNutChucNang(btnChuyenBan, true);
+				setNutChucNang(btnDatMon, true);
+				setNutChucNang(btnTinhTien, true);
+				break;
+
+			default:
+				tatCaCacNut();
+				break;
 		}
 	}
 
@@ -1919,7 +1929,6 @@ public class QuanLyDatBan_UI extends JPanel {
 		setNutChucNang(btnTinhTien, false);
 	}
 
-	// Khởi tạo các phím tắt (Key Bindings)
 	private void khoiTaoKeyBindings() {
 		InputMap inputMap = this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
 		ActionMap actionMap = this.getActionMap();
@@ -1997,25 +2006,28 @@ public class QuanLyDatBan_UI extends JPanel {
 		});
 	}
 
-	// Tìm nhóm các bàn liên quan (có chung hóa đơn hoặc phiếu đặt)
 	private List<BanAn> timNhomBanLienQuan(BanAn banGoc) {
 		List<BanAn> ketQua = new ArrayList<>();
 		List<String> dsMaBanLienQuan = new ArrayList<>();
 		String trangThai = banGoc.getTrangThai();
 
-		if (trangThai.equals("Bàn đang phục vụ")) {
-			HoaDon hd = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(banGoc.getMaBan());
-			if (hd != null) {
-				dsMaBanLienQuan = hoaDonBanDAO.layDanhSachMaBanTheoHoaDon(hd.getMaHoaDon());
+		try {
+			if (trangThai.equals("Bàn đang phục vụ")) {
+				HoaDon hd = hoaDon_DAO.timHoaDonChuaThanhToanTheoMaBan(banGoc.getMaBan());
+				if (hd != null) {
+					dsMaBanLienQuan = hoaDonBanDAO.layDanhSachMaBanTheoHoaDon(hd.getMaHoaDon());
+				}
+			} else if (trangThai.equals("Bàn đang chờ")) {
+				Date ngayXem = dateChooserLocNgay.getDate();
+				if (ngayXem == null)
+					ngayXem = new Date();
+				String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(banGoc.getMaBan(), ngayXem);
+				if (maPhieu != null) {
+					dsMaBanLienQuan = phieuDatBanDAO.layDanhSachMaBanTheoPhieuDat(maPhieu);
+				}
 			}
-		} else if (trangThai.equals("Bàn đang chờ")) {
-			Date ngayXem = dateChooserLocNgay.getDate();
-			if (ngayXem == null)
-				ngayXem = new Date();
-			String maPhieu = phieuDatBanDAO.timMaPhieuDatDangChoTheoBan(banGoc.getMaBan(), ngayXem);
-			if (maPhieu != null) {
-				dsMaBanLienQuan = phieuDatBanDAO.layDanhSachMaBanTheoPhieuDat(maPhieu);
-			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		if (dsMaBanLienQuan.isEmpty()) {
