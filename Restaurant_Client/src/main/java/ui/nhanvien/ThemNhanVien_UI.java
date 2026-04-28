@@ -34,6 +34,7 @@ public class ThemNhanVien_UI extends JPanel {
     private Image backgroundImage;
     private INhanVien_DAO nhanVienDAO;
     private IChucVu_DAO chucVuDAO;
+    private JButton btnThemNV; // Biến nút bấm thành biến toàn cục để dễ disable/enable trong luồng
     private final Color bgColor = new Color(48, 52, 56);
     private final Color componentColor = new Color(124, 124, 124);
     private final Color textColor = Color.WHITE;
@@ -171,10 +172,10 @@ public class ThemNhanVien_UI extends JPanel {
         btnThemChucVu.addActionListener(e -> hienThiDialogThemChucVu());
         add(btnThemChucVu);
 
-        JButton btnThem = createStyledButton(" Thêm", "/img/add_32px.png");
-        btnThem.setBounds(650, 550, 150, 40);
-        add(btnThem);
-        btnThem.addActionListener(e -> themNhanVien());
+        btnThemNV = createStyledButton(" Thêm", "/img/add_32px.png");
+        btnThemNV.setBounds(650, 550, 150, 40);
+        add(btnThemNV);
+        btnThemNV.addActionListener(e -> themNhanVien());
 
         JButton btnLamMoi = createStyledButton(" Làm mới", "/img/refresh_32px.png");
         btnLamMoi.setBounds(850, 550, 150, 40);
@@ -288,6 +289,10 @@ public class ThemNhanVien_UI extends JPanel {
     }
 
     private void taiDuLieuChucVu() {
+        if (chucVuDAO == null) {
+            System.err.println("Không thể tải danh sách Chức vụ do chucVuDAO bị null.");
+            return;
+        }
         new SwingWorker<List<ChucVu>, Void>() {
             @Override
             protected List<ChucVu> doInBackground() throws Exception {
@@ -352,18 +357,18 @@ public class ThemNhanVien_UI extends JPanel {
         JPanel pnlButton = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         pnlButton.setOpaque(false);
 
-        JButton btnThem = new JButton("Thêm");
-        btnThem.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        btnThem.setBackground(MAU_NUT_CAP_NHAT);
-        btnThem.setForeground(textColor);
-        btnThem.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnThem.setBorder(new EmptyBorder(8, 25, 8, 25));
-        btnThem.setFocusPainted(false);
-        btnThem.addMouseListener(new MouseAdapter() {
+        JButton btnThemDialog = new JButton("Thêm");
+        btnThemDialog.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btnThemDialog.setBackground(MAU_NUT_CAP_NHAT);
+        btnThemDialog.setForeground(textColor);
+        btnThemDialog.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnThemDialog.setBorder(new EmptyBorder(8, 25, 8, 25));
+        btnThemDialog.setFocusPainted(false);
+        btnThemDialog.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseEntered(MouseEvent e) { btnThem.setBackground(MAU_NUT_CAP_NHAT.brighter()); }
+            public void mouseEntered(MouseEvent e) { btnThemDialog.setBackground(MAU_NUT_CAP_NHAT.brighter()); }
             @Override
-            public void mouseExited(MouseEvent e) { btnThem.setBackground(MAU_NUT_CAP_NHAT); }
+            public void mouseExited(MouseEvent e) { btnThemDialog.setBackground(MAU_NUT_CAP_NHAT); }
         });
 
         JButton btnHuy = new JButton("Hủy");
@@ -380,7 +385,7 @@ public class ThemNhanVien_UI extends JPanel {
             public void mouseExited(MouseEvent e) { btnHuy.setBackground(MAU_NUT_XOA); }
         });
 
-        pnlButton.add(btnThem);
+        pnlButton.add(btnThemDialog);
         pnlButton.add(Box.createRigidArea(new Dimension(10, 0)));
         pnlButton.add(btnHuy);
 
@@ -390,41 +395,62 @@ public class ThemNhanVien_UI extends JPanel {
 
         btnHuy.addActionListener(e -> dialog.dispose());
 
-        btnThem.addActionListener(e -> {
+        // ĐÃ BỌC BẰNG SWINGWORKER
+        btnThemDialog.addActionListener(e -> {
             String tenMoi = txtTenChucVuMoi.getText().trim();
             if (tenMoi.isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "Tên chức vụ không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            try {
-                ChucVu cvTonTai = chucVuDAO.timChucVuTheoTen(tenMoi);
+            btnThemDialog.setEnabled(false);
+            btnThemDialog.setText("Đang thêm...");
 
-                if (cvTonTai != null) {
-                    JOptionPane.showMessageDialog(dialog, "Chức vụ này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                } else {
-                    String maMoi = chucVuDAO.sinhMaChucVuTuDong();
-                    ChucVu cvMoi = new ChucVu(maMoi, tenMoi);
-
-                    boolean themThanhCong = chucVuDAO.themChucVu(cvMoi);
-
-                    if(themThanhCong) {
-                        cmbChucVu.addItem(cvMoi);
-                        cmbChucVu.setSelectedItem(cvMoi);
-                        listModel.addElement(cvMoi);
-                        listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
-
-                        JOptionPane.showMessageDialog(dialog, "Đã thêm chức vụ mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-
-                        txtTenChucVuMoi.setText("");
-                        txtTenChucVuMoi.requestFocus();
+            SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+                @Override
+                protected Object[] doInBackground() throws Exception {
+                    ChucVu cvTonTai = chucVuDAO.timChucVuTheoTen(tenMoi);
+                    if (cvTonTai != null) {
+                        return new Object[]{false, "exists", null};
                     } else {
-                        JOptionPane.showMessageDialog(dialog, "Thêm chức vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        String maMoi = chucVuDAO.sinhMaChucVuTuDong();
+                        ChucVu cvMoi = new ChucVu(maMoi, tenMoi);
+                        boolean themThanhCong = chucVuDAO.themChucVu(cvMoi);
+                        return new Object[]{themThanhCong, "added", cvMoi};
                     }
                 }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm chức vụ: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    btnThemDialog.setEnabled(true);
+                    btnThemDialog.setText("Thêm");
+                    try {
+                        Object[] result = get();
+                        boolean success = (Boolean) result[0];
+                        String status = (String) result[1];
+                        ChucVu cvMoi = (ChucVu) result[2];
+
+                        if (status.equals("exists")) {
+                            JOptionPane.showMessageDialog(dialog, "Chức vụ này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                        } else if (success) {
+                            cmbChucVu.addItem(cvMoi);
+                            cmbChucVu.setSelectedItem(cvMoi);
+                            listModel.addElement(cvMoi);
+                            listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
+
+                            JOptionPane.showMessageDialog(dialog, "Đã thêm chức vụ mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                            txtTenChucVuMoi.setText("");
+                            txtTenChucVuMoi.requestFocus();
+                        } else {
+                            JOptionPane.showMessageDialog(dialog, "Thêm chức vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm chức vụ: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
         });
 
         dialog.add(mainPanel);
@@ -432,6 +458,7 @@ public class ThemNhanVien_UI extends JPanel {
     }
 
     private void themNhanVien() {
+        // 1. Kiểm tra validation trên luồng chính
         String hoTen = txtHoTen.getText().trim();
         String sdt = txtSDT.getText().trim();
         String email = txtEmail.getText().trim();
@@ -497,41 +524,93 @@ public class ThemNhanVien_UI extends JPanel {
             return;
         }
 
-        try {
-            boolean gioiTinh = cmbGioiTinh.getSelectedItem().equals("Nam");
-            Date ngaySinhSQL = Date.valueOf(ngaySinh);
+        // 2. Chuyển các biến thành final để dùng cho luồng nền
+        final boolean gioiTinh = cmbGioiTinh.getSelectedItem().equals("Nam");
+        final Date ngaySinhSQL = Date.valueOf(ngaySinh);
+        final String finalHoTen = hoTen;
+        final String finalSdt = sdt;
+        final String finalEmail = email;
+        final String finalDiaChi = diaChi;
+        final ChucVu finalChucVu = chucVu;
 
-            String maNV_Moi = nhanVienDAO.getMaNhanVienTiepTheo();
+        btnThemNV.setEnabled(false);
+        btnThemNV.setText(" Đang thêm...");
 
-            NhanVien nv = new NhanVien(maNV_Moi, hoTen, gioiTinh, sdt, email, ngaySinhSQL, diaChi, chucVu);
-
-            if (nhanVienDAO.themNhanVien(nv)) {
-                JOptionPane.showMessageDialog(this,
-                        "Thêm nhân viên '" + hoTen + "' (Mã: " + maNV_Moi + ") thành công!",
-                        "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-
-                lamMoi();
-
-                Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(this);
-                String tenChucVu = chucVu.getTenChucVu();
-                ThemTaiKhoan_UI themTaiKhoanDialog = new ThemTaiKhoan_UI(parentFrame, maNV_Moi,tenChucVu);
-                themTaiKhoanDialog.setVisible(true);
-                if(!themTaiKhoanDialog.isThemThanhCong()) {
-                    try {
-                        nhanVienDAO.xoaSachNhanVien(maNV_Moi);
-                        JOptionPane.showMessageDialog(this, "Đã tự xoá nhân viên khi tài khoản không được thêm!","Thông báo",JOptionPane.WARNING_MESSAGE);
-                    } catch (Exception e) {
-                        JOptionPane.showMessageDialog(this, "Lỗi! Không thể xoá nhân viên, vui lòng liên hệ quản trị viên");
-                    }
-                }
-            } else {
-                JOptionPane.showMessageDialog(this, "Thêm nhân viên thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        // ĐÃ BỌC BẰNG SWINGWORKER
+        SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                // Thực thi RMI tốn thời gian ở đây
+                String maNV_Moi = nhanVienDAO.getMaNhanVienTiepTheo();
+                NhanVien nv = new NhanVien(maNV_Moi, finalHoTen, gioiTinh, finalSdt, finalEmail, ngaySinhSQL, finalDiaChi, finalChucVu);
+                boolean isSuccess = nhanVienDAO.themNhanVien(nv);
+                return new Object[]{isSuccess, maNV_Moi};
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                btnThemNV.setEnabled(true);
+                btnThemNV.setText(" Thêm");
+
+                try {
+                    Object[] result = get();
+                    boolean isSuccess = (Boolean) result[0];
+                    String maNV_Moi = (String) result[1];
+
+                    if (isSuccess) {
+                        JOptionPane.showMessageDialog(ThemNhanVien_UI.this,
+                                "Thêm nhân viên '" + finalHoTen + "' (Mã: " + maNV_Moi + ") thành công!",
+                                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+
+                        lamMoi();
+
+                        // Hiện Dialog tạo tài khoản (Dialog này sẽ chặn code cho đến khi đóng)
+                        Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(ThemNhanVien_UI.this);
+                        String tenChucVu = finalChucVu.getTenChucVu();
+                        ThemTaiKhoan_UI themTaiKhoanDialog = new ThemTaiKhoan_UI(parentFrame, maNV_Moi, tenChucVu);
+                        themTaiKhoanDialog.setVisible(true);
+
+                        // Nếu không tạo được tài khoản -> Tự động xóa nhân viên vừa thêm bằng SwingWorker
+                        if (!themTaiKhoanDialog.isThemThanhCong()) {
+                            xoaNhanVienChayNen(maNV_Moi);
+                        }
+
+                    } else {
+                        JOptionPane.showMessageDialog(ThemNhanVien_UI.this, "Thêm nhân viên thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(ThemNhanVien_UI.this, "Đã xảy ra lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    // Hàm phụ: Luồng nền để xoá nhân viên nếu người dùng hủy việc thêm tài khoản
+    private void xoaNhanVienChayNen(String maNV_Xoa) {
+        SwingWorker<Boolean, Void> deleteWorker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                return nhanVienDAO.xoaSachNhanVien(maNV_Xoa);
+            }
+            @Override
+            protected void done() {
+                try {
+                    boolean xoaThanhCong = get();
+                    if (xoaThanhCong) {
+                        JOptionPane.showMessageDialog(ThemNhanVien_UI.this, "Đã tự xoá nhân viên khi tài khoản không được thêm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(ThemNhanVien_UI.this, "Lỗi! Không thể xoá nhân viên, vui lòng liên hệ quản trị viên", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(ThemNhanVien_UI.this, "Lỗi! Không thể xoá nhân viên, vui lòng liên hệ quản trị viên", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        deleteWorker.execute();
     }
 
     private void lamMoi() {

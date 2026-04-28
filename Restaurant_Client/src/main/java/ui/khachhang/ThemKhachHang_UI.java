@@ -13,7 +13,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 
 public class ThemKhachHang_UI extends JDialog {
 
@@ -24,6 +23,7 @@ public class ThemKhachHang_UI extends JDialog {
     private JTextField txtEmail;
     private JTextField txtDiaChi;
     private JDateChooser txtNgaySinh;
+    private JButton btnThem;
 
     private IKhachHang_DAO khachHangDAO;
     private Runnable onCustomerAdded;
@@ -63,6 +63,7 @@ public class ThemKhachHang_UI extends JDialog {
         setSize(550, 750);
         setLocationRelativeTo(parent);
         setResizable(false);
+        loadMaKHTuDong();
     }
 
     private void khoiTaoGiaoDien() {
@@ -105,14 +106,6 @@ public class ThemKhachHang_UI extends JDialog {
 
         txtMaKH = taoTextField(false);
         txtMaKH.setBackground(MAU_NEN_INPUT.darker());
-
-        try {
-            if (khachHangDAO != null) {
-                txtMaKH.setText(khachHangDAO.phatSinhMaKhachHang());
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
 
         txtHoTen = taoTextField(true);
         txtSoDienThoai = taoTextField(true);
@@ -228,7 +221,7 @@ public class ThemKhachHang_UI extends JDialog {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         panel.setBackground(MAU_NEN);
 
-        JButton btnThem = taoNut("Thêm", MAU_NUT_THEM, MAU_NUT_THEM_HOVER);
+        btnThem = taoNut("Thêm", MAU_NUT_THEM, MAU_NUT_THEM_HOVER);
         JButton btnLamMoi = taoNut("Làm mới", new Color(33, 150, 243), new Color(30, 136, 229));
         JButton btnHuy = taoNut("Hủy", MAU_NUT_HUY, MAU_NUT_HUY_HOVER);
 
@@ -267,67 +260,88 @@ public class ThemKhachHang_UI extends JDialog {
         return button;
     }
 
+    private void loadMaKHTuDong() {
+        if (khachHangDAO == null) return;
+        SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return khachHangDAO.phatSinhMaKhachHang();
+            }
+            @Override
+            protected void done() {
+                try {
+                    txtMaKH.setText(get());
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
+    }
+
     private void themKhachHang() {
         if (khachHangDAO == null) {
             JOptionPane.showMessageDialog(this, "Chưa kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        if (!kiemTraDuLieu()) {
-            return;
+        if (!kiemTraDuLieu()) return;
+
+        String maKH = txtMaKH.getText().trim();
+        String hoTen = txtHoTen.getText().trim();
+        String sdt = txtSoDienThoai.getText().trim();
+        boolean gioiTinh = cmbGioiTinh.getSelectedItem().toString().equals("Nam");
+        String email = txtEmail.getText().trim();
+        String diaChi = txtDiaChi.getText().trim();
+
+        java.util.Date utilDate = txtNgaySinh.getDate();
+        Date sqlDate = null;
+        if (utilDate != null) {
+            sqlDate = new Date(utilDate.getTime());
         }
 
-        try {
-            String maKH = txtMaKH.getText().trim();
-            String hoTen = txtHoTen.getText().trim();
-            String sdt = txtSoDienThoai.getText().trim();
-            boolean gioiTinh = cmbGioiTinh.getSelectedItem().toString().equals("Nam");
-            String email = txtEmail.getText().trim();
-            String diaChi = txtDiaChi.getText().trim();
+        final Date finalSqlDate = sqlDate;
+        btnThem.setEnabled(false);
 
-            java.util.Date utilDate = txtNgaySinh.getDate();
-            Date sqlDate = null;
-            if (utilDate != null) {
-                sqlDate = new Date(utilDate.getTime());
-            }
-
-            // Thay dòng: if (khachHangDAO.kiemTraSoDienThoaiTonTai(sdt)) {
-            if (khachHangDAO.timKhachHangTheoSDT(sdt) != null) {
-                hienThiLoi("Số điện thoại này đã được đăng ký!");
-                txtSoDienThoai.requestFocus();
-                return;
-            }
-
-            KhachHang kh = new KhachHang(maKH, hoTen, sdt,  email, diaChi, sqlDate, gioiTinh, 0 , true);
-
-            boolean ketQua = khachHangDAO.themKhachHang(kh);
-
-            if (ketQua) {
-                JOptionPane.showMessageDialog(this, "Thêm khách hàng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                if (onCustomerAdded != null) {
-                    onCustomerAdded.run();
+        SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                if (khachHangDAO.timKhachHangTheoSDT(sdt) != null) {
+                    return new Object[]{false, "exists"};
                 }
-                dispose();
-            } else {
-                hienThiLoi("Thêm khách hàng thất bại!");
+                KhachHang kh = new KhachHang(maKH, hoTen, sdt, email, diaChi, finalSqlDate, gioiTinh, 0, true);
+                boolean isAdded = khachHangDAO.themKhachHang(kh);
+                return new Object[]{isAdded, "success"};
             }
-        } catch (RemoteException re) {
-            re.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            e.printStackTrace();
-            hienThiLoi("Lỗi hệ thống: " + e.getMessage());
-        }
+
+            @Override
+            protected void done() {
+                btnThem.setEnabled(true);
+                try {
+                    Object[] res = get();
+                    boolean isSuccess = (Boolean) res[0];
+                    String status = (String) res[1];
+
+                    if (status.equals("exists")) {
+                        hienThiLoi("Số điện thoại này đã được đăng ký!");
+                        txtSoDienThoai.requestFocus();
+                    } else if (isSuccess) {
+                        JOptionPane.showMessageDialog(ThemKhachHang_UI.this, "Thêm khách hàng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        if (onCustomerAdded != null) {
+                            onCustomerAdded.run();
+                        }
+                        dispose();
+                    } else {
+                        hienThiLoi("Thêm khách hàng thất bại!");
+                    }
+                } catch (Exception e) {
+                    hienThiLoi("Lỗi hệ thống: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void lamMoi() {
-        try {
-            if (khachHangDAO != null) {
-                txtMaKH.setText(khachHangDAO.phatSinhMaKhachHang());
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        loadMaKHTuDong();
         txtHoTen.setText("");
         txtSoDienThoai.setText(soDienThoaiBanDau != null ? soDienThoaiBanDau : "");
         cmbGioiTinh.setSelectedIndex(0);

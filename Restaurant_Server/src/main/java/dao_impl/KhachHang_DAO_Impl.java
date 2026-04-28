@@ -27,17 +27,64 @@ public class KhachHang_DAO_Impl extends UnicastRemoteObject implements IKhachHan
 
     // Ánh xạ Record của Neo4j sang đối tượng KhachHang
     private KhachHang mapKhachHang(Record r) {
-        KhachHang kh = new KhachHang(
-                r.get("maKhachHang").asString(),
-                r.get("hoTen").asString(),
-                r.get("soDienThoai").asString(),
-                r.get("email").isNull() ? null : r.get("email").asString(),
-                r.get("diaChi").isNull() ? null : r.get("diaChi").asString(),
-                r.get("ngaySinh").isNull() ? null : new java.sql.Date(r.get("ngaySinh").asLong()), // Lưu dưới dạng Epoch milliseconds
-                r.get("gioiTinh").asBoolean(),
-                r.get("tichDiem").asInt()
-        );
-        return kh;
+        // 1. Xử lý các chuỗi String an toàn (chống null)
+        String maKH = r.get("maKhachHang").isNull() ? "" : String.valueOf(r.get("maKhachHang").asObject());
+        String hoTen = r.get("hoTen").isNull() ? "" : String.valueOf(r.get("hoTen").asObject());
+        String sdt = r.get("soDienThoai").isNull() ? "" : String.valueOf(r.get("soDienThoai").asObject());
+        String email = r.get("email").isNull() ? "" : String.valueOf(r.get("email").asObject());
+        String diaChi = r.get("diaChi").isNull() ? "" : String.valueOf(r.get("diaChi").asObject());
+
+        // 2. Xử lý Giới tính (Đọc được cả Boolean, String, Số)
+        boolean gioiTinh = true;
+        if (!r.get("gioiTinh").isNull()) {
+            Object gtObj = r.get("gioiTinh").asObject();
+            if (gtObj instanceof Boolean) {
+                gioiTinh = (Boolean) gtObj;
+            } else if (gtObj instanceof String) {
+                String gtStr = (String) gtObj;
+                gioiTinh = gtStr.equalsIgnoreCase("Nam") || gtStr.equalsIgnoreCase("true") || gtStr.equals("1");
+            } else if (gtObj instanceof Number) {
+                gioiTinh = ((Number) gtObj).intValue() == 1;
+            }
+        }
+
+        // 3. Xử lý Ngày Sinh (Đọc được LocalDate của Neo4j, String, Timestamp)
+        java.sql.Date ngaySinh = null;
+        if (!r.get("ngaySinh").isNull()) {
+            Object nsObj = r.get("ngaySinh").asObject();
+            try {
+                if (nsObj instanceof String) {
+                    ngaySinh = java.sql.Date.valueOf((String) nsObj);
+                } else if (nsObj instanceof Number) {
+                    ngaySinh = new java.sql.Date(((Number) nsObj).longValue());
+                } else if (nsObj instanceof java.time.LocalDate) {
+                    ngaySinh = java.sql.Date.valueOf((java.time.LocalDate) nsObj);
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi parse ngày sinh của Khách Hàng: " + maKH);
+            }
+        }
+
+        // 4. Xử lý Điểm tích lũy (Ép kiểu an toàn từ Long/Int)
+        int tichDiem = 0;
+        if (!r.get("tichDiem").isNull()) {
+            tichDiem = r.get("tichDiem").asInt(0); // Trả về 0 nếu có lỗi
+        }
+
+        // 5. Xử lý Trạng thái (1: Hoạt động, 0: Đã xóa)
+        boolean trangThai = true;
+        if (!r.get("trangThai").isNull()) {
+            Object ttObj = r.get("trangThai").asObject();
+            if (ttObj instanceof Boolean) {
+                trangThai = (Boolean) ttObj;
+            } else if (ttObj instanceof Number) {
+                trangThai = ((Number) ttObj).intValue() == 1;
+            }
+        }
+
+        // Lưu ý: Đảm bảo thứ tự truyền vào Constructor khớp với Entity KhachHang của bạn
+        // KhachHang(maKH, hoTen, sdt, email, diaChi, ngaySinh, gioiTinh, tichDiem, trangThai)
+        return new KhachHang(maKH, hoTen, sdt, email, diaChi, ngaySinh, gioiTinh, tichDiem, trangThai);
     }
 
     @Override

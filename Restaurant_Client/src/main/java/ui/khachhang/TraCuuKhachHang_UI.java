@@ -5,7 +5,6 @@ import java.awt.event.*;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -324,13 +323,20 @@ public class TraCuuKhachHang_UI extends JPanel {
     }
 
     private void docDuLieuTuSQL() {
-        try {
-            List<KhachHang> danhSach = khachHangDAO.docDanhSachKhachHang();
-            hienThiDanhSach(danhSach);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+        if (khachHangDAO == null) return;
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                return khachHangDAO.docDanhSachKhachHang();
+            }
+            @Override
+            protected void done() {
+                try {
+                    hienThiDanhSach(get());
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDanhSach(List<KhachHang> danhSach) {
@@ -352,91 +358,88 @@ public class TraCuuKhachHang_UI extends JPanel {
     }
 
     private void timKiemKhachHang() {
+        if (khachHangDAO == null) return;
         String tuKhoa = txtTimKiem.getText().trim();
-
         if (tuKhoa.isEmpty() || tuKhoa.equals("Tìm kiếm khách hàng. . .")) {
-            JOptionPane.showMessageDialog(this,
-                    "Vui lòng nhập thông tin tìm kiếm!",
-                    "Thông báo",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập thông tin tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        try {
-            List<KhachHang> ketQua;
-
-            if (tuKhoa.toUpperCase().startsWith("KH")) {
-                ketQua = khachHangDAO.timKiemTheoMa(tuKhoa);
-            } else if (tuKhoa.matches("\\d+")) {
-                ketQua = khachHangDAO.timKiemTheoSDT(tuKhoa);
-            } else {
-                ketQua = khachHangDAO.timKiemTheoTen(tuKhoa);
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                if (tuKhoa.toUpperCase().startsWith("KH")) {
+                    return khachHangDAO.timKiemTheoMa(tuKhoa);
+                } else if (tuKhoa.matches("\\d+")) {
+                    return khachHangDAO.timKiemTheoSDT(tuKhoa);
+                } else {
+                    return khachHangDAO.timKiemTheoTen(tuKhoa);
+                }
             }
-
-            if (ketQua == null || ketQua.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                        "Không tìm thấy khách hàng!",
-                        "Kết quả tìm kiếm",
-                        JOptionPane.INFORMATION_MESSAGE);
-                tableModel.setRowCount(0);
-            } else {
-                hienThiDanhSach(ketQua);
+            @Override
+            protected void done() {
+                try {
+                    List<KhachHang> ketQua = get();
+                    if (ketQua == null || ketQua.isEmpty()) {
+                        JOptionPane.showMessageDialog(TraCuuKhachHang_UI.this, "Không tìm thấy khách hàng!", "Kết quả tìm kiếm", JOptionPane.INFORMATION_MESSAGE);
+                        tableModel.setRowCount(0);
+                    } else {
+                        hienThiDanhSach(ketQua);
+                    }
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {}
             }
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+        };
+        worker.execute();
     }
 
     private void thucHienSapXep(int loaiSapXep) {
-        try {
-            List<KhachHang> ketQuaSapXep = null;
-
-            switch (loaiSapXep) {
-                case 1:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoTen(true);
-                    break;
-                case 2:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoTen(false);
-                    break;
-                case 3:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoDiem(false);
-                    break;
-                case 4:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoDiem(true);
-                    break;
-                default:
-                    ketQuaSapXep = khachHangDAO.docDanhSachKhachHang();
-                    break;
+        if (khachHangDAO == null) return;
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                switch (loaiSapXep) {
+                    case 1: return khachHangDAO.sapXepTheoTen(true);
+                    case 2: return khachHangDAO.sapXepTheoTen(false);
+                    case 3: return khachHangDAO.sapXepTheoDiem(false);
+                    case 4: return khachHangDAO.sapXepTheoDiem(true);
+                    default: return khachHangDAO.docDanhSachKhachHang();
+                }
             }
-
-            if (ketQuaSapXep != null) hienThiDanhSach(ketQuaSapXep);
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<KhachHang> ketQuaSapXep = get();
+                    if (ketQuaSapXep != null) hienThiDanhSach(ketQuaSapXep);
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void thucHienLoc() {
-        try {
-            String gioiTinhStr = (String) cmbLocGioiTinh.getSelectedItem();
-            List<KhachHang> ketQuaLoc;
-
-            if (gioiTinhStr.equals("Lọc giới tính")) {
-                ketQuaLoc = khachHangDAO.docDanhSachKhachHang();
-            } else {
-                boolean isNam = gioiTinhStr.equals("Nam");
-                ketQuaLoc = khachHangDAO.locKhachHangTheoGioiTinh(isNam);
+        if (khachHangDAO == null) return;
+        String gioiTinhStr = (String) cmbLocGioiTinh.getSelectedItem();
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                if (gioiTinhStr.equals("Lọc giới tính")) {
+                    return khachHangDAO.docDanhSachKhachHang();
+                } else {
+                    boolean isNam = gioiTinhStr.equals("Nam");
+                    return khachHangDAO.locKhachHangTheoGioiTinh(isNam);
+                }
             }
-
-            hienThiDanhSach(ketQuaLoc);
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                try {
+                    hienThiDanhSach(get());
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     public void lamMoiGiaoDien() {

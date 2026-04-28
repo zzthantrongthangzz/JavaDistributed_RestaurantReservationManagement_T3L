@@ -21,6 +21,7 @@ import ui.HoaDonPDF;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -38,7 +39,6 @@ import java.rmi.Naming;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 public class TraCuuHoaDon_UI extends JPanel {
@@ -69,22 +69,33 @@ public class TraCuuHoaDon_UI extends JPanel {
 	private IHoaDon_DAO hoaDonDAO;
 	private IHoaDon_Ban_DAO hoaDonBanDAO;
 	private IKhachHang_DAO khachHangDAO;
+	private IBanAn_DAO banAnDAO;
+	private IChiTietHoaDon_DAO chiTietHoaDonDAO;
+	private IMonAn_DAO monAnDAO;
+	private INhanVien_DAO nhanVienDAO;
 
 	private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 	private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 
+	// Khởi tạo giao diện và load dữ liệu ban đầu
 	public TraCuuHoaDon_UI() {
 		try {
 			hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
 			hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
 			khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+			banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+			chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+			monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+			nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
 		} catch (Exception e) {
 			e.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
 		}
 		khoiTaoGiaoDien();
 		docDuLieuTuSQL();
 	}
 
+	// Thiết lập layout và các thành phần giao diện
 	private void khoiTaoGiaoDien() {
 		setLayout(new BorderLayout());
 		setBackground(MAU_NEN_TAB);
@@ -103,6 +114,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		this.requestFocusInWindow();
 	}
 
+	// Tạo panel tiêu đề
 	private JPanel taoPanelTieuDe() {
 		JPanel panel = new JPanel();
 		panel.setOpaque(false);
@@ -116,6 +128,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return panel;
 	}
 
+	// Tạo panel chứa các chức năng điều khiển (tìm kiếm, nút bấm)
 	private JPanel taoPanelDieuKhien() {
 		JPanel mainControlPanel = new JPanel();
 		mainControlPanel.setOpaque(false);
@@ -189,6 +202,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return mainControlPanel;
 	}
 
+	// Tạo wrapper chứa nhãn và ô tìm kiếm
 	private JPanel taoWrapperTimKiemCoNhan(String labelText, String placeholder) {
 		JPanel wrapper = new JPanel(new BorderLayout());
 		wrapper.setBackground(MAU_NEN_TAB);
@@ -211,6 +225,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return wrapper;
 	}
 
+	// Tạo wrapper chứa nhãn và bộ chọn ngày
 	private JPanel taoWrapperDateChooser(String labelText) {
 		JPanel wrapper = new JPanel(new BorderLayout());
 		wrapper.setBackground(MAU_NEN_TAB);
@@ -228,6 +243,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return wrapper;
 	}
 
+	// Tạo và tùy chỉnh JDateChooser
 	private JDateChooser taoDateChooser() {
 		JDateChooser dateChooser = new JDateChooser();
 		dateChooser.setPreferredSize(new Dimension(140, 40));
@@ -271,6 +287,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return dateChooser;
 	}
 
+	// Tạo TextField tìm kiếm tùy chỉnh
 	private JTextField taoTextFieldTimKiem(String holder) {
 		JTextField txt = new JTextField() {
 			@Override
@@ -331,6 +348,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return txt;
 	}
 
+	// Tạo ComboBox tùy chỉnh
 	private JComboBox<String> taoComboBox(String[] items, Dimension size) {
 		JComboBox<String> cmb = new JComboBox<>(items);
 		cmb.setFont(FONT_NHAN);
@@ -365,6 +383,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return cmb;
 	}
 
+	// Tạo nút chức năng chung
 	private JButton taoNutChucNang(String text, Color mauNen) {
 		JButton btn = new JButton(text);
 		btn.setFont(FONT_NHAN);
@@ -389,6 +408,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return btn;
 	}
 
+	// Tạo panel chứa bảng dữ liệu
 	private JPanel taoPanelBang() {
 		JPanel panel = new JPanel(new BorderLayout());
 		panel.setOpaque(false);
@@ -422,6 +442,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		return panel;
 	}
 
+	// Tùy chỉnh thanh cuộn
 	private void tuyChinhScrollBar(JScrollPane s) {
 		s.getVerticalScrollBar().setPreferredSize(new Dimension(8, 0));
 		s.getVerticalScrollBar().setBackground(MAU_NEN_INPUT);
@@ -449,6 +470,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		});
 	}
 
+	// Cấu hình style cho bảng
 	private void setupTableStyle() {
 
 		table.setBackground(MAU_NEN_ITEM);
@@ -492,94 +514,151 @@ public class TraCuuHoaDon_UI extends JPanel {
 		}
 	}
 
+	// Đọc danh sách hóa đơn từ Database (Chạy ngầm SwingWorker)
 	private void docDuLieuTuSQL() {
-		try {
-			List<HoaDon> danhSach = hoaDonDAO.getAllHoaDon();
-			hienThiDanhSach(danhSach);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void hienThiDanhSach(List<HoaDon> danhSach) {
-		tableModel.setRowCount(0);
-		if (danhSach == null)
-			return;
-
-		for (HoaDon hd : danhSach) {
-			String tenKhachHang = "Khách lẻ";
-			if (hd.getMaKhachHang() != null) {
+		if (hoaDonDAO == null) return;
+		SwingWorker<List<Object[]>, Void> worker = new SwingWorker<List<Object[]>, Void>() {
+			@Override
+			protected List<Object[]> doInBackground() throws Exception {
+				List<HoaDon> list = hoaDonDAO.getAllHoaDon();
+				return prepareTableData(list);
+			}
+			@Override
+			protected void done() {
 				try {
-					List<KhachHang> listKH = khachHangDAO.timKiemTheoMa(hd.getMaKhachHang());
-					if (!listKH.isEmpty()) {
-						tenKhachHang = listKH.get(0).getHoTen();
-					} else {
-						tenKhachHang = hd.getMaKhachHang();
-					}
+					hienThiDanhSachUI(get());
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
+		};
+		worker.execute();
+	}
 
-			tableModel.addRow(new Object[] { hd.getMaHoaDon(), dateFormat.format(hd.getNgayLapHoaDon()),
-					hd.getTrangThai(), tenKhachHang, hd.getMaNhanVien(), currencyFormat.format(hd.getTienDatCoc()),
-					currencyFormat.format(hd.getSoTienKhachTra()), currencyFormat.format(hd.getSoTienThoi()) });
+	// Hàm chuẩn bị dữ liệu (Ánh xạ Mã KH sang Tên KH qua RMI ở luồng ngầm)
+	private List<Object[]> prepareTableData(List<HoaDon> danhSach) {
+		List<Object[]> rows = new ArrayList<>();
+		if (danhSach == null) return rows;
+
+		for (HoaDon hd : danhSach) {
+			String tenKhachHang = "Khách lẻ";
+			try {
+				if (hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty()) {
+					List<KhachHang> listKH = khachHangDAO.timKiemTheoMa(hd.getMaKhachHang());
+					if (listKH != null && !listKH.isEmpty()) {
+						tenKhachHang = listKH.get(0).getHoTen();
+					} else {
+						tenKhachHang = hd.getMaKhachHang();
+					}
+				}
+			} catch (Exception e) {
+				// Bỏ qua nếu lỗi RMI khi map tên khách
+			}
+
+			double tienDatCoc = hd.getTienDatCoc() != null ? hd.getTienDatCoc().doubleValue() : 0;
+			double khachTra = hd.getSoTienKhachTra() != null ? hd.getSoTienKhachTra().doubleValue() : 0;
+			double tienThoi = hd.getSoTienThoi() != null ? hd.getSoTienThoi().doubleValue() : 0;
+
+			rows.add(new Object[] {
+					hd.getMaHoaDon(),
+					hd.getNgayLapHoaDon() != null ? dateFormat.format(hd.getNgayLapHoaDon()) : "",
+					hd.getTrangThai(),
+					tenKhachHang,
+					hd.getMaNhanVien(),
+					currencyFormat.format(tienDatCoc),
+					currencyFormat.format(khachTra),
+					currencyFormat.format(tienThoi)
+			});
+		}
+		return rows;
+	}
+
+	// Đẩy mảng dữ liệu đã chuẩn bị lên bảng (Chạy trên EDT an toàn)
+	private void hienThiDanhSachUI(List<Object[]> rows) {
+		tableModel.setRowCount(0);
+		for (Object[] row : rows) {
+			tableModel.addRow(row);
 		}
 	}
 
+	// Xử lý tìm kiếm nâng cao (Chạy ngầm SwingWorker)
 	private void thucHienTimKiemNangCao() {
-		String maHD = txtTimKiemMaHD.getText().trim();
-		String maKH = txtTimKiemMaKH.getText().trim();
-		String maNV = txtTimKiemMaNV.getText().trim();
+		String rawMaHD = txtTimKiemMaHD.getText().trim();
+		String rawMaKH = txtTimKiemMaKH.getText().trim();
+		String rawMaNV = txtTimKiemMaNV.getText().trim();
 		Date tuNgay = dateTuNgay.getDate();
 		Date denNgay = dateDenNgay.getDate();
 
-		if (maHD.contains("..."))
-			maHD = "";
-		if (maKH.contains("..."))
-			maKH = "";
-		if (maNV.contains("..."))
-			maNV = "";
+		final String maHD = rawMaHD.contains("...") ? "" : rawMaHD;
+		final String maKH = rawMaKH.contains("...") ? "" : rawMaKH;
+		final String maNV = rawMaNV.contains("...") ? "" : rawMaNV;
 
-		try {
-			List<HoaDon> ketQua = hoaDonDAO.timKiemNangCao(maHD, maKH, maNV, tuNgay, denNgay);
+		int trangThaiIndex = cmbTrangThai.getSelectedIndex();
+		final String trangThai = trangThaiIndex > 0 ? cmbTrangThai.getSelectedItem().toString() : "";
 
-			int trangThaiIndex = cmbTrangThai.getSelectedIndex();
-			if (trangThaiIndex > 0) {
-				String trangThai = cmbTrangThai.getSelectedItem().toString();
-				ketQua.removeIf(hd -> !hd.getTrangThai().equalsIgnoreCase(trangThai));
+		SwingWorker<List<Object[]>, Void> worker = new SwingWorker<List<Object[]>, Void>() {
+			@Override
+			protected List<Object[]> doInBackground() throws Exception {
+				List<HoaDon> ketQua = hoaDonDAO.timKiemNangCao(maHD, maKH, maNV, tuNgay, denNgay);
+
+				// Lọc theo trạng thái
+				if (!trangThai.isEmpty() && ketQua != null) {
+					List<HoaDon> filteredList = new ArrayList<>();
+					for (HoaDon hd : ketQua) {
+						if (hd.getTrangThai().equalsIgnoreCase(trangThai)) {
+							filteredList.add(hd);
+						}
+					}
+					ketQua = filteredList;
+				}
+				return prepareTableData(ketQua);
 			}
-
-			hienThiDanhSach(ketQua);
-			this.requestFocusInWindow();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			@Override
+			protected void done() {
+				try {
+					hienThiDanhSachUI(get());
+					TraCuuHoaDon_UI.this.requestFocusInWindow();
+				} catch (Exception e) {}
+			}
+		};
+		worker.execute();
 	}
 
+	// Xử lý sắp xếp danh sách hóa đơn (Chạy ngầm SwingWorker)
 	private void thucHienSapXep() {
 		int selectedIndex = cmbSapXep.getSelectedIndex();
-		String orderBy;
+		String orderByTemp;
 		switch (selectedIndex) {
 			case 1:
-				orderBy = "ngayLapHoaDon DESC";
+				orderByTemp = "ngayLapHoaDon DESC";
 				break;
 			case 2:
-				orderBy = "ngayLapHoaDon ASC";
+				orderByTemp = "ngayLapHoaDon ASC";
 				break;
 			default:
 				docDuLieuTuSQL();
 				return;
 		}
 
-		try {
-			List<HoaDon> ketQua = hoaDonDAO.sapXep(orderBy);
-			hienThiDanhSach(ketQua);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		final String orderBy = orderByTemp;
+
+		SwingWorker<List<Object[]>, Void> worker = new SwingWorker<List<Object[]>, Void>() {
+			@Override
+			protected List<Object[]> doInBackground() throws Exception {
+				List<HoaDon> ketQua = hoaDonDAO.sapXep(orderBy);
+				return prepareTableData(ketQua);
+			}
+			@Override
+			protected void done() {
+				try {
+					hienThiDanhSachUI(get());
+				} catch (Exception e) {}
+			}
+		};
+		worker.execute();
 	}
 
+	// Làm mới giao diện về trạng thái ban đầu
 	private void lamMoiGiaoDien() {
 		docDuLieuTuSQL();
 		txtTimKiemMaHD.setText("Mã hóa đơn...");
@@ -595,6 +674,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 		this.requestFocusInWindow();
 	}
 
+	// Xử lý logic in lại hóa đơn (Chạy ngầm toàn bộ bằng SwingWorker)
 	private void xuLyInLaiHoaDon() {
 		int row = table.getSelectedRow();
 		if (row < 0) {
@@ -605,101 +685,112 @@ public class TraCuuHoaDon_UI extends JPanel {
 
 		String maHoaDon = table.getValueAt(row, 0).toString();
 
-		try {
-			HoaDon hd = hoaDonDAO.timTheoMa(maHoaDon);
+		int confirm = JOptionPane.showConfirmDialog(this,
+				"Bạn có muốn in lại hóa đơn " + maHoaDon + " không?",
+				"Xác nhận in", JOptionPane.YES_NO_OPTION);
 
-			if (hd == null) {
-				JOptionPane.showMessageDialog(this, "Không tìm thấy thông tin hóa đơn trong CSDL!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			if (!"Đã thanh toán".equalsIgnoreCase(hd.getTrangThai())) {
-				JOptionPane.showMessageDialog(this, "Chỉ có thể in lại những hóa đơn ĐÃ THANH TOÁN!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-			KhachHang kh = null;
-			if (hd.getMaKhachHang() != null) {
-				List<KhachHang> listKH = khachHangDAO.timKiemTheoMa(hd.getMaKhachHang());
-				if (!listKH.isEmpty()) {
-					kh = listKH.get(0);
+		if (confirm == JOptionPane.YES_OPTION) {
+			// Khởi tạo Worker chạy ngầm để lấy thông tin RMI và In PDF
+			SwingWorker<Void, Void> printWorker = new SwingWorker<Void, Void>() {
+				@Override
+				protected Void doInBackground() throws Exception {
+					HoaDon hd = hoaDonDAO.timTheoMa(maHoaDon);
+
+					if (hd == null) {
+						throw new Exception("Không tìm thấy thông tin hóa đơn trong CSDL!");
+					}
+					if (!"Đã thanh toán".equalsIgnoreCase(hd.getTrangThai())) {
+						throw new Exception("Chỉ có thể in lại những hóa đơn ĐÃ THANH TOÁN!");
+					}
+
+					KhachHang kh = null;
+					if (hd.getMaKhachHang() != null) {
+						List<KhachHang> listKH = khachHangDAO.timKiemTheoMa(hd.getMaKhachHang());
+						if (!listKH.isEmpty()) {
+							kh = listKH.get(0);
+						}
+					}
+
+					NhanVien nv = null;
+					if (hd.getMaNhanVien() != null) {
+						List<NhanVien> nvs = nhanVienDAO.timKiemNhanVienTheoMa(hd.getMaNhanVien());
+						if (nvs != null && !nvs.isEmpty()) {
+							nv = nvs.get(0);
+						}
+					}
+
+					List<BanAn> listBan = new ArrayList<>();
+					List<String> listMaBan = hoaDonBanDAO.layDanhSachMaBanTheoHoaDon(maHoaDon);
+					for (String maBan : listMaBan) {
+						BanAn b = banAnDAO.timBanAnTheoMa(maBan);
+						if (b != null)
+							listBan.add(b);
+					}
+
+					DefaultTableModel modelChiTiet = new DefaultTableModel();
+					modelChiTiet.setColumnIdentifiers(new Object[] { "STT", "Tên món", "Giá", "Đơn vị", "Số lượng", "Thành tiền" });
+
+					List<ChiTietHoaDon> listCTHD = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(maHoaDon);
+
+					double tongCong = 0;
+					int stt = 1;
+
+					for (ChiTietHoaDon ct : listCTHD) {
+						MonAn mon = monAnDAO.timMotMonTheoMa(ct.getMaMon());
+						if (mon != null) {
+							double donGia = ct.getDonGia().doubleValue();
+							double thanhTien = donGia * ct.getSoLuong();
+							tongCong += thanhTien;
+
+							modelChiTiet.addRow(new Object[] {
+									stt++,
+									mon.getTenMon(),
+									currencyFormat.format(donGia),
+									mon.getDonVi(),
+									ct.getSoLuong(),
+									currencyFormat.format(thanhTien)
+							});
+						}
+					}
+
+					double thue = (hd.getThue() != null) ? hd.getThue().doubleValue() : 0;
+					double tienCoc = (hd.getTienDatCoc() != null) ? hd.getTienDatCoc().doubleValue() : 0;
+					double khachTra = (hd.getSoTienKhachTra() != null) ? hd.getSoTienKhachTra().doubleValue() : 0;
+					double tienThoi = (hd.getSoTienThoi() != null) ? hd.getSoTienThoi().doubleValue() : 0;
+					double tongThucThu = khachTra - tienThoi;
+					double tongLyThuyet = tongCong + thue - tienCoc;
+					double tienGiamGiaTri = tongLyThuyet - tongThucThu;
+					if (tienGiamGiaTri < 0) tienGiamGiaTri = 0;
+					BigDecimal tienGiamBD = BigDecimal.valueOf(tienGiamGiaTri);
+
+					HoaDonPDF.xuatHoaDonPDF(
+							hd,
+							kh,
+							nv,
+							listBan,
+							hd.getNgayLapHoaDon(),
+							hd.getNgayLapHoaDon(),
+							modelChiTiet,
+							tongCong,
+							thue,
+							tongThucThu,
+							tienCoc,
+							tienGiamBD,
+							null
+					);
+					return null;
 				}
-			}
 
-			NhanVien nv = null;
-			if (hd.getMaNhanVien() != null) {
-				INhanVien_DAO nvDao = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
-				nv = nvDao.timMotNhanVienTheoMa(hd.getMaNhanVien());
-			}
-
-			List<BanAn> listBan = new ArrayList<>();
-			List<String> listMaBan = hoaDonBanDAO.layDanhSachMaBanTheoHoaDon(maHoaDon);
-			IBanAn_DAO banDao = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-			for (String maBan : listMaBan) {
-				BanAn b = banDao.timBanAnTheoMa(maBan);
-				if (b != null)
-					listBan.add(b);
-			}
-
-			DefaultTableModel modelChiTiet = new DefaultTableModel();
-			modelChiTiet.setColumnIdentifiers(new Object[] { "STT", "Tên món", "Giá", "Đơn vị", "Số lượng", "Thành tiền" });
-
-			IChiTietHoaDon_DAO cthdDao = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-			List<ChiTietHoaDon> listCTHD = cthdDao.getChiTietTheoMaHoaDon(maHoaDon);
-			IMonAn_DAO monDao = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-
-			double tongCong = 0;
-			int stt = 1;
-
-			for (ChiTietHoaDon ct : listCTHD) {
-				MonAn mon = monDao.timMotMonTheoMa(ct.getMaMon());
-				if (mon != null) {
-					double donGia = ct.getDonGia().doubleValue();
-					double thanhTien = donGia * ct.getSoLuong();
-					tongCong += thanhTien;
-
-					modelChiTiet.addRow(new Object[] {
-							stt++,
-							mon.getTenMon(),
-							currencyFormat.format(donGia),
-							mon.getDonVi(),
-							ct.getSoLuong(),
-							currencyFormat.format(thanhTien)
-					});
+				@Override
+				protected void done() {
+					try {
+						get();
+					} catch (Exception e) {
+						JOptionPane.showMessageDialog(TraCuuHoaDon_UI.this, e.getMessage(), "Lỗi/Cảnh báo", JOptionPane.WARNING_MESSAGE);
+					}
 				}
-			}
-
-			double thue = (hd.getThue() != null) ? hd.getThue().doubleValue() : 0;
-			double tienCoc = (hd.getTienDatCoc() != null) ? hd.getTienDatCoc().doubleValue() : 0;
-			double khachTra = (hd.getSoTienKhachTra() != null) ? hd.getSoTienKhachTra().doubleValue() : 0;
-			double tienThoi = (hd.getSoTienThoi() != null) ? hd.getSoTienThoi().doubleValue() : 0;
-			double tongThucThu = khachTra - tienThoi;
-			double tongLyThuyet = tongCong + thue - tienCoc;
-			double tienGiamGiaTri = tongLyThuyet - tongThucThu;
-			if (tienGiamGiaTri < 0) tienGiamGiaTri = 0;
-			BigDecimal tienGiamBD = BigDecimal.valueOf(tienGiamGiaTri);
-			int confirm = JOptionPane.showConfirmDialog(this,
-					"Bạn có muốn in lại hóa đơn " + maHoaDon + " không?",
-					"Xác nhận in", JOptionPane.YES_NO_OPTION);
-
-			if (confirm == JOptionPane.YES_OPTION) {
-				HoaDonPDF.xuatHoaDonPDF(
-						hd,
-						kh,
-						nv,
-						listBan,
-						hd.getNgayLapHoaDon(),
-						new Date(),
-						modelChiTiet,
-						tongCong,
-						thue,
-						tongThucThu,
-						tienCoc,
-						tienGiamBD,
-						null
-				);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			JOptionPane.showMessageDialog(this, "Lỗi kết nối RMI khi in hóa đơn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			};
+			printWorker.execute();
 		}
 	}
 }

@@ -37,7 +37,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -348,11 +347,10 @@ public class ThongKeKhachHang_UI extends JPanel {
     }
 
     private void thucHienThongKe() {
+        if (khachHangDAO == null) return;
         Date tuNgay = dcTuNgay.getDate();
         Date denNgay = dcDenNgay.getDate();
-        if (tuNgay == null || denNgay == null) {
-            return;
-        }
+        if (tuNgay == null || denNgay == null) return;
         if (tuNgay.after(denNgay)) {
             if (this.isShowing()) {
                 JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được sau ngày kết thúc.", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -360,32 +358,42 @@ public class ThongKeKhachHang_UI extends JPanel {
             return;
         }
 
-        try {
-            int tongKhachHang = khachHangDAO.getTongSoKhachHang(tuNgay, denNgay);
-            lblTongSoKhach.setText(numberFormat.format(tongKhachHang));
-
-            BigDecimal tongChiTieu = khachHangDAO.getTongChiTieuTatCaKhachHang(tuNgay, denNgay);
-            lblTongChiTieu.setText(currencyFormat.format(tongChiTieu));
-
-            int tongDiemTichLuy = khachHangDAO.getTongDiemTichLuy(tuNgay, denNgay);
-            lblTongDiemTichLuy.setText(numberFormat.format(tongDiemTichLuy));
-
-            Map<String, Integer> gioiTinhData = khachHangDAO.getSoLuongKhachHangTheoGioiTinh();
-            capNhatBieuDoTron(gioiTinhData);
-
-            danhSachThongKeDayDu = khachHangDAO.getTopKhachHangDayDu(100, tuNgay, denNgay);
-            if (danhSachThongKeDayDu == null) {
-                danhSachThongKeDayDu = new ArrayList<>();
+        SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                int tongKhach = khachHangDAO.getTongSoKhachHang(tuNgay, denNgay);
+                BigDecimal tongChi = khachHangDAO.getTongChiTieuTatCaKhachHang(tuNgay, denNgay);
+                int tongDiem = khachHangDAO.getTongDiemTichLuy(tuNgay, denNgay);
+                Map<String, Integer> gioiTinh = khachHangDAO.getSoLuongKhachHangTheoGioiTinh();
+                List<Object[]> dsDayDu = khachHangDAO.getTopKhachHangDayDu(100, tuNgay, denNgay);
+                if (dsDayDu == null) dsDayDu = new ArrayList<>();
+                return new Object[]{tongKhach, tongChi, tongDiem, gioiTinh, dsDayDu};
             }
-            capNhatBang(danhSachThongKeDayDu);
 
-            List<Object[]> dsTop10 = danhSachThongKeDayDu.stream().limit(10).collect(Collectors.toList());
-            capNhatBieuDoCot(dsTop10);
+            @Override
+            @SuppressWarnings("unchecked")
+            protected void done() {
+                try {
+                    Object[] result = get();
+                    int tongKhach = (Integer) result[0];
+                    BigDecimal tongChi = (BigDecimal) result[1];
+                    int tongDiem = (Integer) result[2];
+                    Map<String, Integer> gioiTinh = (Map<String, Integer>) result[3];
+                    danhSachThongKeDayDu = (List<Object[]>) result[4];
 
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+                    lblTongSoKhach.setText(numberFormat.format(tongKhach));
+                    lblTongChiTieu.setText(currencyFormat.format(tongChi));
+                    lblTongDiemTichLuy.setText(numberFormat.format(tongDiem));
+
+                    capNhatBieuDoTron(gioiTinh);
+                    capNhatBang(danhSachThongKeDayDu);
+
+                    List<Object[]> dsTop10 = danhSachThongKeDayDu.stream().limit(10).collect(Collectors.toList());
+                    capNhatBieuDoCot(dsTop10);
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void capNhatBieuDoTron(Map<String, Integer> data) {
@@ -469,13 +477,9 @@ public class ThongKeKhachHang_UI extends JPanel {
             int diemTichLuy = (Integer) row[5];
 
             modelThongKe.addRow(new Object[]{
-                    stt++,
-                    maKH,
-                    tenKH,
-                    sdt,
+                    stt++, maKH, tenKH, sdt,
                     currencyFormat.format(tongChiTieu),
-                    luotMua,
-                    numberFormat.format(diemTichLuy)
+                    luotMua, numberFormat.format(diemTichLuy)
             });
         }
     }

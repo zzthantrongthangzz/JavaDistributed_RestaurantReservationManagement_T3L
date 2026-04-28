@@ -207,7 +207,6 @@ public class TraCuuNhanVien_UI extends JPanel {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 try {
-                    // ĐÃ SỬA THÀNH CHỮ THƯỜNG /img/
                     ImageIcon icon = new ImageIcon(getClass().getResource("/img/search.png"));
                     Image img = icon.getImage().getScaledInstance(KICH_THUOC_ICON, KICH_THUOC_ICON, Image.SCALE_SMOOTH);
                     Icon searchIcon = new ImageIcon(img);
@@ -293,7 +292,6 @@ public class TraCuuNhanVien_UI extends JPanel {
             @Override
             protected JButton createArrowButton() {
                 try {
-                    // ĐÃ SỬA THÀNH CHỮ THƯỜNG /img/
                     ImageIcon icon = new ImageIcon(getClass().getResource("/img/muitenxuong_32px.png"));
                     Image img = icon.getImage().getScaledInstance(KICH_THUOC_ICON, KICH_THUOC_ICON, Image.SCALE_SMOOTH);
                     JButton btn = new JButton(new ImageIcon(img));
@@ -419,7 +417,6 @@ public class TraCuuNhanVien_UI extends JPanel {
     }
 
     private void taiDuLieuLenBang() {
-        // ĐÃ SỬA: Chặn lỗi NullPointerException nếu Server sập
         if (nhanVienDAO == null) return;
 
         SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<List<NhanVien>, Void>() {
@@ -435,7 +432,7 @@ public class TraCuuNhanVien_UI extends JPanel {
                     hienThiDanhSach(danhSach);
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Lỗi tải dữ liệu!");
-                    JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Chi tiết lỗi: " + e.getMessage());
+                    System.err.println("Chi tiết lỗi: " + e.getMessage());
                 }
             }
         };
@@ -448,6 +445,10 @@ public class TraCuuNhanVien_UI extends JPanel {
         for (NhanVien nv : danhSach) {
             String ngaySinh = (nv.getNgaySinh() != null) ? sdf.format(nv.getNgaySinh()) : "";
             String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
+
+            // Xử lý an toàn nếu nhân viên bị lỗi chưa có chức vụ
+            String chucVu = (nv.getChucVu() != null) ? nv.getChucVu().getTenChucVu() : "N/A";
+
             tableModel.addRow(new Object[]{
                     nv.getMaNhanVien(),
                     nv.getHoTen(),
@@ -456,69 +457,80 @@ public class TraCuuNhanVien_UI extends JPanel {
                     nv.getEmail(),
                     ngaySinh,
                     nv.getDiaChi(),
-                    nv.getChucVu()
+                    chucVu
             });
         }
     }
 
     private void thucHienSapXep(int loaiSapXep) {
-        // ĐÃ SỬA: Chặn lỗi NullPointerException
         if (nhanVienDAO == null) return;
 
-        List<NhanVien> ketQuaSapXep = null;
-        try {
-            switch (loaiSapXep) {
-                case 1:
-                    ketQuaSapXep = nhanVienDAO.sapXepNhanVien("hoTen ASC");
-                    break;
-                case 2:
-                    ketQuaSapXep = nhanVienDAO.sapXepNhanVien("hoTen DESC");
-                    break;
-                case 3:
-                    ketQuaSapXep = nhanVienDAO.sapXepNhanVien("chucVu ASC, hoTen ASC");
-                    break;
-                default:
-                    ketQuaSapXep = nhanVienDAO.getAllNhanVien();
-                    break;
-            }
-            if (ketQuaSapXep != null) {
-                hienThiDanhSach(ketQuaSapXep);
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        final String orderBy;
+        switch (loaiSapXep) {
+            case 1: orderBy = "hoTen ASC"; break;
+            case 2: orderBy = "hoTen DESC"; break;
+            case 3: orderBy = "chucVu ASC, hoTen ASC"; break;
+            default:
+                taiDuLieuLenBang();
+                return;
         }
-        panelChinh.requestFocusInWindow();
+
+        SwingWorker<List<NhanVien>, Void> sortWorker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                return nhanVienDAO.sapXepNhanVien(orderBy);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> ketQuaSapXep = get();
+                    if (ketQuaSapXep != null) {
+                        hienThiDanhSach(ketQuaSapXep);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        sortWorker.execute();
     }
 
     private void thucHienLoc(String loaiLoc) {
-        // ĐÃ SỬA: Chặn lỗi NullPointerException
         if (nhanVienDAO == null) return;
+        if (!loaiLoc.equals("gioitinh")) return;
 
-        List<NhanVien> ketQuaLoc = null;
-
-        try {
-            if (loaiLoc.equals("gioitinh")) {
-                String gioiTinhDuocChon = (String) cmbGioiTinh.getSelectedItem();
-                if (gioiTinhDuocChon.equals("Giới tính")) {
-                    ketQuaLoc = nhanVienDAO.getAllNhanVien();
-                } else if (gioiTinhDuocChon.equals("Nam")) {
-                    ketQuaLoc = nhanVienDAO.locTheoGioiTinh(true);
-                } else {
-                    ketQuaLoc = nhanVienDAO.locTheoGioiTinh(false);
-                }
-            }
-            else {
-                ketQuaLoc = nhanVienDAO.getAllNhanVien();
-            }
-            if (ketQuaLoc != null) {
-                hienThiDanhSach(ketQuaLoc);
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        String gioiTinhDuocChon = (String) cmbGioiTinh.getSelectedItem();
+        if (gioiTinhDuocChon.equals("Giới tính")) {
+            taiDuLieuLenBang();
+            return;
         }
-        panelChinh.requestFocusInWindow();
+
+        final boolean isNam = gioiTinhDuocChon.equals("Nam");
+
+        SwingWorker<List<NhanVien>, Void> filterWorker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                return nhanVienDAO.locTheoGioiTinh(isNam);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> ketQuaLoc = get();
+                    if (ketQuaLoc != null) {
+                        hienThiDanhSach(ketQuaLoc);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuNhanVien_UI.this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        filterWorker.execute();
     }
 
     private void lamMoiGiaoDien() {
@@ -541,30 +553,24 @@ public class TraCuuNhanVien_UI extends JPanel {
     }
 
     private void timKiemNhanVien() {
-        // ĐÃ SỬA: Chặn lỗi NullPointerException
         if (nhanVienDAO == null) {
             JOptionPane.showMessageDialog(this, "Không có kết nối đến máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // 1. Lấy dữ liệu thô từ giao diện
         String rawMa = txtTimKiemMa.getText().trim();
         String rawTen = txtTimKiemTen.getText().trim();
         String rawSDT = txtTimKiemSDT.getText().trim();
 
-        // 2. Xử lý logic xóa placeholder và gán vào biến FINAL
-        // Việc dùng 'final' ở đây giúp Java chắc chắn rằng các biến này không bị đổi giá trị
         final String tuKhoaMa = rawMa.equals("Tìm theo mã...") ? "" : rawMa;
         final String tuKhoaTen = rawTen.equals("Tìm theo tên...") ? "" : rawTen;
         final String tuKhoaSDT = rawSDT.equals("Tìm theo SĐT...") ? "" : rawSDT;
 
-        // Kiểm tra xem có nhập gì không
         if (tuKhoaMa.isEmpty() && tuKhoaTen.isEmpty() && tuKhoaSDT.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập thông tin tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 3. Bây giờ dùng các biến tuKhoa này trong SwingWorker sẽ không bị gạch đỏ nữa
         SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<List<NhanVien>, Void>() {
             @Override
             protected List<NhanVien> doInBackground() throws Exception {

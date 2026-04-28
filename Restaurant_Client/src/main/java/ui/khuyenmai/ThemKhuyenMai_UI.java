@@ -24,6 +24,7 @@ public class ThemKhuyenMai_UI extends JPanel {
     private JDateChooser dateNgayKetThuc;
     private Image backgroundImage;
     private IKhuyenMai_DAO khuyenMaiDAO;
+    private JButton btnThem;
 
     private final Color bgColor = new Color(48, 52, 56);
     private final Color componentColor = new Color(124, 124, 124);
@@ -57,6 +58,7 @@ public class ThemKhuyenMai_UI extends JPanel {
         add(lblMaKhuyenMai);
         txtMaKhuyenMai = createStyledTextField();
         txtMaKhuyenMai.setBounds(620, 147, 500, 45);
+        txtMaKhuyenMai.setEditable(false);
         taoMaKhuyenMaiTuDong();
         add(txtMaKhuyenMai);
 
@@ -96,7 +98,7 @@ public class ThemKhuyenMai_UI extends JPanel {
         dateNgayKetThuc.setBounds(620, 547, 500, 45);
         add(dateNgayKetThuc);
 
-        JButton btnThem = createStyledButton(" Thêm", "/IMG/add_32px.png");
+        btnThem = createStyledButton(" Thêm", "/IMG/add_32px.png");
         btnThem.setBounds(600, 650, 150, 40);
         btnThem.addActionListener(e -> themKhuyenMai());
         add(btnThem);
@@ -190,7 +192,6 @@ public class ThemKhuyenMai_UI extends JPanel {
                 dateEditor.setForeground(Color.WHITE);
                 dateEditor.setCaretColor(Color.WHITE);
             }
-
             @Override
             public void focusLost(FocusEvent e) {
                 dateEditor.setForeground(Color.WHITE);
@@ -215,15 +216,11 @@ public class ThemKhuyenMai_UI extends JPanel {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setBorder(new EmptyBorder(10, 20, 10, 20));
         button.setFocusPainted(false);
-
         try {
             ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
             Image scaledIcon = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
             button.setIcon(new ImageIcon(scaledIcon));
-        } catch (Exception e) {
-            System.err.println("Không tìm thấy icon: " + iconPath);
-        }
-
+        } catch (Exception e) {}
         return button;
     }
 
@@ -231,22 +228,27 @@ public class ThemKhuyenMai_UI extends JPanel {
         taoMaKhuyenMaiTuDong();
         txtTenKhuyenMai.setText("");
         txtGiaTri.setText("");
-        cmbLoaiKhuyenMai.setSelectedIndex(0);
+        cmbLoaiKhuyenMai.setSelectedIndex(-1);
         dateNgayBatDau.setDate(null);
         dateNgayKetThuc.setDate(null);
         txtTenKhuyenMai.requestFocus();
-        cmbLoaiKhuyenMai.setSelectedItem(null);
     }
 
     private void taoMaKhuyenMaiTuDong() {
-        try {
-            if (khuyenMaiDAO != null) {
-                String maKM = khuyenMaiDAO.taoMaKhuyenMaiTuDong();
-                txtMaKhuyenMai.setText(maKM);
+        if (khuyenMaiDAO == null) return;
+        SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                return khuyenMaiDAO.taoMaKhuyenMaiTuDong();
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+            @Override
+            protected void done() {
+                try {
+                    txtMaKhuyenMai.setText(get());
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void themKhuyenMai() {
@@ -263,13 +265,8 @@ public class ThemKhuyenMai_UI extends JPanel {
             return;
         }
 
-        String regex = "^[A-ZÀ-Ỹ].*$";
-
-        if (!tenKM.matches(regex)) {
-            JOptionPane.showMessageDialog(this,
-                    "Tên khuyến mãi không hợp lệ!\n" +
-                            "Vui lòng viết hoa chữ cái đầu tiên.",
-                    "Thông báo", JOptionPane.WARNING_MESSAGE);
+        if (!tenKM.matches("^[A-ZÀ-Ỹ].*$")) {
+            JOptionPane.showMessageDialog(this, "Vui lòng viết hoa chữ cái đầu tiên.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             txtTenKhuyenMai.requestFocus();
             return;
         }
@@ -284,13 +281,11 @@ public class ThemKhuyenMai_UI extends JPanel {
         try {
             giaTri = Double.parseDouble(giaTriStr);
             if (giaTri <= 0) {
-                JOptionPane.showMessageDialog(this, "Giá trị khuyến mãi phải lớn hơn 0!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                txtGiaTri.requestFocus();
+                JOptionPane.showMessageDialog(this, "Giá trị phải lớn hơn 0!", "Thông báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Giá trị khuyến mãi không hợp lệ!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            txtGiaTri.requestFocus();
+            JOptionPane.showMessageDialog(this, "Giá trị không hợp lệ!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -300,20 +295,12 @@ public class ThemKhuyenMai_UI extends JPanel {
         }
 
         if (loaiKM.equals("Giảm %") && giaTri > 100) {
-            JOptionPane.showMessageDialog(this,
-                    "Loại giảm giá là 'Giảm %' thì giá trị chỉ được từ 1-100!",
-                    "Thông báo", JOptionPane.WARNING_MESSAGE);
-            txtGiaTri.requestFocus();
+            JOptionPane.showMessageDialog(this, "Loại 'Giảm %' giá trị không vượt quá 100!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (ngayBatDau == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày bắt đầu!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (ngayKetThuc == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày kết thúc!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+        if (ngayBatDau == null || ngayKetThuc == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn đủ ngày bắt đầu và kết thúc!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -322,39 +309,38 @@ public class ThemKhuyenMai_UI extends JPanel {
             return;
         }
 
-        try {
-            if (khuyenMaiDAO.kiemTraMaTonTai(maKM)) {
-                JOptionPane.showMessageDialog(this, "Mã khuyến mãi đã tồn tại! Vui lòng nhập mã khác.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                txtMaKhuyenMai.requestFocus();
-                return;
-            }
-
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Bạn có chắc chắn muốn thêm khuyến mãi này?",
-                    "Xác nhận",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE);
-
-            if (confirm == JOptionPane.YES_OPTION) {
-                KhuyenMai km = new KhuyenMai(maKM, tenKM, loaiKM, ngayBatDau, ngayKetThuc, giaTri, 1);
-
-                if (khuyenMaiDAO.themKhuyenMai(km)) {
-                    JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    lamMoi();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Thêm khuyến mãi thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn thêm khuyến mãi này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            btnThem.setEnabled(false);
+            KhuyenMai km = new KhuyenMai(maKM, tenKM, loaiKM, ngayBatDau, ngayKetThuc, giaTri, 1);
+            SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+                @Override
+                protected Object[] doInBackground() throws Exception {
+                    if (khuyenMaiDAO == null) return new Object[]{false, "error"};
+                    if (khuyenMaiDAO.kiemTraMaTonTai(maKM)) return new Object[]{false, "exists"};
+                    boolean result = khuyenMaiDAO.themKhuyenMai(km);
+                    return new Object[]{result, "success"};
                 }
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+                @Override
+                protected void done() {
+                    btnThem.setEnabled(true);
+                    try {
+                        Object[] res = get();
+                        boolean isSuccess = (Boolean) res[0];
+                        String status = (String) res[1];
+
+                        if (status.equals("exists")) {
+                            JOptionPane.showMessageDialog(ThemKhuyenMai_UI.this, "Mã khuyến mãi đã tồn tại!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                        } else if (isSuccess) {
+                            JOptionPane.showMessageDialog(ThemKhuyenMai_UI.this, "Thêm thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                            lamMoi();
+                        } else {
+                            JOptionPane.showMessageDialog(ThemKhuyenMai_UI.this, "Thêm thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {}
+                }
+            };
+            worker.execute();
         }
     }
-
-    public String getMaKhuyenMai() { return txtMaKhuyenMai.getText(); }
-    public String getTenKhuyenMai() { return txtTenKhuyenMai.getText(); }
-    public String getGiaTri() { return txtGiaTri.getText(); }
-    public String getLoaiKhuyenMai() { return (String) cmbLoaiKhuyenMai.getSelectedItem(); }
-    public Date getNgayBatDau() { return dateNgayBatDau.getDate(); }
-    public Date getNgayKetThuc() { return dateNgayKetThuc.getDate(); }
 }

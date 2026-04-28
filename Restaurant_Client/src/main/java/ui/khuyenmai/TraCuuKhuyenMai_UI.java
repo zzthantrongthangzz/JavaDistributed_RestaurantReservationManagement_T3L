@@ -15,7 +15,6 @@ import com.toedter.calendar.JDateChooser;
 import java.text.SimpleDateFormat;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-
 import rmi_interfaces.IKhuyenMai_DAO;
 import entity.KhuyenMai;
 
@@ -231,9 +230,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                     int y = (getHeight() - searchIcon.getIconHeight()) / 2;
                     int x = getWidth() - searchIcon.getIconWidth() - 10;
                     searchIcon.paintIcon(this, g, x, y);
-                } catch (Exception e) {
-                    System.err.println("Lỗi tải icon: " + e.getMessage());
-                }
+                } catch (Exception e) {}
             }
         };
 
@@ -250,7 +247,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         ));
 
         txt.addActionListener(e -> apDungTatCaBoLoc());
-
         txt.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -261,7 +257,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                 }
             }
         });
-
         txt.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -272,7 +267,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                         Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
             }
         });
-
         txt.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -281,7 +275,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                     txt.setForeground(MAU_CHU_CHUNG);
                 }
             }
-
             @Override
             public void focusLost(FocusEvent e) {
                 if (txt.getText().isEmpty()) {
@@ -356,7 +349,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(MAU_NEN_TAB);
         panel.add(taoPanelBang(), BorderLayout.CENTER);
-
         return panel;
     }
 
@@ -364,7 +356,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(MAU_NEN_TAB);
 
-        String[] columnNames = {"Mã khuyến mãi", "Tên khuyến mãi", "Loại khuyến mãi", "Giá trị giảm", "Ngày bắt đầu", "Ngày kết thúc"};
+        String[] columnNames = {"Mã khuyến mãi", "Tên khuyến mãi", "Loại", "Giá trị", "Ngày bắt đầu", "Ngày kết thúc"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -413,7 +405,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
             }
         });
 
-        int[] widths = {120, 180, 130, 100, 120, 120};
+        int[] widths = {120, 200, 150, 100, 120, 120};
         for (int i = 0; i < widths.length; i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
@@ -423,29 +415,26 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         scrollPane.setBorder(BorderFactory.createLineBorder(MAU_LUOI_BANG, 1));
         scrollPane.getViewport().setBackground(MAU_NEN_ITEM);
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
-        scrollPane.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
-            @Override
-            protected void configureScrollBarColors() {
-                thumbColor = MAU_THANH_CUON_THUMB;
-                trackColor = MAU_THANH_CUON_TRACK;
-            }
-        });
 
         panel.add(scrollPane, BorderLayout.CENTER);
         return panel;
     }
 
     private void docDuLieuTuSQL() {
-        try {
-            List<KhuyenMai> danhSach = kmDAO.getAllList();
-            hienThiDanhSach(danhSach);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + e.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi đọc dữ liệu từ database: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+        if (kmDAO == null) return;
+        SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
+            @Override
+            protected List<KhuyenMai> doInBackground() throws Exception {
+                return kmDAO.getAllList();
+            }
+            @Override
+            protected void done() {
+                try {
+                    hienThiDanhSach(get());
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDanhSach(List<KhuyenMai> danhSach) {
@@ -466,42 +455,33 @@ public class TraCuuKhuyenMai_UI extends JPanel {
     }
 
     private void apDungTatCaBoLoc() {
-        String tuKhoaMa = txtTimKiemMa.getText().trim();
-        String tuKhoaTen = txtTimKiemTen.getText().trim();
+        if (kmDAO == null) return;
+        final String tuKhoaMa = txtTimKiemMa.getText().trim().equals(PLACEHOLDER_MA) ? "" : txtTimKiemMa.getText().trim();
+        final String tuKhoaTen = txtTimKiemTen.getText().trim().equals(PLACEHOLDER_TEN) ? "" : txtTimKiemTen.getText().trim();
+        final String loaiKM = cmbTimKiemLoai.getSelectedItem().equals("Tất cả loại") ? "" : (String) cmbTimKiemLoai.getSelectedItem();
+        final String giaTriFilter = cmbLocTheoGiaTri.getSelectedItem().equals("Lọc theo giá trị") ? "" : (String) cmbLocTheoGiaTri.getSelectedItem();
+        final String sapXep = cmbSapXep.getSelectedItem().equals("Sắp xếp") ? "" : (String) cmbSapXep.getSelectedItem();
+        final Date tuNgay = dateLocBatDau.getDate();
+        final Date denNgay = dateLocKetThuc.getDate();
 
-        if (tuKhoaMa.equals(PLACEHOLDER_MA)) tuKhoaMa = "";
-        if (tuKhoaTen.equals(PLACEHOLDER_TEN)) tuKhoaTen = "";
-
-        String loaiKM = (String) cmbTimKiemLoai.getSelectedItem();
-        if (loaiKM.equals("Tất cả loại")) loaiKM = "";
-
-        String giaTriFilter = (String) cmbLocTheoGiaTri.getSelectedItem();
-        if (giaTriFilter.equals("Lọc theo giá trị")) giaTriFilter = "";
-
-        String sapXep = (String) cmbSapXep.getSelectedItem();
-        if (sapXep.equals("Sắp xếp")) sapXep = "";
-
-        Date tuNgay = dateLocBatDau.getDate();
-        Date denNgay = dateLocKetThuc.getDate();
-
-        try {
-            List<KhuyenMai> ketQua = kmDAO.locDanhSach(
-                    tuKhoaMa, tuKhoaTen, loaiKM, giaTriFilter, tuNgay, denNgay, sapXep
-            );
-
-            hienThiDanhSach(ketQua);
-
-            if (ketQua.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                        "Không tìm thấy khuyến mãi phù hợp.",
-                        "Kết quả tìm kiếm",
-                        JOptionPane.INFORMATION_MESSAGE);
+        SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
+            @Override
+            protected List<KhuyenMai> doInBackground() throws Exception {
+                return kmDAO.locDanhSach(tuKhoaMa, tuKhoaTen, loaiKM, giaTriFilter, tuNgay, denNgay, sapXep);
             }
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<KhuyenMai> ketQua = get();
+                    hienThiDanhSach(ketQua);
+                    if (ketQua.isEmpty()) {
+                        JOptionPane.showMessageDialog(TraCuuKhuyenMai_UI.this, "Không tìm thấy khuyến mãi phù hợp.", "Kết quả tìm kiếm", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (Exception e) {}
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        worker.execute();
     }
 
     private JDateChooser taoDateChooser() {
@@ -522,7 +502,6 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         JTextField dateEditor = (JTextField) dateChooser.getDateEditor().getUiComponent();
 
         dateEditor.setBorder(new EmptyBorder(0, 10, 0, 0));
-
         dateEditor.setBackground(MAU_THANH_TIM_KIEM);
         dateEditor.setForeground(Color.WHITE);
         dateEditor.setCaretColor(Color.WHITE);
@@ -598,30 +577,16 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                 this.thumbDarkShadowColor = new Color(80, 85, 100);
                 this.thumbHighlightColor = new Color(120, 125, 140);
             }
-
             @Override
-            protected JButton createDecreaseButton(int orientation) {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(0, 0));
-                return button;
-            }
-
+            protected JButton createDecreaseButton(int orientation) { JButton button = new JButton(); button.setPreferredSize(new Dimension(0, 0)); return button; }
             @Override
-            protected JButton createIncreaseButton(int orientation) {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(0, 0));
-                return button;
-            }
-
+            protected JButton createIncreaseButton(int orientation) { JButton button = new JButton(); button.setPreferredSize(new Dimension(0, 0)); return button; }
             @Override
             protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-                if (thumbBounds.isEmpty() || !verticalScrollBar.isEnabled()) {
-                    return;
-                }
+                if (thumbBounds.isEmpty() || !verticalScrollBar.isEnabled()) return;
                 g.setColor(new Color(100, 105, 120));
                 g.fillRoundRect(thumbBounds.x + 2, thumbBounds.y, thumbBounds.width - 4, thumbBounds.height, 4, 4);
             }
-
             @Override
             protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
                 g.setColor(MAU_NEN_INPUT);
@@ -640,30 +605,16 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                 this.thumbDarkShadowColor = new Color(80, 85, 100);
                 this.thumbHighlightColor = new Color(120, 125, 140);
             }
-
             @Override
-            protected JButton createDecreaseButton(int orientation) {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(0, 0));
-                return button;
-            }
-
+            protected JButton createDecreaseButton(int orientation) { JButton button = new JButton(); button.setPreferredSize(new Dimension(0, 0)); return button; }
             @Override
-            protected JButton createIncreaseButton(int orientation) {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(0, 0));
-                return button;
-            }
-
+            protected JButton createIncreaseButton(int orientation) { JButton button = new JButton(); button.setPreferredSize(new Dimension(0, 0)); return button; }
             @Override
             protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-                if (thumbBounds.isEmpty() || !horizontalScrollBar.isEnabled()) {
-                    return;
-                }
+                if (thumbBounds.isEmpty() || !horizontalScrollBar.isEnabled()) return;
                 g.setColor(new Color(100, 105, 120));
                 g.fillRoundRect(thumbBounds.x, thumbBounds.y + 2, thumbBounds.width, thumbBounds.height - 4, 4, 4);
             }
-
             @Override
             protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
                 g.setColor(MAU_NEN_INPUT);

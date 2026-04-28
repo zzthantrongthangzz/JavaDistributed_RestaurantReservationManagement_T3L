@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.Timestamp;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO {
@@ -22,27 +22,40 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
         super();
     }
 
-    // Chuỗi RETURN dùng chung để ánh xạ đối tượng
     private final String RETURN_FIELDS = "hd.maHoaDon AS maHoaDon, hd.trangThai AS trangThai, " +
             "hd.ngayLapHoaDon AS ngayLapHoaDon, hd.thue AS thue, hd.maNhanVien AS maNhanVien, " +
             "hd.maPhieuDatBan AS maPhieuDatBan, hd.maKhachHang AS maKhachHang, hd.maKhuyenMai AS maKhuyenMai, " +
             "hd.diaChi AS diaChi, hd.tienDatCoc AS tienDatCoc, hd.soTienKhachTra AS soTienKhachTra, hd.soTienThoi AS soTienThoi";
 
-    // Ánh xạ Record của Neo4j sang đối tượng HoaDon
+    // Đã FIX LỖI "Uncoercible": Hàm này giờ đây đọc được cả LocalDateTime từ Neo4j lẫn kiểu số Long
     private HoaDon mapHoaDon(Record r) {
+        Timestamp ngayLap = null;
+        if (!r.get("ngayLapHoaDon").isNull()) {
+            Object dateObj = r.get("ngayLapHoaDon").asObject();
+            if (dateObj instanceof LocalDateTime) {
+                ngayLap = Timestamp.valueOf((LocalDateTime) dateObj);
+            } else if (dateObj instanceof java.time.ZonedDateTime) {
+                ngayLap = Timestamp.from(((java.time.ZonedDateTime) dateObj).toInstant());
+            } else if (dateObj instanceof Number) {
+                ngayLap = new Timestamp(((Number) dateObj).longValue());
+            } else if (dateObj instanceof String) {
+                try { ngayLap = Timestamp.valueOf((String) dateObj); } catch(Exception ignored) {}
+            }
+        }
+
         return new HoaDon(
-                r.get("maHoaDon").asString(),
-                r.get("trangThai").asString(),
-                new Timestamp(r.get("ngayLapHoaDon").asLong()), // Lấy epoch time và chuyển lại thành Timestamp
-                BigDecimal.valueOf(r.get("thue").asDouble()),
+                r.get("maHoaDon").isNull() ? "" : r.get("maHoaDon").asString(),
+                r.get("trangThai").isNull() ? "" : r.get("trangThai").asString(),
+                ngayLap,
+                r.get("thue").isNull() ? BigDecimal.ZERO : BigDecimal.valueOf(r.get("thue").asDouble()),
                 r.get("maNhanVien").isNull() ? null : r.get("maNhanVien").asString(),
                 r.get("maPhieuDatBan").isNull() ? null : r.get("maPhieuDatBan").asString(),
                 r.get("maKhachHang").isNull() ? null : r.get("maKhachHang").asString(),
                 r.get("maKhuyenMai").isNull() ? null : r.get("maKhuyenMai").asString(),
                 r.get("diaChi").isNull() ? null : r.get("diaChi").asString(),
-                BigDecimal.valueOf(r.get("tienDatCoc").asDouble()),
-                BigDecimal.valueOf(r.get("soTienKhachTra").asDouble()),
-                BigDecimal.valueOf(r.get("soTienThoi").asDouble())
+                r.get("tienDatCoc").isNull() ? BigDecimal.ZERO : BigDecimal.valueOf(r.get("tienDatCoc").asDouble()),
+                r.get("soTienKhachTra").isNull() ? BigDecimal.ZERO : BigDecimal.valueOf(r.get("soTienKhachTra").asDouble()),
+                r.get("soTienThoi").isNull() ? BigDecimal.ZERO : BigDecimal.valueOf(r.get("soTienThoi").asDouble())
         );
     }
 
@@ -65,9 +78,11 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
                 "thue: $thue, maNhanVien: $maNV, maPhieuDatBan: $maPhieu, maKhachHang: $maKH, " +
                 "maKhuyenMai: $maKM, diaChi: $diaChi, tienDatCoc: $coc, soTienKhachTra: $tra, soTienThoi: $thoi})";
         try (Session session = DBConnect.getSession()) {
+            // FIX: Dùng java.sql.Timestamp để lấy toLocalDateTime() an toàn
+            LocalDateTime ngayLapLDT = hd.getNgayLapHoaDon() != null ? new java.sql.Timestamp(hd.getNgayLapHoaDon().getTime()).toLocalDateTime() : LocalDateTime.now();
             session.run(cypher, Values.parameters(
                     "maHD", hd.getMaHoaDon(), "trangThai", hd.getTrangThai(),
-                    "ngayLap", hd.getNgayLapHoaDon().getTime(),
+                    "ngayLap", ngayLapLDT,
                     "thue", hd.getThue().doubleValue(),
                     "maNV", hd.getMaNhanVien(), "maPhieu", hd.getMaPhieuDatBan(), "maKH", hd.getMaKhachHang(),
                     "maKM", hd.getMaKhuyenMai(), "diaChi", hd.getDiaChi(),
@@ -85,8 +100,11 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
                 "hd.maKhuyenMai = $maKM, hd.diaChi = $diaChi, hd.tienDatCoc = $coc, " +
                 "hd.soTienKhachTra = $tra, hd.soTienThoi = $thoi";
         try (Session session = DBConnect.getSession()) {
+            // FIX: Dùng java.sql.Timestamp để lấy toLocalDateTime() an toàn
+            LocalDateTime ngayLapLDT = hd.getNgayLapHoaDon() != null ? new java.sql.Timestamp(hd.getNgayLapHoaDon().getTime()).toLocalDateTime() : LocalDateTime.now();
             session.run(cypher, Values.parameters(
-                    "maHD", hd.getMaHoaDon(), "trangThai", hd.getTrangThai(), "ngayLap", hd.getNgayLapHoaDon().getTime(),
+                    "maHD", hd.getMaHoaDon(), "trangThai", hd.getTrangThai(),
+                    "ngayLap", ngayLapLDT,
                     "thue", hd.getThue().doubleValue(), "maNV", hd.getMaNhanVien(), "maPhieu", hd.getMaPhieuDatBan(),
                     "maKH", hd.getMaKhachHang(), "maKM", hd.getMaKhuyenMai(), "diaChi", hd.getDiaChi(),
                     "coc", hd.getTienDatCoc().doubleValue(), "tra", hd.getSoTienKhachTra().doubleValue(), "thoi", hd.getSoTienThoi().doubleValue()
@@ -119,16 +137,15 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
     @Override
     public List<HoaDon> timTheoNgay(Date tuNgay, Date denNgay) throws RemoteException {
         List<HoaDon> list = new ArrayList<>();
-        String cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den RETURN " + RETURN_FIELDS;
+        String cypher = "MATCH (hd:HoaDon) " +
+                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
+                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
+                "RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
-            // Đẩy ngày đến về 23:59:59 để bao quát trọn ngày
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
             c.set(Calendar.HOUR_OF_DAY, 23); c.set(Calendar.MINUTE, 59); c.set(Calendar.SECOND, 59);
 
-            Result result = session.run(cypher, Values.parameters(
-                    "tu", tuNgay.getTime(),
-                    "den", c.getTimeInMillis()
-            ));
+            Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", c.getTimeInMillis()));
             while (result.hasNext()) {
                 list.add(mapHoaDon(result.next()));
             }
@@ -138,7 +155,6 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
 
     @Override
     public HoaDon timHoaDonChuaThanhToanTheoMaBan(String maBan) throws RemoteException {
-        // Tuân theo mô hình SQL (JOIN HoaDon_Ban), ánh xạ thành 2 Node kết nối gián tiếp theo maHoaDon
         String cypher = "MATCH (hd:HoaDon), (hdb:HoaDon_Ban {maBan: $maBan}) " +
                 "WHERE hd.maHoaDon = hdb.maHoaDon AND hd.trangThai = 'Chưa thanh toán' " +
                 "RETURN " + RETURN_FIELDS + " LIMIT 1";
@@ -197,7 +213,6 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
     @Override
     public List<HoaDon> sapXep(String orderBy) throws RemoteException {
         List<HoaDon> list = new ArrayList<>();
-        // Ngăn chặn SQL/Cypher Injection cơ bản
         String safeOrder = orderBy.replaceAll("[^a-zA-Z0-9 ]", "");
         String cypher = "MATCH (hd:HoaDon) RETURN " + RETURN_FIELDS + " ORDER BY hd." + safeOrder;
         try (Session session = DBConnect.getSession()) {
@@ -227,14 +242,12 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
             cypher.append(" AND hd.maNhanVien CONTAINS $maNV ");
             params.put("maNV", maNV);
         }
-        if (tuNgay != null) {
-            cypher.append(" AND hd.ngayLapHoaDon >= $tu ");
-            params.put("tu", tuNgay.getTime());
-        }
-        if (denNgay != null) {
-            cypher.append(" AND hd.ngayLapHoaDon <= $den ");
+        if (tuNgay != null && denNgay != null) {
+            cypher.append(" AND ((hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) ");
+            cypher.append(" OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den)) ");
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
             c.set(Calendar.HOUR_OF_DAY, 23); c.set(Calendar.MINUTE, 59); c.set(Calendar.SECOND, 59);
+            params.put("tu", tuNgay.getTime());
             params.put("den", c.getTimeInMillis());
         }
 
@@ -254,7 +267,8 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
         BigDecimal tongDoanhThu = BigDecimal.ZERO;
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
                 "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) " +
-                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
+                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
+                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
                 "RETURN sum(ct.soLuong * ct.donGia) AS tong";
         try (Session session = DBConnect.getSession()) {
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
@@ -272,7 +286,8 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
     public int getTongSoHoaDon(Date tuNgay, Date denNgay) throws RemoteException {
         int tongSoHoaDon = 0;
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
+                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
+                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
                 "RETURN count(hd) AS tong";
         try (Session session = DBConnect.getSession()) {
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
@@ -291,8 +306,9 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
         Map<Date, BigDecimal> doanhThuTheoNgay = new TreeMap<>();
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
                 "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) " +
-                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
-                "RETURN date(datetime({epochMillis: hd.ngayLapHoaDon})) AS ngay, sum(ct.soLuong * ct.donGia) AS doanhThu " +
+                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
+                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
+                "RETURN date(hd.ngayLapHoaDon) AS ngay, sum(ct.soLuong * ct.donGia) AS doanhThu " +
                 "ORDER BY ngay";
         try (Session session = DBConnect.getSession()) {
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
@@ -301,11 +317,12 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
             Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", c.getTimeInMillis()));
             while (result.hasNext()) {
                 Record r = result.next();
-                // Neo4j date to java.util.Date
-                LocalDate localDate = r.get("ngay").asLocalDate();
-                Date ngay = java.sql.Date.valueOf(localDate);
-                BigDecimal doanhThu = BigDecimal.valueOf(r.get("doanhThu").asDouble());
-                doanhThuTheoNgay.put(ngay, doanhThu);
+                if (!r.get("ngay").isNull()) {
+                    java.time.LocalDate localDate = r.get("ngay").asLocalDate();
+                    Date ngay = java.sql.Date.valueOf(localDate);
+                    BigDecimal doanhThu = BigDecimal.valueOf(r.get("doanhThu").asDouble());
+                    doanhThuTheoNgay.put(ngay, doanhThu);
+                }
             }
         }
         return doanhThuTheoNgay;
@@ -347,7 +364,8 @@ public class HoaDon_DAO_Impl extends UnicastRemoteObject implements IHoaDon_DAO 
     public List<HoaDon> getDanhSachHoaDon(Date tuNgay, Date denNgay) throws RemoteException {
         List<HoaDon> list = new ArrayList<>();
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
+                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
+                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
                 "RETURN " + RETURN_FIELDS + " ORDER BY hd.ngayLapHoaDon DESC";
         try (Session session = DBConnect.getSession()) {
             long epochTu = 0;

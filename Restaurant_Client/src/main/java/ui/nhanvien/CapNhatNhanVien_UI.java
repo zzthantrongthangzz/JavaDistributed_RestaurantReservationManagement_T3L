@@ -159,11 +159,11 @@ public class CapNhatNhanVien_UI extends JPanel {
         btnLamMoi = taoNutChucNang("Làm mới", MAU_NUT_LAM_MOI);
         btnLamMoi.addActionListener(e -> lamMoiGiaoDien());
 
-        btnNVDaNghi =taoNutChucNang("NV đã nghỉ", MAU_NUT_DA_NGHI);
-        btnNVDaNghi.addActionListener(e-> hienThiDialogNVDaNghi());
+        btnNVDaNghi = taoNutChucNang("NV đã nghỉ", MAU_NUT_DA_NGHI);
+        btnNVDaNghi.addActionListener(e -> hienThiDialogNVDaNghi());
 
-        btnKhoiPhuc=taoNutChucNang("Khôi phục", MAU_NUT_KHOI_PHUC);
-        btnKhoiPhuc.addActionListener(e-> khoiPhucNhanVien());
+        btnKhoiPhuc = taoNutChucNang("Khôi phục", MAU_NUT_KHOI_PHUC);
+        btnKhoiPhuc.addActionListener(e -> khoiPhucNhanVien());
 
         panelNut.add(btnCapNhat);
         panelNut.add(btnXoa);
@@ -177,7 +177,8 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void khoiPhucNhanVien() {
-        if (txtMaNV.getText().trim().isEmpty()) {
+        final String maNV = txtMaNV.getText().trim();
+        if (maNV.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần khôi phục!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -187,17 +188,33 @@ public class CapNhatNhanVien_UI extends JPanel {
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                if (nhanVienDAO.khoiPhucNhanVien(txtMaNV.getText().trim())) {
-                    JOptionPane.showMessageDialog(this, "Khôi phục nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    hienThiDialogNVDaNghi();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Khôi phục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            btnKhoiPhuc.setEnabled(false);
+            btnKhoiPhuc.setText("Đang xử lý...");
+
+            SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return nhanVienDAO.khoiPhucNhanVien(maNV);
                 }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    btnKhoiPhuc.setEnabled(true);
+                    btnKhoiPhuc.setText("Khôi phục");
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Khôi phục nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                            hienThiDialogNVDaNghi();
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Khôi phục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 
@@ -281,19 +298,32 @@ public class CapNhatNhanVien_UI extends JPanel {
 
         dialog.add(scroll, BorderLayout.CENTER);
 
-        try {
-            List<NhanVien> listDaNghi = nhanVienDAO.getAllNhanVienDaNghi();
-            for (NhanVien nv : listDaNghi) {
-                modelDialog.addRow(new Object[]{
-                        nv.getMaNhanVien(), nv.getHoTen(), nv.isGioiTinh() ? "Nam" : "Nữ",
-                        nv.getSoDienThoai(), nv.getEmail(), formatNgaySinh(nv.getNgaySinh()),
-                        nv.getDiaChi(), nv.getChucVu().getTenChucVu()
-                });
+        // Nạp dữ liệu bằng SwingWorker
+        SwingWorker<List<NhanVien>, Void> loadWorker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                if (nhanVienDAO == null) return new ArrayList<>();
+                return nhanVienDAO.getAllNhanVienDaNghi();
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> listDaNghi = get();
+                    modelDialog.setRowCount(0);
+                    for (NhanVien nv : listDaNghi) {
+                        modelDialog.addRow(new Object[]{
+                                nv.getMaNhanVien(), nv.getHoTen(), nv.isGioiTinh() ? "Nam" : "Nữ",
+                                nv.getSoDienThoai(), nv.getEmail(), formatNgaySinh(nv.getNgaySinh()),
+                                nv.getDiaChi(), nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        loadWorker.execute();
 
         JPanel pnlBottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         pnlBottom.setBackground(MAU_NEN_TAB);
@@ -319,26 +349,45 @@ public class CapNhatNhanVien_UI extends JPanel {
         dialog.add(pnlBottom, BorderLayout.SOUTH);
 
         btnDong.addActionListener(e -> dialog.dispose());
+
         btnKhoiPhucDialog.addActionListener(e -> {
             int row = tableDialog.getSelectedRow();
             if (row < 0) {
                 JOptionPane.showMessageDialog(dialog, "Vui lòng chọn nhân viên để khôi phục!", "Chưa chọn", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            String maNV = modelDialog.getValueAt(row, 0).toString();
-            String tenNV = modelDialog.getValueAt(row, 1).toString();
+            final String maNV = modelDialog.getValueAt(row, 0).toString();
+            final String tenNV = modelDialog.getValueAt(row, 1).toString();
             int confirm = JOptionPane.showConfirmDialog(dialog, "Khôi phục nhân viên [" + tenNV + "]?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+
             if (confirm == JOptionPane.YES_OPTION) {
-                try {
-                    if (nhanVienDAO.khoiPhucNhanVien(maNV)) {
-                        JOptionPane.showMessageDialog(dialog, "Đã khôi phục thành công!");
-                        modelDialog.removeRow(row);
-                        lamMoiGiaoDien();
+                btnKhoiPhucDialog.setEnabled(false);
+                btnKhoiPhucDialog.setText("Đang xử lý...");
+
+                SwingWorker<Boolean, Void> restoreWorker = new SwingWorker<Boolean, Void>() {
+                    @Override
+                    protected Boolean doInBackground() throws Exception {
+                        return nhanVienDAO.khoiPhucNhanVien(maNV);
                     }
-                } catch (RemoteException re) {
-                    re.printStackTrace();
-                    JOptionPane.showMessageDialog(dialog, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                }
+                    @Override
+                    protected void done() {
+                        btnKhoiPhucDialog.setEnabled(true);
+                        btnKhoiPhucDialog.setText("Khôi phục nhân viên");
+                        try {
+                            if (get()) {
+                                JOptionPane.showMessageDialog(dialog, "Đã khôi phục thành công!");
+                                modelDialog.removeRow(row);
+                                lamMoiGiaoDien();
+                            } else {
+                                JOptionPane.showMessageDialog(dialog, "Khôi phục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (Exception re) {
+                            re.printStackTrace();
+                            JOptionPane.showMessageDialog(dialog, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                };
+                restoreWorker.execute();
             }
         });
 
@@ -756,11 +805,10 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void loadDataToTable() {
-        // 1. Sử dụng SwingWorker để tránh treo giao diện khi tải danh sách lớn
+        if (nhanVienDAO == null) return;
         SwingWorker<List<NhanVien>, Void> worker = new SwingWorker<List<NhanVien>, Void>() {
             @Override
             protected List<NhanVien> doInBackground() throws Exception {
-                // Lấy dữ liệu từ Server Neo4j thông qua RMI
                 return nhanVienDAO.getAllNhanVien();
             }
 
@@ -768,8 +816,6 @@ public class CapNhatNhanVien_UI extends JPanel {
             protected void done() {
                 try {
                     List<NhanVien> danhSach = get();
-
-                    // 2. Cập nhật dữ liệu lên bảng (Phải chạy trong luồng giao diện)
                     tableModel.setRowCount(0);
                     for (NhanVien nv : danhSach) {
                         String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
@@ -779,14 +825,13 @@ public class CapNhatNhanVien_UI extends JPanel {
                                 gioiTinh,
                                 nv.getSoDienThoai(),
                                 nv.getEmail(),
-                                formatNgaySinh(nv.getNgaySinh()), // Dùng hàm format có sẵn trong class
+                                formatNgaySinh(nv.getNgaySinh()),
                                 nv.getDiaChi(),
                                 nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
                         });
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    // Không hiển thị quá nhiều Dialog lỗi khi tải tự động để tránh phiền người dùng
                     System.err.println("Lỗi khi tải dữ liệu nhân viên lên bảng.");
                 }
             }
@@ -821,55 +866,62 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void timKiemNhanVien() {
-        String keyword = txtTimKiem.getText().trim();
+        if (nhanVienDAO == null) return;
+        String keywordRaw = txtTimKiem.getText().trim();
 
-        if (keyword.isEmpty() || keyword.equals("Tìm kiếm nhân viên...")) {
+        if (keywordRaw.isEmpty() || keywordRaw.equals("Tìm kiếm nhân viên...")) {
             loadDataToTable();
             return;
         }
 
-        tableModel.setRowCount(0);
-        List<NhanVien> danhSach = new ArrayList<>();
+        final String keyword = keywordRaw;
 
-        try {
-            if (keyword.toUpperCase().startsWith("NV")) {
-                danhSach = nhanVienDAO.timKiemNhanVienTheoMa(keyword);
-            }
-            else if (keyword.matches("\\d+")) {
-                danhSach = nhanVienDAO.timKiemNhanVienTheoSDT(keyword);
-            }
-            else if (!keyword.matches(".*\\d.*")) {
-                danhSach = nhanVienDAO.timKiemNhanVienTheoTen(keyword);
+        SwingWorker<List<NhanVien>, Void> searchWorker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                if (keyword.toUpperCase().startsWith("NV")) {
+                    return nhanVienDAO.timKiemNhanVienTheoMa(keyword);
+                } else if (keyword.matches("\\d+")) {
+                    return nhanVienDAO.timKiemNhanVienTheoSDT(keyword);
+                } else {
+                    return nhanVienDAO.timKiemNhanVienTheoTen(keyword);
+                }
             }
 
-            for (NhanVien nv : danhSach) {
-                String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
-                tableModel.addRow(new Object[]{
-                        nv.getMaNhanVien(),
-                        nv.getHoTen(),
-                        gioiTinh,
-                        nv.getSoDienThoai(),
-                        nv.getEmail(),
-                        formatNgaySinh(nv.getNgaySinh()),
-                        nv.getDiaChi(),
-                        nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
-                });
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> danhSach = get();
+                    tableModel.setRowCount(0);
+                    for (NhanVien nv : danhSach) {
+                        String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
+                        tableModel.addRow(new Object[]{
+                                nv.getMaNhanVien(),
+                                nv.getHoTen(),
+                                gioiTinh,
+                                nv.getSoDienThoai(),
+                                nv.getEmail(),
+                                formatNgaySinh(nv.getNgaySinh()),
+                                nv.getDiaChi(),
+                                nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Lỗi khi tìm kiếm nhân viên!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+        };
+        searchWorker.execute();
     }
 
     private void capNhatNhanVien() {
-        // 1. Lấy mã nhân viên và kiểm tra xem đã chọn nhân viên từ bảng chưa
         final String maNV = txtMaNV.getText().trim();
         if (maNV.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần cập nhật từ danh sách!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 2. Lấy dữ liệu thô từ các ô nhập liệu
         String hoTenRaw = txtHoTen.getText().trim();
         String sdtRaw = txtSDT.getText().trim();
         String emailRaw = txtEmail.getText().trim();
@@ -878,9 +930,6 @@ public class CapNhatNhanVien_UI extends JPanel {
         final ChucVu chucVu = (ChucVu) cboChucVu.getSelectedItem();
         final boolean gioiTinh = cboGioiTinhForm.getSelectedItem().equals("Nam");
 
-        // 3. Hệ thống logic kiểm tra dữ liệu (Validation)
-
-        // Kiểm tra Họ tên
         if (hoTenRaw.isEmpty() || hoTenRaw.equals("Nhập họ và tên...")) {
             JOptionPane.showMessageDialog(this, "Họ tên không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtHoTen.requestFocus();
@@ -892,7 +941,6 @@ public class CapNhatNhanVien_UI extends JPanel {
             return;
         }
 
-        // Kiểm tra Số điện thoại
         if (sdtRaw.isEmpty() || sdtRaw.equals("Nhập SĐT...")) {
             JOptionPane.showMessageDialog(this, "Số điện thoại không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtSDT.requestFocus();
@@ -904,7 +952,6 @@ public class CapNhatNhanVien_UI extends JPanel {
             return;
         }
 
-        // Kiểm tra Email
         if (emailRaw.isEmpty() || emailRaw.equals("Nhập email...")) {
             JOptionPane.showMessageDialog(this, "Email không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtEmail.requestFocus();
@@ -916,7 +963,6 @@ public class CapNhatNhanVien_UI extends JPanel {
             return;
         }
 
-        // Kiểm tra Ngày sinh và Độ tuổi
         if (ngaySinhRaw.isEmpty() || ngaySinhRaw.equals("dd-MM-yyyy")) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập ngày sinh!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtNgaySinh.requestFocus();
@@ -938,20 +984,17 @@ public class CapNhatNhanVien_UI extends JPanel {
             return;
         }
 
-        // Kiểm tra Địa chỉ
         if (diaChiRaw.isEmpty() || diaChiRaw.equals("Nhập địa chỉ...")) {
             JOptionPane.showMessageDialog(this, "Địa chỉ không được để trống!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             txtDiaChi.requestFocus();
             return;
         }
 
-        // Kiểm tra Chức vụ
         if (chucVu == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn chức vụ cho nhân viên!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 4. Chuẩn bị dữ liệu FINAL để đưa vào luồng ngầm
         final String hoTen = hoTenRaw;
         final String sdt = sdtRaw;
         final String email = emailRaw;
@@ -959,24 +1002,22 @@ public class CapNhatNhanVien_UI extends JPanel {
 
         final NhanVien nvCapNhat = new NhanVien(maNV, hoTen, gioiTinh, sdt, email, sqlNgaySinh, diaChi, chucVu);
 
-        // 5. Thực hiện cập nhật bằng SwingWorker (Xử lý đa luồng)
-        btnCapNhat.setEnabled(false); // Tránh bấm liên tục
+        btnCapNhat.setEnabled(false);
 
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() throws Exception {
-                // Thực hiện gọi RMI để cập nhật trên Server Neo4j
                 return nhanVienDAO.capNhatNhanVien(nvCapNhat);
             }
 
             @Override
             protected void done() {
-                btnCapNhat.setEnabled(true); // Mở lại nút sau khi xong
+                btnCapNhat.setEnabled(true);
                 try {
                     if (get()) {
                         JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this,
                                 "Cập nhật thông tin nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                        loadDataToTable(); // Tải lại bảng để cập nhật giao diện
+                        loadDataToTable();
                     } else {
                         JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this,
                                 "Cập nhật thất bại. Vui lòng kiểm tra lại dữ liệu!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -992,7 +1033,8 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void xoaNhanVien() {
-        if (txtMaNV.getText().trim().isEmpty()) {
+        final String maNV = txtMaNV.getText().trim();
+        if (maNV.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn nhân viên cần xóa!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -1003,53 +1045,83 @@ public class CapNhatNhanVien_UI extends JPanel {
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                if (nhanVienDAO.xoaNhanVien(txtMaNV.getText().trim())) {
-                    JOptionPane.showMessageDialog(this, "Đã chuyển trạng thái nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    lamMoiGiaoDien();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Chuyển trạng thái thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            btnXoa.setEnabled(false);
+            btnXoa.setText("Đang xóa...");
+
+            SwingWorker<Boolean, Void> deleteWorker = new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    if (nhanVienDAO == null) return false;
+                    return nhanVienDAO.xoaNhanVien(maNV);
                 }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    btnXoa.setEnabled(true);
+                    btnXoa.setText("Xóa");
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Đã chuyển trạng thái nhân viên thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                            lamMoiGiaoDien();
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Chuyển trạng thái thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            deleteWorker.execute();
         }
     }
 
     private void thucHienSapXep(int loaiSapXep) {
-        String orderBy = "";
+        String orderByTemp = "";
         switch (loaiSapXep) {
-            case 1: orderBy = "nv.hoTen ASC"; break;
-            case 2: orderBy = "nv.hoTen DESC"; break;
-            case 3: orderBy = "cv.tenChucVu ASC, nv.hoTen ASC"; break;
+            case 1: orderByTemp = "nv.hoTen ASC"; break;
+            case 2: orderByTemp = "nv.hoTen DESC"; break;
+            case 3: orderByTemp = "cv.tenChucVu ASC, nv.hoTen ASC"; break;
             default:
                 loadDataToTable();
                 return;
         }
 
-        tableModel.setRowCount(0);
-        try {
-            List<NhanVien> danhSach = nhanVienDAO.sapXepNhanVien(orderBy);
+        final String orderBy = orderByTemp;
 
-            for (NhanVien nv : danhSach) {
-                String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
-                tableModel.addRow(new Object[]{
-                        nv.getMaNhanVien(),
-                        nv.getHoTen(),
-                        gioiTinh,
-                        nv.getSoDienThoai(),
-                        nv.getEmail(),
-                        formatNgaySinh(nv.getNgaySinh()),
-                        nv.getDiaChi(),
-                        nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
-                });
+        SwingWorker<List<NhanVien>, Void> sortWorker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                if (nhanVienDAO == null) return new ArrayList<>();
+                return nhanVienDAO.sapXepNhanVien(orderBy);
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-        panelChinh.requestFocusInWindow();
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> danhSach = get();
+                    tableModel.setRowCount(0);
+                    for (NhanVien nv : danhSach) {
+                        String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
+                        tableModel.addRow(new Object[]{
+                                nv.getMaNhanVien(),
+                                nv.getHoTen(),
+                                gioiTinh,
+                                nv.getSoDienThoai(),
+                                nv.getEmail(),
+                                formatNgaySinh(nv.getNgaySinh()),
+                                nv.getDiaChi(),
+                                nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Lỗi khi sắp xếp!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        sortWorker.execute();
     }
 
     private void thucHienLoc(String loaiLoc) {
@@ -1061,30 +1133,41 @@ public class CapNhatNhanVien_UI extends JPanel {
             return;
         }
 
-        boolean gioiTinhValue = selectedGender.equals("Nam");
+        final boolean gioiTinhValue = selectedGender.equals("Nam");
 
-        tableModel.setRowCount(0);
-        try {
-            List<NhanVien> danhSach = nhanVienDAO.locTheoGioiTinh(gioiTinhValue);
-
-            for (NhanVien nv : danhSach) {
-                String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
-                tableModel.addRow(new Object[]{
-                        nv.getMaNhanVien(),
-                        nv.getHoTen(),
-                        gioiTinh,
-                        nv.getSoDienThoai(),
-                        nv.getEmail(),
-                        formatNgaySinh(nv.getNgaySinh()),
-                        nv.getDiaChi(),
-                        nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
-                });
+        SwingWorker<List<NhanVien>, Void> filterWorker = new SwingWorker<List<NhanVien>, Void>() {
+            @Override
+            protected List<NhanVien> doInBackground() throws Exception {
+                if (nhanVienDAO == null) return new ArrayList<>();
+                return nhanVienDAO.locTheoGioiTinh(gioiTinhValue);
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-        panelChinh.requestFocusInWindow();
+
+            @Override
+            protected void done() {
+                try {
+                    List<NhanVien> danhSach = get();
+                    tableModel.setRowCount(0);
+                    for (NhanVien nv : danhSach) {
+                        String gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
+                        tableModel.addRow(new Object[]{
+                                nv.getMaNhanVien(),
+                                nv.getHoTen(),
+                                gioiTinh,
+                                nv.getSoDienThoai(),
+                                nv.getEmail(),
+                                formatNgaySinh(nv.getNgaySinh()),
+                                nv.getDiaChi(),
+                                nv.getChucVu() != null ? nv.getChucVu().getTenChucVu() : "N/A"
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(CapNhatNhanVien_UI.this, "Lỗi khi lọc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        filterWorker.execute();
     }
 
     private void lamMoiGiaoDien() {
@@ -1125,15 +1208,27 @@ public class CapNhatNhanVien_UI extends JPanel {
     }
 
     private void taiDuLieuChucVu() {
-        try {
-            List<ChucVu> dsChucVu = chucVuDAO.docDanhSachChucVu();
-            cboChucVu.removeAllItems();
-            for (ChucVu cv : dsChucVu) {
-                cboChucVu.addItem(cv);
+        SwingWorker<List<ChucVu>, Void> worker = new SwingWorker<List<ChucVu>, Void>() {
+            @Override
+            protected List<ChucVu> doInBackground() throws Exception {
+                if (chucVuDAO == null) return new ArrayList<>();
+                return chucVuDAO.docDanhSachChucVu();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<ChucVu> dsChucVu = get();
+                    cboChucVu.removeAllItems();
+                    for (ChucVu cv : dsChucVu) {
+                        cboChucVu.addItem(cv);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDialogThemChucVu() {
@@ -1187,13 +1282,13 @@ public class CapNhatNhanVien_UI extends JPanel {
         JPanel pnlButton = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         pnlButton.setOpaque(false);
 
-        JButton btnThem = new JButton("Thêm");
-        styleDialogButton(btnThem, MAU_NUT_SUA);
+        JButton btnThemDialog = new JButton("Thêm");
+        styleDialogButton(btnThemDialog, MAU_NUT_SUA);
 
         JButton btnHuy = new JButton("Hủy");
         styleDialogButton(btnHuy, MAU_NUT_XOA);
 
-        pnlButton.add(btnThem);
+        pnlButton.add(btnThemDialog);
         pnlButton.add(Box.createRigidArea(new Dimension(10, 0)));
         pnlButton.add(btnHuy);
 
@@ -1203,41 +1298,62 @@ public class CapNhatNhanVien_UI extends JPanel {
 
         btnHuy.addActionListener(e -> dialog.dispose());
 
-        btnThem.addActionListener(e -> {
+        btnThemDialog.addActionListener(e -> {
             String tenMoi = txtTenChucVuMoi.getText().trim();
             if (tenMoi.isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "Tên chức vụ không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            try {
-                ChucVu cvTonTai = chucVuDAO.timChucVuTheoTen(tenMoi);
+            btnThemDialog.setEnabled(false);
+            btnThemDialog.setText("Đang thêm...");
 
-                if (cvTonTai != null) {
-                    JOptionPane.showMessageDialog(dialog, "Chức vụ này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                } else {
-                    String maMoi = chucVuDAO.sinhMaChucVuTuDong();
-                    ChucVu cvMoi = new ChucVu(maMoi, tenMoi);
-
-                    boolean themThanhCong = chucVuDAO.themChucVu(cvMoi);
-
-                    if(themThanhCong) {
-                        cboChucVu.addItem(cvMoi);
-                        cboChucVu.setSelectedItem(cvMoi);
-                        listModel.addElement(cvMoi);
-                        listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
-
-                        JOptionPane.showMessageDialog(dialog, "Đã thêm chức vụ mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-
-                        txtTenChucVuMoi.setText("");
-                        txtTenChucVuMoi.requestFocus();
+            SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+                @Override
+                protected Object[] doInBackground() throws Exception {
+                    if (chucVuDAO == null) return new Object[]{false, "error", null};
+                    ChucVu cvTonTai = chucVuDAO.timChucVuTheoTen(tenMoi);
+                    if (cvTonTai != null) {
+                        return new Object[]{false, "exists", null};
                     } else {
-                        JOptionPane.showMessageDialog(dialog, "Thêm chức vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        String maMoi = chucVuDAO.sinhMaChucVuTuDong();
+                        ChucVu cvMoi = new ChucVu(maMoi, tenMoi);
+                        boolean ok = chucVuDAO.themChucVu(cvMoi);
+                        return new Object[]{ok, "added", cvMoi};
                     }
                 }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm chức vụ: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    btnThemDialog.setEnabled(true);
+                    btnThemDialog.setText("Thêm");
+                    try {
+                        Object[] res = get();
+                        boolean ok = (Boolean) res[0];
+                        String status = (String) res[1];
+                        ChucVu cvMoi = (ChucVu) res[2];
+
+                        if (status.equals("exists")) {
+                            JOptionPane.showMessageDialog(dialog, "Chức vụ này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                        } else if (ok) {
+                            cboChucVu.addItem(cvMoi);
+                            cboChucVu.setSelectedItem(cvMoi);
+                            listModel.addElement(cvMoi);
+                            listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
+
+                            JOptionPane.showMessageDialog(dialog, "Đã thêm chức vụ mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                            txtTenChucVuMoi.setText("");
+                            txtTenChucVuMoi.requestFocus();
+                        } else {
+                            JOptionPane.showMessageDialog(dialog, "Thêm chức vụ thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm chức vụ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
         });
 
         dialog.add(mainPanel);

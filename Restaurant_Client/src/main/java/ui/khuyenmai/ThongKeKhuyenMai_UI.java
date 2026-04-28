@@ -8,7 +8,6 @@ import javax.swing.table.JTableHeader;
 
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
-
 import rmi_interfaces.IKhuyenMai_DAO;
 
 import org.apache.poi.ss.usermodel.*;
@@ -38,7 +37,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 
 public class ThongKeKhuyenMai_UI extends JPanel {
 
@@ -94,7 +92,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         panelDieuKhien.add(btnTuanNay);
         panelDieuKhien.add(btnThangNay);
         panelDieuKhien.add(btnNamNay);
-
         panelDieuKhien.add(Box.createRigidArea(new Dimension(20, 0)));
         panelDieuKhien.add(taoLabel("Từ ngày:"));
         dcTuNgay = taoDateChooser();
@@ -122,8 +119,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         tabbedPane = new JTabbedPane();
         tabbedPane.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI() {
             @Override
-            protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
-            }
+            protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {}
         });
         tabbedPane.setBackground(MAU_NEN_TAB);
         tabbedPane.setForeground(MAU_CHU_CHUNG);
@@ -295,7 +291,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                 }
             }
         });
-
         return dateChooser;
     }
 
@@ -321,33 +316,42 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     }
 
     private void thucHienThongKe() {
-        Date tuNgay = dcTuNgay.getDate();
-        Date denNgay = dcDenNgay.getDate();
-        if (tuNgay == null || denNgay == null) {
-            return;
-        }
+        if (khuyenMaiDAO == null) return;
+        final Date tuNgay = dcTuNgay.getDate();
+        final Date denNgay = dcDenNgay.getDate();
+        if (tuNgay == null || denNgay == null) return;
         if (tuNgay.after(denNgay)) {
-            if (this.isShowing()) {
-                JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được sau ngày kết thúc.");
-            }
+            if (this.isShowing()) JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được sau ngày kết thúc.");
             return;
         }
 
-        try {
-            BigDecimal tongTien = khuyenMaiDAO.getTongTienGiam(tuNgay, denNgay);
-            int tongLuot = khuyenMaiDAO.getTongLuotSuDung(tuNgay, denNgay);
-            lblTongTienGiam.setText(currencyFormat.format(tongTien));
-            lblTongLuotDung.setText(numberFormat.format(tongLuot));
+        SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                BigDecimal tongTien = khuyenMaiDAO.getTongTienGiam(tuNgay, denNgay);
+                int tongLuot = khuyenMaiDAO.getTongLuotSuDung(tuNgay, denNgay);
+                Map<Date, BigDecimal> dataChart = khuyenMaiDAO.getTienGiamTheoNgay(tuNgay, denNgay);
+                List<Object[]> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
+                return new Object[]{tongTien, tongLuot, dataChart, listKM};
+            }
+            @Override
+            @SuppressWarnings("unchecked")
+            protected void done() {
+                try {
+                    Object[] result = get();
+                    BigDecimal tongTien = (BigDecimal) result[0];
+                    int tongLuot = (Integer) result[1];
+                    Map<Date, BigDecimal> dataChart = (Map<Date, BigDecimal>) result[2];
+                    List<Object[]> listKM = (List<Object[]>) result[3];
 
-            Map<Date, BigDecimal> dataChart = khuyenMaiDAO.getTienGiamTheoNgay(tuNgay, denNgay);
-            capNhatBieuDo(dataChart);
-
-            List<Object[]> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
-            capNhatBang(listKM);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+                    lblTongTienGiam.setText(currencyFormat.format(tongTien));
+                    lblTongLuotDung.setText(numberFormat.format(tongLuot));
+                    capNhatBieuDo(dataChart);
+                    capNhatBang(listKM);
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void capNhatBieuDo(Map<Date, BigDecimal> data) {
@@ -510,7 +514,6 @@ public class ThongKeKhuyenMai_UI extends JPanel {
 
     private void setButtonActive(JButton activeBtn) {
         JButton[] buttons = {btnHomNay, btnTuanNay, btnThangNay, btnNamNay};
-
         for (JButton btn : buttons) {
             if (btn == activeBtn) {
                 btn.setBackground(MAU_XANH_LUC);
@@ -523,20 +526,14 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     private Date getStartOfDay(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0);
         return cal.getTime();
     }
 
     private Date getEndOfDay(Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
-        cal.set(Calendar.HOUR_OF_DAY, 23);
-        cal.set(Calendar.MINUTE, 59);
-        cal.set(Calendar.SECOND, 59);
-        cal.set(Calendar.MILLISECOND, 999);
+        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59); cal.set(Calendar.MILLISECOND, 999);
         return cal.getTime();
     }
 

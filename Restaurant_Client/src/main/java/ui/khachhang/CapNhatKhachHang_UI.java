@@ -7,7 +7,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -73,6 +72,9 @@ public class CapNhatKhachHang_UI extends JPanel {
     private JPanel panelChinh;
     private IKhachHang_DAO khachHangDAO;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+
+    private JButton btnSua;
+    private JButton btnXoa;
 
     public CapNhatKhachHang_UI() {
         try {
@@ -165,10 +167,10 @@ public class CapNhatKhachHang_UI extends JPanel {
         JPanel panelNut = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         panelNut.setBackground(MAU_NEN_TAB);
 
-        JButton btnSua = taoNutChucNang("Cập nhật", MAU_NUT_SUA);
+        btnSua = taoNutChucNang("Cập nhật", MAU_NUT_SUA);
         btnSua.addActionListener(e -> capNhatKhachHang());
 
-        JButton btnXoa = taoNutChucNang("Xóa", MAU_NUT_XOA);
+        btnXoa = taoNutChucNang("Xóa", MAU_NUT_XOA);
         btnXoa.addActionListener(e -> xoaKhachHang());
 
         JButton btnLamMoi = taoNutChucNang("Làm mới", new Color(33, 150, 243));
@@ -585,13 +587,20 @@ public class CapNhatKhachHang_UI extends JPanel {
     }
 
     private void docDuLieuTuSQL() {
-        try {
-            List<KhachHang> danhSach = khachHangDAO.docDanhSachKhachHang();
-            hienThiDanhSach(danhSach);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
+        if (khachHangDAO == null) return;
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                return khachHangDAO.docDanhSachKhachHang();
+            }
+            @Override
+            protected void done() {
+                try {
+                    hienThiDanhSach(get());
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDanhSach(List<KhachHang> danhSach) {
@@ -643,36 +652,44 @@ public class CapNhatKhachHang_UI extends JPanel {
     }
 
     private void timKiemKhachHang() {
+        if (khachHangDAO == null) return;
         String tuKhoa = txtTimKiem.getText().trim();
         if (tuKhoa.isEmpty() || tuKhoa.equals("Tìm kiếm khách hàng. . .")) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập từ khóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        try {
-            List<KhachHang> ketQua;
-            // Phân loại từ khóa để gọi đúng hàm trong Interface
-            if (tuKhoa.toUpperCase().startsWith("KH")) {
-                ketQua = khachHangDAO.timKiemTheoMa(tuKhoa);
-            } else if (tuKhoa.matches("\\d+")) {
-                ketQua = khachHangDAO.timKiemTheoSDT(tuKhoa);
-            } else {
-                ketQua = khachHangDAO.timKiemTheoTen(tuKhoa);
-            }
 
-            if (ketQua == null || ketQua.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng: " + tuKhoa, "Kết quả tìm kiếm", JOptionPane.INFORMATION_MESSAGE);
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                if (tuKhoa.toUpperCase().startsWith("KH")) {
+                    return khachHangDAO.timKiemTheoMa(tuKhoa);
+                } else if (tuKhoa.matches("\\d+")) {
+                    return khachHangDAO.timKiemTheoSDT(tuKhoa);
+                } else {
+                    return khachHangDAO.timKiemTheoTen(tuKhoa);
+                }
             }
-            hienThiDanhSach(ketQua);
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<KhachHang> ketQua = get();
+                    if (ketQua == null || ketQua.isEmpty()) {
+                        JOptionPane.showMessageDialog(CapNhatKhachHang_UI.this, "Không tìm thấy khách hàng: " + tuKhoa, "Kết quả", JOptionPane.INFORMATION_MESSAGE);
+                        tableModel.setRowCount(0);
+                    } else {
+                        hienThiDanhSach(ketQua);
+                    }
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {}
+            }
+        };
+        worker.execute();
     }
 
     private void capNhatKhachHang() {
+        if (khachHangDAO == null) return;
         String maKH = txtMaKH.getText().trim();
-
         if (maKH.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng cần cập nhật!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
@@ -714,9 +731,7 @@ public class CapNhatKhachHang_UI extends JPanel {
             email = "";
         }
 
-        if (diaChi.equals("Nhập địa chỉ...")) {
-            diaChi = "";
-        }
+        if (diaChi.equals("Nhập địa chỉ...")) diaChi = "";
 
         if (utilDate != null) {
             LocalDate ngaySinh = utilDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -735,104 +750,116 @@ public class CapNhatKhachHang_UI extends JPanel {
             diemTichLuy = 0;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc chắn muốn cập nhật khách hàng này?",
-                "Xác nhận",
-                JOptionPane.YES_NO_OPTION);
-
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn cập nhật khách hàng này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
+            btnSua.setEnabled(false);
             KhachHang kh = new KhachHang(maKH, tenKH, sdt, email, diaChi, sqlDate, gioiTinh, diemTichLuy, true);
-
-            try {
-                if (khachHangDAO.capNhatKhachHang(kh)) {
-                    JOptionPane.showMessageDialog(this, "Cập nhật khách hàng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    lamMoiGiaoDien();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Cập nhật khách hàng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return khachHangDAO.capNhatKhachHang(kh);
                 }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-            }
+                @Override
+                protected void done() {
+                    btnSua.setEnabled(true);
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(CapNhatKhachHang_UI.this, "Cập nhật thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                            lamMoiGiaoDien();
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatKhachHang_UI.this, "Cập nhật thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {}
+                }
+            };
+            worker.execute();
         }
     }
 
     private void xoaKhachHang() {
+        if (khachHangDAO == null) return;
         String maKH = txtMaKH.getText().trim();
-
         if (maKH.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc chắn muốn xóa (ẩn) khách hàng này?",
-                "Xác nhận",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa (ẩn) khách hàng này?", "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                if (khachHangDAO.xoaKhachHang(maKH)) {
-                    JOptionPane.showMessageDialog(this, "Xóa khách hàng thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                    lamMoiGiaoDien();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Xóa khách hàng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            btnXoa.setEnabled(false);
+            SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return khachHangDAO.xoaKhachHang(maKH);
                 }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-            }
+                @Override
+                protected void done() {
+                    btnXoa.setEnabled(true);
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(CapNhatKhachHang_UI.this, "Xóa thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                            lamMoiGiaoDien();
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatKhachHang_UI.this, "Xóa thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {}
+                }
+            };
+            worker.execute();
         }
     }
 
     private void thucHienSapXep(int loaiSapXep) {
-        try {
-            List<KhachHang> ketQuaSapXep = null;
-            switch (loaiSapXep) {
-                case 1:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoTen(true); // A-Z
-                    break;
-                case 2:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoTen(false); // Z-A
-                    break;
-                case 3:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoDiem(false); // Cao-thấp (giảm dần)
-                    break;
-                case 4:
-                    ketQuaSapXep = khachHangDAO.sapXepTheoDiem(true); // Thấp-cao (tăng dần)
-                    break;
-                default:
-                    ketQuaSapXep = khachHangDAO.docDanhSachKhachHang();
-                    break;
+        if (khachHangDAO == null) return;
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                switch (loaiSapXep) {
+                    case 1: return khachHangDAO.sapXepTheoTen(true);
+                    case 2: return khachHangDAO.sapXepTheoTen(false);
+                    case 3: return khachHangDAO.sapXepTheoDiem(false);
+                    case 4: return khachHangDAO.sapXepTheoDiem(true);
+                    default: return khachHangDAO.docDanhSachKhachHang();
+                }
             }
-            if (ketQuaSapXep != null) hienThiDanhSach(ketQuaSapXep);
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<KhachHang> ketQuaSapXep = get();
+                    if (ketQuaSapXep != null) hienThiDanhSach(ketQuaSapXep);
+                } catch (Exception e) {}
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        worker.execute();
     }
 
     private void thucHienLoc() {
-        try {
-            String gioiTinhStr = (String) cmbLocGioiTinh.getSelectedItem();
-            List<KhachHang> ketQuaLoc;
-
-            if (gioiTinhStr.equals("Lọc giới tính")) {
-                ketQuaLoc = khachHangDAO.docDanhSachKhachHang();
-            } else {
-                boolean isNam = gioiTinhStr.equals("Nam");
-                ketQuaLoc = khachHangDAO.locKhachHangTheoGioiTinh(isNam);
+        if (khachHangDAO == null) return;
+        String gioiTinhStr = (String) cmbLocGioiTinh.getSelectedItem();
+        SwingWorker<List<KhachHang>, Void> worker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                if (gioiTinhStr.equals("Lọc giới tính")) {
+                    return khachHangDAO.docDanhSachKhachHang();
+                } else {
+                    boolean isNam = gioiTinhStr.equals("Nam");
+                    return khachHangDAO.locKhachHangTheoGioiTinh(isNam);
+                }
             }
-            hienThiDanhSach(ketQuaLoc);
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+            @Override
+            protected void done() {
+                try {
+                    hienThiDanhSach(get());
+                } catch (Exception e) {}
+                panelChinh.requestFocusInWindow();
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDialogKhachHangDaXoa() {
+        if (khachHangDAO == null) return;
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Danh sách khách hàng đã xóa", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(950, 600);
         dialog.setLocationRelativeTo(this);
@@ -845,35 +872,7 @@ public class CapNhatKhachHang_UI extends JPanel {
             public boolean isCellEditable(int row, int column) { return false; }
         };
 
-        try {
-            List<KhachHang> dsDaXoa = khachHangDAO.getKhachHangDaXoa();
-            if (dsDaXoa.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Hiện tại không có khách hàng nào trong thùng rác!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            for (KhachHang kh : dsDaXoa) {
-                String gioiTinhStr = kh.isGioiTinh() ? "Nam" : "Nữ";
-                String ngaySinhStr = (kh.getNgaySinh() != null) ? dateFormat.format(kh.getNgaySinh()) : "";
-
-                modelDialog.addRow(new Object[]{
-                        kh.getMaKhachHang(),
-                        kh.getHoTen(),
-                        kh.getSoDienThoai(),
-                        gioiTinhStr,
-                        ngaySinhStr,
-                        kh.getEmail(),
-                        kh.getTichDiem()
-                });
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
         JTable tableDialog = new JTable(modelDialog);
-
         tableDialog.setBackground(MAU_NEN_ITEM);
         tableDialog.setForeground(MAU_CHU_CHUNG);
         tableDialog.setGridColor(MAU_LUOI_BANG);
@@ -881,7 +880,6 @@ public class CapNhatKhachHang_UI extends JPanel {
         tableDialog.setFont(FONT_BANG);
         tableDialog.setSelectionBackground(MAU_CHON_HANG);
         tableDialog.setSelectionForeground(MAU_CHU_CHUNG);
-
         tableDialog.setShowVerticalLines(true);
         tableDialog.setShowHorizontalLines(true);
         tableDialog.setIntercellSpacing(new Dimension(1, 1));
@@ -899,26 +897,7 @@ public class CapNhatKhachHang_UI extends JPanel {
         header.setForeground(MAU_CHU_CHUNG);
         header.setFont(FONT_HEADER_BANG);
         header.setPreferredSize(new Dimension(0, CHIEU_CAO_HEADER_BANG));
-
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, MAU_LUOI_BANG));
-
-        header.setDefaultRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel label = new JLabel(value.toString());
-                label.setFont(FONT_HEADER_BANG);
-                label.setForeground(MAU_CHU_CHUNG);
-                label.setBackground(MAU_NEN_ITEM);
-                label.setOpaque(true);
-                label.setHorizontalAlignment(JLabel.CENTER);
-
-                label.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_LUOI_BANG),
-                        new EmptyBorder(10, 5, 10, 5)
-                ));
-                return label;
-            }
-        });
 
         int[] widths = {100, 200, 120, 80, 120, 150, 80};
         for (int i = 0; i < widths.length && i < tableDialog.getColumnCount(); i++) {
@@ -928,24 +907,17 @@ public class CapNhatKhachHang_UI extends JPanel {
         JScrollPane scroll = new JScrollPane(tableDialog);
         scroll.getViewport().setBackground(MAU_NEN_ITEM);
         scroll.setBorder(BorderFactory.createLineBorder(MAU_LUOI_BANG, 1));
-
         JPanel corner = new JPanel();
         corner.setBackground(MAU_NEN_ITEM);
         scroll.setCorner(JScrollPane.UPPER_RIGHT_CORNER, corner);
-
         scroll.getVerticalScrollBar().setBackground(MAU_NEN_ITEM);
         scroll.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
             @Override protected void configureScrollBarColors() {
                 this.thumbColor = MAU_THANH_CUON_THUMB;
                 this.trackColor = MAU_NEN_ITEM;
             }
-            @Override protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
-            @Override protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
-            private JButton createZeroButton() {
-                JButton btn = new JButton();
-                btn.setPreferredSize(new Dimension(0, 0));
-                return btn;
-            }
+            @Override protected JButton createDecreaseButton(int orientation) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn;}
+            @Override protected JButton createIncreaseButton(int orientation) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn;}
         });
 
         dialog.add(scroll, BorderLayout.CENTER);
@@ -978,31 +950,66 @@ public class CapNhatKhachHang_UI extends JPanel {
         btnPhucHoi.addActionListener(e -> {
             int row = tableDialog.getSelectedRow();
             if (row == -1) {
-                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn khách hàng cần khôi phục!", "Thông báo", JOptionPane.WARNING_MESSAGE);                return;
+                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn khách hàng cần khôi phục!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                return;
             }
-
             String maKH = modelDialog.getValueAt(row, 0).toString();
             String tenKH = modelDialog.getValueAt(row, 1).toString();
-
-            int confirm = JOptionPane.showConfirmDialog(dialog,
-                    "Khôi phục khách hàng [" + tenKH + "]?",
-                    "Xác nhận", JOptionPane.YES_NO_OPTION);
-
+            int confirm = JOptionPane.showConfirmDialog(dialog, "Khôi phục khách hàng [" + tenKH + "]?", "Xác nhận", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                try {
-                    if (khachHangDAO.khoiPhucKhachHang(maKH)) {
-                        JOptionPane.showMessageDialog(dialog, "Đã khôi phục thành công!");
-                        modelDialog.removeRow(row);
-                        lamMoiGiaoDien();
-                    } else {
-                        JOptionPane.showMessageDialog(dialog, "Khôi phục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                btnPhucHoi.setEnabled(false);
+                SwingWorker<Boolean, Void> resWorker = new SwingWorker<Boolean, Void>() {
+                    @Override
+                    protected Boolean doInBackground() throws Exception {
+                        return khachHangDAO.khoiPhucKhachHang(maKH);
                     }
-                } catch (RemoteException ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(dialog, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-                }
+                    @Override
+                    protected void done() {
+                        btnPhucHoi.setEnabled(true);
+                        try {
+                            if (get()) {
+                                JOptionPane.showMessageDialog(dialog, "Đã khôi phục thành công!");
+                                modelDialog.removeRow(row);
+                                lamMoiGiaoDien();
+                            } else {
+                                JOptionPane.showMessageDialog(dialog, "Khôi phục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (Exception ex) {}
+                    }
+                };
+                resWorker.execute();
             }
         });
+
+        SwingWorker<List<KhachHang>, Void> loadWorker = new SwingWorker<List<KhachHang>, Void>() {
+            @Override
+            protected List<KhachHang> doInBackground() throws Exception {
+                return khachHangDAO.getKhachHangDaXoa();
+            }
+            @Override
+            protected void done() {
+                try {
+                    List<KhachHang> dsDaXoa = get();
+                    if (dsDaXoa.isEmpty()) {
+                        dialog.dispose();
+                        JOptionPane.showMessageDialog(CapNhatKhachHang_UI.this, "Không có khách hàng nào trong thùng rác!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    for (KhachHang kh : dsDaXoa) {
+                        modelDialog.addRow(new Object[]{
+                                kh.getMaKhachHang(),
+                                kh.getHoTen(),
+                                kh.getSoDienThoai(),
+                                kh.isGioiTinh() ? "Nam" : "Nữ",
+                                (kh.getNgaySinh() != null) ? dateFormat.format(kh.getNgaySinh()) : "",
+                                kh.getEmail(),
+                                kh.getTichDiem()
+                        });
+                    }
+                } catch (Exception ex) {}
+            }
+        };
+        loadWorker.execute();
 
         dialog.setVisible(true);
     }
@@ -1037,26 +1044,8 @@ public class CapNhatKhachHang_UI extends JPanel {
                 this.thumbColor = MAU_THANH_CUON_THUMB;
                 this.trackColor = MAU_NEN_ITEM;
             }
-            @Override
-            protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
-            @Override
-            protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
-            private JButton createZeroButton() {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(0, 0));
-                return button;
-            }
-            @Override
-            protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-                if (thumbBounds.isEmpty() || !verticalScrollBar.isEnabled()) return;
-                g.setColor(this.thumbColor);
-                g.fillRoundRect(thumbBounds.x + 2, thumbBounds.y, thumbBounds.width - 4, thumbBounds.height, 4, 4);
-            }
-            @Override
-            protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
-                g.setColor(this.trackColor);
-                g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
-            }
+            @Override protected JButton createDecreaseButton(int orientation) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn; }
+            @Override protected JButton createIncreaseButton(int orientation) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn; }
         });
 
         JScrollBar horizontalScrollBar = scrollPane.getHorizontalScrollBar();
@@ -1068,26 +1057,8 @@ public class CapNhatKhachHang_UI extends JPanel {
                 this.thumbColor = MAU_THANH_CUON_THUMB;
                 this.trackColor = MAU_NEN_ITEM;
             }
-            @Override
-            protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
-            @Override
-            protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
-            private JButton createZeroButton() {
-                JButton button = new JButton();
-                button.setPreferredSize(new Dimension(0, 0));
-                return button;
-            }
-            @Override
-            protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-                if (thumbBounds.isEmpty() || !horizontalScrollBar.isEnabled()) return;
-                g.setColor(this.thumbColor);
-                g.fillRoundRect(thumbBounds.x, thumbBounds.y + 2, thumbBounds.width, thumbBounds.height - 4, 4, 4);
-            }
-            @Override
-            protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
-                g.setColor(this.trackColor);
-                g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
-            }
+            @Override protected JButton createDecreaseButton(int orientation) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn; }
+            @Override protected JButton createIncreaseButton(int orientation) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn; }
         });
     }
 }
