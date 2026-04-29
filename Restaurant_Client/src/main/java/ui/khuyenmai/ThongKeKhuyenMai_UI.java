@@ -8,7 +8,8 @@ import javax.swing.table.JTableHeader;
 
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
-import rmi_interfaces.IKhuyenMai_DAO;
+import rmi_interfaces.IKhuyenMai_Service;
+import dto.ThongKeKhuyenMaiDTO;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -51,7 +52,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_KPI_VALUE = new Font("Segoe UI", Font.BOLD, 24);
 
-    private IKhuyenMai_DAO khuyenMaiDAO;
+    private IKhuyenMai_Service khuyenMaiDAO;
     private JPanel panelChinh;
     private JDateChooser dcTuNgay, dcDenNgay;
     private JTable tblThongKe;
@@ -66,7 +67,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
 
     public ThongKeKhuyenMai_UI() {
         try {
-            khuyenMaiDAO = (IKhuyenMai_DAO) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+            khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMaiService");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -331,7 +332,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                 BigDecimal tongTien = khuyenMaiDAO.getTongTienGiam(tuNgay, denNgay);
                 int tongLuot = khuyenMaiDAO.getTongLuotSuDung(tuNgay, denNgay);
                 Map<Date, BigDecimal> dataChart = khuyenMaiDAO.getTienGiamTheoNgay(tuNgay, denNgay);
-                List<Object[]> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
+                List<ThongKeKhuyenMaiDTO> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
                 return new Object[]{tongTien, tongLuot, dataChart, listKM};
             }
             @Override
@@ -342,7 +343,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
                     BigDecimal tongTien = (BigDecimal) result[0];
                     int tongLuot = (Integer) result[1];
                     Map<Date, BigDecimal> dataChart = (Map<Date, BigDecimal>) result[2];
-                    List<Object[]> listKM = (List<Object[]>) result[3];
+                    List<ThongKeKhuyenMaiDTO> listKM = (List<ThongKeKhuyenMaiDTO>) result[3];
 
                     lblTongTienGiam.setText(currencyFormat.format(tongTien));
                     lblTongLuotDung.setText(numberFormat.format(tongLuot));
@@ -397,27 +398,20 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         panelBieuDoContainer.repaint();
     }
 
-    private void capNhatBang(List<Object[]> list) {
+    private void capNhatBang(List<ThongKeKhuyenMaiDTO> list) {
         modelThongKe.setRowCount(0);
         int stt = 1;
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 
-        for (Object[] row : list) {
-            String ma = (String) row[0];
-            String ten = (String) row[1];
-            int soLuot = (Integer) row[2];
-            BigDecimal tongTien = (BigDecimal) row[3];
-            Date bd = (Date) row[4];
-            Date kt = (Date) row[5];
-
+        for (ThongKeKhuyenMaiDTO km : list) {
             modelThongKe.addRow(new Object[]{
                     stt++,
-                    ma,
-                    ten,
-                    numberFormat.format(soLuot),
-                    currencyFormat.format(tongTien),
-                    sdf.format(bd),
-                    sdf.format(kt)
+                    km.getMaKhuyenMai(),
+                    km.getTenKhuyenMai(),
+                    numberFormat.format(km.getSoLuotSuDung()),
+                    currencyFormat.format(km.getTongTienGiam()),
+                    sdf.format(km.getNgayBatDau()),
+                    sdf.format(km.getNgayKetThuc())
             });
         }
     }

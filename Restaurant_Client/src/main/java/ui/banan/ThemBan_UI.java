@@ -1,8 +1,8 @@
 package ui.banan;
 
-import rmi_interfaces.IBanAn_DAO;
-import rmi_interfaces.IKhu_DAO;
-import rmi_interfaces.ITang_DAO;
+import rmi_interfaces.IBanAn_Service;
+import rmi_interfaces.IKhu_Service;
+import rmi_interfaces.ITang_Service;
 import entity.BanAn;
 import entity.Khu;
 import entity.Tang;
@@ -24,9 +24,9 @@ public class ThemBan_UI extends JDialog {
     private JComboBox<String> cmbTang;
     private JComboBox<String> cmbKhu;
 
-    private IBanAn_DAO banAnDAO;
-    private IKhu_DAO khuDAO;
-    private ITang_DAO tangDAO;
+    private IBanAn_Service banAnDAO;
+    private IKhu_Service khuDAO;
+    private ITang_Service tangDAO;
     private Runnable onTableAdded;
 
     private final Color MAU_NEN = new Color(48, 52, 56);
@@ -58,9 +58,9 @@ public class ThemBan_UI extends JDialog {
         this.onTableAdded = onTableAdded;
 
         try {
-            banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            khuDAO = (IKhu_DAO) Naming.lookup("rmi://localhost:1099/Khu_DAO");
-            tangDAO = (ITang_DAO) Naming.lookup("rmi://localhost:1099/Tang_DAO");
+            banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            khuDAO = (IKhu_Service) Naming.lookup("rmi://localhost:1099/Khu_DAO");
+            tangDAO = (ITang_Service) Naming.lookup("rmi://localhost:1099/Tang_DAO");
         } catch (Exception e) {
             e.printStackTrace();
         }

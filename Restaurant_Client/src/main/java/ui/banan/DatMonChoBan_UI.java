@@ -1,10 +1,10 @@
 package ui.banan;
 
-import rmi_interfaces.IBanAn_DAO;
-import rmi_interfaces.ILoaiMon_DAO;
-import rmi_interfaces.IMonAn_DAO;
-import rmi_interfaces.IChiTietHoaDon_DAO;
-import rmi_interfaces.IChiTietPhieuDatBan_DAO;
+import rmi_interfaces.IBanAn_Service;
+import rmi_interfaces.ILoaiMon_Service;
+import rmi_interfaces.IMonAn_Service;
+import rmi_interfaces.IChiTietHoaDon_Service;
+import rmi_interfaces.IChiTietPhieuDatBan_Service;
 import entity.BanAn;
 import entity.HoaDon;
 import entity.MonAn;
@@ -42,11 +42,11 @@ public class DatMonChoBan_UI extends JDialog {
     private JTextField txtTimMaMon;
     private JTextField txtTimTenMon;
 
-    private IMonAn_DAO monAnDAO;
-    private IBanAn_DAO banAnDAO;
-    private ILoaiMon_DAO loaiMonDAO;
-    private IChiTietHoaDon_DAO chiTietHoaDonDAO;
-    private IChiTietPhieuDatBan_DAO chiTietPhieuDAO;
+    private IMonAn_Service monAnDAO;
+    private IBanAn_Service banAnDAO;
+    private ILoaiMon_Service loaiMonDAO;
+    private IChiTietHoaDon_Service chiTietHoaDonDAO;
+    private IChiTietPhieuDatBan_Service chiTietPhieuDAO;
 
     private final List<BanAn> danhSachBan;
 
@@ -91,11 +91,11 @@ public class DatMonChoBan_UI extends JDialog {
         this.isDatBanCho = false;
 
         try {
-            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            this.loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
             this.danhSachMonAn = monAnDAO.docDanhSachMon();
         } catch (Exception e) {
@@ -132,11 +132,11 @@ public class DatMonChoBan_UI extends JDialog {
         this.isDatBanCho = true;
 
         try {
-            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            this.loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
             this.danhSachMonAn = monAnDAO.docDanhSachMon();
         } catch (Exception e) {

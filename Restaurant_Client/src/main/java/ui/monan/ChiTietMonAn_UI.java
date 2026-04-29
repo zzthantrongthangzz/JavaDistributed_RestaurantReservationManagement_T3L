@@ -1,6 +1,6 @@
 package ui.monan;
 
-import rmi_interfaces.IMonAn_DAO;
+import rmi_interfaces.IMonAn_Service;
 import entity.LichSuGia;
 import entity.MonAn;
 
@@ -22,7 +22,7 @@ import java.util.List;
 public class ChiTietMonAn_UI extends JDialog {
 
     private final MonAn monAnDuocChon;
-    private IMonAn_DAO monAnDAO;
+    private IMonAn_Service monAnDAO;
 
     private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0");
 
@@ -48,7 +48,7 @@ public class ChiTietMonAn_UI extends JDialog {
         this.monAnDuocChon = monAn;
 
         try {
-            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

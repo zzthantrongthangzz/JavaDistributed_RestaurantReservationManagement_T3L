@@ -1,6 +1,6 @@
 package ui.banan;
 
-import rmi_interfaces.ILichSuHuyDatBan_DAO;
+import rmi_interfaces.ILichSuHuyDatBan_Service;
 import entity.LichSuHuyDatBan;
 
 import com.toedter.calendar.JDateChooser;
@@ -41,7 +41,7 @@ public class LichSuHuyDatBan_UI extends JPanel {
 
     private JTable tblLichSu;
     private DefaultTableModel modelLichSu;
-    private ILichSuHuyDatBan_DAO logDAO;
+    private ILichSuHuyDatBan_Service logDAO;
 
     private JTextField txtTimKiemTen;
     private JTextField txtTimKiemMa;
@@ -50,7 +50,7 @@ public class LichSuHuyDatBan_UI extends JPanel {
 
     public LichSuHuyDatBan_UI() {
         try {
-            logDAO = (ILichSuHuyDatBan_DAO) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
+            logDAO = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
         } catch (Exception e) {
             e.printStackTrace();
         }

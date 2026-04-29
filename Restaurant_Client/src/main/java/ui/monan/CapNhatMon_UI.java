@@ -10,8 +10,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
-import rmi_interfaces.IMonAn_DAO;
-import rmi_interfaces.ILoaiMon_DAO;
+import rmi_interfaces.IMonAn_Service;
+import rmi_interfaces.ILoaiMon_Service;
 import entity.MonAn;
 import ui.Auth;
 import entity.LoaiMon;
@@ -75,14 +75,14 @@ public class CapNhatMon_UI extends JPanel {
     private JComboBox<Object> cmbBoLoc;
     private JPanel panelChinh;
 
-    private IMonAn_DAO monAnDAO;
-    private ILoaiMon_DAO loaiMonDAO;
+    private IMonAn_Service monAnDAO;
+    private ILoaiMon_Service loaiMonDAO;
     private List<MonAn> danhSachMonAnHienThi;
 
     public CapNhatMon_UI() {
         try {
-            monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

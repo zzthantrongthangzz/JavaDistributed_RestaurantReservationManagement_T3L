@@ -6,8 +6,8 @@ import javax.swing.plaf.basic.BasicComboBoxUI;
 
 import entity.MonAn;
 import entity.LoaiMon;
-import rmi_interfaces.IMonAn_DAO;
-import rmi_interfaces.ILoaiMon_DAO;
+import rmi_interfaces.IMonAn_Service;
+import rmi_interfaces.ILoaiMon_Service;
 
 import java.awt.*;
 import java.awt.event.FocusAdapter;
@@ -30,8 +30,8 @@ public class TraCuuMonAn_UI extends JPanel {
     private final int KICH_THUOC_ITEM_RONG = 220;
     private final int KICH_THUOC_ITEM_CAO = 300;
 
-    private IMonAn_DAO monAn_DAO;
-    private ILoaiMon_DAO loaiMonDAO;
+    private IMonAn_Service monAn_DAO;
+    private ILoaiMon_Service loaiMonDAO;
     private JPanel panelLuoiMonAn;
     private JLabel lblSoMon;
     private JTextField txtTimKiem;
@@ -44,8 +44,8 @@ public class TraCuuMonAn_UI extends JPanel {
     public TraCuuMonAn_UI() {
 
         try {
-            monAn_DAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            monAn_DAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
             danhSachMonAnHienThi = monAn_DAO.docDanhSachMon();
         } catch (Exception e) {
             e.printStackTrace();

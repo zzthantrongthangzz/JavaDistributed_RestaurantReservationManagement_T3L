@@ -44,12 +44,12 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 	private NhanVien nhanVien;
 	private KhuyenMai khuyenMaiApDung;
 
-	private IHoaDon_DAO hoaDonDAO;
-	private IKhachHang_DAO khachHangDAO;
-	private IMonAn_DAO monAnDAO;
-	private IChiTietHoaDon_DAO chiTietHoaDonDAO;
-	private IBanAn_DAO banAnDAO;
-	private IKhuyenMai_DAO khuyenMaiDAO;
+	private IHoaDon_Service hoaDonDAO;
+	private IKhachHang_Service khachHangDAO;
+	private IMonAn_Service monAnDAO;
+	private IChiTietHoaDon_Service chiTietHoaDonDAO;
+	private IBanAn_Service banAnDAO;
+	private IKhuyenMai_Service khuyenMaiDAO;
 
 	private final DecimalFormat currencyFormatter = new DecimalFormat("#,##0");
 	private final SimpleDateFormat dateTimeFormatter = new SimpleDateFormat("HH:mm - dd/MM/yyyy");
@@ -77,12 +77,12 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		this.nhanVien = Auth.getCurrentNhanVien();
 
 		try {
-			hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-			khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-			monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-			chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-			banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-			khuyenMaiDAO = (IKhuyenMai_DAO) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+			hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+			khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+			banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+			khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

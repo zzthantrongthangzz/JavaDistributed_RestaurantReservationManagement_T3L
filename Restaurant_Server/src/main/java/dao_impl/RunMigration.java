@@ -56,7 +56,7 @@ public class RunMigration {
                 for (Map.Entry<String, String> entry : taiKhoanCanCapNhat.entrySet()) {
                     session.run(cypherUpdate, Values.parameters(
                             "tk", entry.getKey(),
-                            "mkCrypted", TaiKhoan_DAO_Impl.maHoaMatKhau(entry.getValue())
+                            "mkCrypted", TaiKhoan_DAO.maHoaMatKhau(entry.getValue())
                     ));
                 }
                 System.out.println("Đã mã hóa thành công " + taiKhoanCanCapNhat.size() + " tài khoản.");

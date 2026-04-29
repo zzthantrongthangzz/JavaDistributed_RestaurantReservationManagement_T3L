@@ -1,10 +1,11 @@
 package ui.banan;
 
-import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.IBanAn_Service;
 import entity.BanAn;
-import rmi_interfaces.IHoaDon_DAO;
-import rmi_interfaces.IHoaDon_Ban_DAO;
+import rmi_interfaces.IHoaDon_Service;
+import rmi_interfaces.IHoaDon_Ban_Service;
 import entity.HoaDon;
+import rmi_interfaces.IPhieuDatBan_Service;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -28,9 +29,9 @@ public class ChuyenBan_UI extends JDialog {
     private JButton btnHuy;
     private JButton btnLamMoi;
 
-    private IBanAn_DAO banAnDAO;
-    private IHoaDon_DAO hoaDonDAO;
-    private IHoaDon_Ban_DAO hoaDonBanDAO;
+    private IBanAn_Service banAnDAO;
+    private IHoaDon_Service hoaDonDAO;
+    private IHoaDon_Ban_Service hoaDonBanDAO;
 
     private final BanAn banHienTai;
     private BanAn banDuocChon = null;
@@ -63,9 +64,9 @@ public class ChuyenBan_UI extends JDialog {
         this.ngayChuyen = ngayChuyen;
 
         try {
-            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            this.hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            this.hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -418,7 +419,7 @@ public class ChuyenBan_UI extends JDialog {
                     hienThiLoi("Lỗi: Bàn đang phục vụ nhưng không tìm thấy hóa đơn!");
                 }
             } else if (trangThaiHienTai.equals("Bàn đang chờ")) {
-                rmi_interfaces.IPhieuDatBan_DAO phieuDAO = (rmi_interfaces.IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+                IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
                 boolean ketQua = phieuDAO.chuyenBanDatTruoc(banHienTai.getMaBan(), banDuocChon.getMaBan(), ngayChuyen);
 
                 if (ketQua) {

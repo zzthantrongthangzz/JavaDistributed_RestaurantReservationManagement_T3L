@@ -1,15 +1,15 @@
 package ui.banan;
 
 import entity.*;
-import rmi_interfaces.IBanAn_DAO;
-import rmi_interfaces.IKhachHang_DAO;
+import rmi_interfaces.IBanAn_Service;
+import rmi_interfaces.IKhachHang_Service;
 import ui.khachhang.ThemKhachHang_UI;
-import rmi_interfaces.IHoaDon_DAO;
+import rmi_interfaces.IHoaDon_Service;
 import ui.Auth;
 import ui.PhieuDatBanPDF;
-import rmi_interfaces.IPhieuDatBan_DAO;
-import rmi_interfaces.IPhieuDatBan_Ban_DAO;
-import rmi_interfaces.IChiTietPhieuDatBan_DAO;
+import rmi_interfaces.IPhieuDatBan_Service;
+import rmi_interfaces.IPhieuDatBan_Ban_Service;
+import rmi_interfaces.IChiTietPhieuDatBan_Service;
 
 import java.util.Date;
 import java.util.List;
@@ -41,9 +41,9 @@ public class DatBanCho_UI extends JDialog {
     private JSpinner spinGio;
     private JSpinner spinPhut;
 
-    private IKhachHang_DAO khachHangDAO;
-    private IHoaDon_DAO hoaDonDAO;
-    private IBanAn_DAO banAnDAO;
+    private IKhachHang_Service khachHangDAO;
+    private IHoaDon_Service hoaDonDAO;
+    private IBanAn_Service banAnDAO;
     private List<BanAn> danhSachBanChon;
     private KhachHang khachHangHienTai;
 
@@ -87,9 +87,9 @@ public class DatBanCho_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            this.banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -449,7 +449,7 @@ public class DatBanCho_UI extends JDialog {
         }
 
         try {
-            IPhieuDatBan_DAO phieuDAO_Check = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            IPhieuDatBan_Service phieuDAO_Check = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
             java.util.Map<String, String> mapBanDaDat = phieuDAO_Check.layThongTinBanDatVaTenKhach(selectedDate);
 
             StringBuilder trungBanMsg = new StringBuilder();
@@ -512,8 +512,8 @@ public class DatBanCho_UI extends JDialog {
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd");
             boolean isDatChoHomNay = sdf.format(gioNhanDuKien).equals(sdf.format(new Date()));
 
-            IPhieuDatBan_DAO phieuDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            IPhieuDatBan_Ban_DAO phieuBanDAO = (IPhieuDatBan_Ban_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
+            IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            IPhieuDatBan_Ban_Service phieuBanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
             String maPhieuDat = phieuDAO.sinhMaPhieuDatTuDong();
             double tienCocBanDau = 0.0;
             String ghiChu = txtGhiChu.getText().trim();
@@ -546,7 +546,7 @@ public class DatBanCho_UI extends JDialog {
             }
 
             double tienDatCocSauCung = 0.0;
-            IChiTietPhieuDatBan_DAO ctPhieuDao = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+            IChiTietPhieuDatBan_Service ctPhieuDao = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
             List<ChiTietPhieuDatBan> dsChiTiet = new ArrayList<>();
 
             int datMonConfirm = JOptionPane.showConfirmDialog(this, "Bạn có muốn đặt món trước cho nhóm này không?",

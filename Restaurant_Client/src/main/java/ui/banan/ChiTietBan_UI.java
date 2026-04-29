@@ -31,12 +31,12 @@ public class ChiTietBan_UI extends JDialog {
     private KhachHang khachHangHienTai;
     private NhanVien nhanVienHienTai;
 
-    private IMonAn_DAO monAnDAO;
-    private IChiTietHoaDon_DAO chiTietHoaDonDAO;
-    private IKhachHang_DAO khachHangDAO;
-    private INhanVien_DAO nhanVienDAO;
-    private IPhieuDatBan_DAO phieuDatBanDAO;
-    private IChiTietPhieuDatBan_DAO chiTietPhieuDAO;
+    private IMonAn_Service monAnDAO;
+    private IChiTietHoaDon_Service chiTietHoaDonDAO;
+    private IKhachHang_Service khachHangDAO;
+    private INhanVien_Service nhanVienDAO;
+    private IPhieuDatBan_Service phieuDatBanDAO;
+    private IChiTietPhieuDatBan_Service chiTietPhieuDAO;
     private List<ChiTietHoaDon> danhSachChiTiet = new ArrayList<>();
     private List<MonAn> danhSachMonAn = new ArrayList<>();
     private boolean isCheDoPhieuDat = false;
@@ -70,12 +70,12 @@ public class ChiTietBan_UI extends JDialog {
         this.isCheDoPhieuDat = false;
 
         try {
-            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
-            this.phieuDatBanDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.nhanVienDAO = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+            this.phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
             this.danhSachMonAn = monAnDAO.docDanhSachMon();
             this.danhSachChiTiet = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
@@ -96,12 +96,12 @@ public class ChiTietBan_UI extends JDialog {
         this.isCheDoPhieuDat = true;
 
         try {
-            this.monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
-            this.phieuDatBanDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.nhanVienDAO = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+            this.phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
 
             this.danhSachMonAn = monAnDAO.docDanhSachMon();
             PhieuDatBan phieu = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieuDatBan);

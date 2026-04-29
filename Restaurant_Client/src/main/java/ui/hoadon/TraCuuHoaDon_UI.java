@@ -3,13 +3,13 @@ package ui.hoadon;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
-import rmi_interfaces.IHoaDon_DAO;
-import rmi_interfaces.IHoaDon_Ban_DAO;
-import rmi_interfaces.IKhachHang_DAO;
-import rmi_interfaces.IBanAn_DAO;
-import rmi_interfaces.IChiTietHoaDon_DAO;
-import rmi_interfaces.IMonAn_DAO;
-import rmi_interfaces.INhanVien_DAO;
+import rmi_interfaces.IHoaDon_Service;
+import rmi_interfaces.IHoaDon_Ban_Service;
+import rmi_interfaces.IKhachHang_Service;
+import rmi_interfaces.IBanAn_Service;
+import rmi_interfaces.IChiTietHoaDon_Service;
+import rmi_interfaces.IMonAn_Service;
+import rmi_interfaces.INhanVien_Service;
 
 import entity.HoaDon;
 import entity.BanAn;
@@ -66,13 +66,13 @@ public class TraCuuHoaDon_UI extends JPanel {
 	private JComboBox<String> cmbTrangThai;
 	private JComboBox<String> cmbSapXep;
 
-	private IHoaDon_DAO hoaDonDAO;
-	private IHoaDon_Ban_DAO hoaDonBanDAO;
-	private IKhachHang_DAO khachHangDAO;
-	private IBanAn_DAO banAnDAO;
-	private IChiTietHoaDon_DAO chiTietHoaDonDAO;
-	private IMonAn_DAO monAnDAO;
-	private INhanVien_DAO nhanVienDAO;
+	private IHoaDon_Service hoaDonDAO;
+	private IHoaDon_Ban_Service hoaDonBanDAO;
+	private IKhachHang_Service khachHangDAO;
+	private IBanAn_Service banAnDAO;
+	private IChiTietHoaDon_Service chiTietHoaDonDAO;
+	private IMonAn_Service monAnDAO;
+	private INhanVien_Service nhanVienDAO;
 
 	private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 	private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
@@ -80,13 +80,13 @@ public class TraCuuHoaDon_UI extends JPanel {
 	// Khởi tạo giao diện và load dữ liệu ban đầu
 	public TraCuuHoaDon_UI() {
 		try {
-			hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-			hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
-			khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-			banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-			chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-			monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-			nhanVienDAO = (INhanVien_DAO) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
+			hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+			hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+			khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+			banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+			nhanVienDAO = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

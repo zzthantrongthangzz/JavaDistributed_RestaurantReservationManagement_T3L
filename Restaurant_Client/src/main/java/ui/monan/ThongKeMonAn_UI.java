@@ -9,7 +9,7 @@ import javax.swing.table.TableColumnModel;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
-import rmi_interfaces.IMonAn_DAO;
+import rmi_interfaces.IMonAn_Service;
 
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -64,7 +64,7 @@ public class ThongKeMonAn_UI extends JPanel {
     private final Color MAU_XANH_LAM = new Color(30, 144, 255);
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
 
-    private IMonAn_DAO monAn_DAO;
+    private IMonAn_Service monAn_DAO;
     private JPanel panelChinh;
     private JDateChooser dcTuNgay;
     private JDateChooser dcDenNgay;
@@ -82,7 +82,7 @@ public class ThongKeMonAn_UI extends JPanel {
 
     public ThongKeMonAn_UI() {
         try {
-            monAn_DAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            monAn_DAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

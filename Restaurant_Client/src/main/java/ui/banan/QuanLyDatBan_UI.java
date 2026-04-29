@@ -22,15 +22,15 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.rmi.Naming;
 
-import rmi_interfaces.IBanAn_DAO;
-import rmi_interfaces.IChiTietHoaDon_DAO;
-import rmi_interfaces.IChiTietPhieuDatBan_DAO;
-import rmi_interfaces.IHoaDon_DAO;
-import rmi_interfaces.IHoaDon_Ban_DAO;
-import rmi_interfaces.IKhachHang_DAO;
-import rmi_interfaces.IPhieuDatBan_DAO;
-import rmi_interfaces.ILichSuHuyDatBan_DAO;
-import rmi_interfaces.IPhieuDatBan_Ban_DAO;
+import rmi_interfaces.IBanAn_Service;
+import rmi_interfaces.IChiTietHoaDon_Service;
+import rmi_interfaces.IChiTietPhieuDatBan_Service;
+import rmi_interfaces.IHoaDon_Service;
+import rmi_interfaces.IHoaDon_Ban_Service;
+import rmi_interfaces.IKhachHang_Service;
+import rmi_interfaces.IPhieuDatBan_Service;
+import rmi_interfaces.ILichSuHuyDatBan_Service;
+import rmi_interfaces.IPhieuDatBan_Ban_Service;
 
 import entity.BanAn;
 import entity.ChiTietHoaDon;
@@ -39,7 +39,6 @@ import entity.HoaDon;
 import entity.KhachHang;
 import entity.NhanVien;
 import entity.PhieuDatBan;
-import entity.LichSuHuyDatBan;
 import ui.Auth;
 
 public class QuanLyDatBan_UI extends JPanel {
@@ -62,15 +61,15 @@ public class QuanLyDatBan_UI extends JPanel {
 
 	private JTextField searchField;
 	private JTextField searchFieldKhachHang;
-	private IBanAn_DAO banAn_DAO;
-	private IHoaDon_DAO hoaDon_DAO;
-	private IHoaDon_Ban_DAO hoaDonBanDAO;
-	private IKhachHang_DAO khachHang_DAO;
-	private IPhieuDatBan_DAO phieuDatBanDAO;
-	private IChiTietPhieuDatBan_DAO chiTietPhieuDatBanDAO;
-	private IChiTietHoaDon_DAO chiTietHoaDonDAO;
-	private ILichSuHuyDatBan_DAO lichSuHuyDatBanDAO;
-	private IPhieuDatBan_Ban_DAO phieuDatBan_BanDAO;
+	private IBanAn_Service banAn_DAO;
+	private IHoaDon_Service hoaDon_DAO;
+	private IHoaDon_Ban_Service hoaDonBanDAO;
+	private IKhachHang_Service khachHang_DAO;
+	private IPhieuDatBan_Service phieuDatBanDAO;
+	private IChiTietPhieuDatBan_Service chiTietPhieuDatBanDAO;
+	private IChiTietHoaDon_Service chiTietHoaDonDAO;
+	private ILichSuHuyDatBan_Service lichSuHuyDatBanDAO;
+	private IPhieuDatBan_Ban_Service phieuDatBan_BanDAO;
 
 	private List<BanAn> danhSachBanTongCuaNgay;
 	private List<BanAn> danhSachBan;
@@ -99,15 +98,15 @@ public class QuanLyDatBan_UI extends JPanel {
 
 	public QuanLyDatBan_UI() {
 		try {
-			banAn_DAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-			hoaDon_DAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-			khachHang_DAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-			phieuDatBanDAO = (IPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-			hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
-			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_DAO) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-			chiTietHoaDonDAO = (IChiTietHoaDon_DAO) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_DAO) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
-			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_DAO) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
+			banAn_DAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+			hoaDon_DAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+			khachHang_DAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+			phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
+			hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
+			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
+			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
 
 			this.danhSachBan = banAn_DAO.docDanhSachBan();
 		} catch (Exception e) {

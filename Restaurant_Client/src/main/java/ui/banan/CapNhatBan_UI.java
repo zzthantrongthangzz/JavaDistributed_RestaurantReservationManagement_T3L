@@ -1,6 +1,6 @@
 package ui.banan;
 
-import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.IBanAn_Service;
 import entity.BanAn;
 
 import javax.swing.*;
@@ -13,7 +13,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.rmi.Naming;
-import java.util.ArrayList;
 import java.util.List;
 
 public class CapNhatBan_UI extends JPanel {
@@ -41,12 +40,12 @@ public class CapNhatBan_UI extends JPanel {
     private JComboBox<String> cmbLoaiBan;
     private JTable table;
     private DefaultTableModel tableModel;
-    private IBanAn_DAO banAnDAO;
+    private IBanAn_Service banAnDAO;
     private List<BanAn> danhSachBanHienThi;
 
     public CapNhatBan_UI() {
         try {
-            banAnDAO = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
         } catch (Exception e) {
             e.printStackTrace();
         }

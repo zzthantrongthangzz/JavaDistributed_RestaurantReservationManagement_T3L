@@ -1,8 +1,8 @@
 package ui.banan;
 
-import rmi_interfaces.IHoaDon_DAO;
-import rmi_interfaces.IHoaDon_Ban_DAO;
-import rmi_interfaces.IKhachHang_DAO;
+import rmi_interfaces.IHoaDon_Service;
+import rmi_interfaces.IHoaDon_Ban_Service;
+import rmi_interfaces.IKhachHang_Service;
 import entity.BanAn;
 import entity.HoaDon;
 import entity.KhachHang;
@@ -36,9 +36,9 @@ public class DatBanNgay_UI extends JDialog {
     private JButton btnDatBan;
     private JButton btnHuy;
 
-    private IKhachHang_DAO khachHangDAO;
-    private IHoaDon_DAO hoaDonDAO;
-    private IHoaDon_Ban_DAO hoaDonBanDAO;
+    private IKhachHang_Service khachHangDAO;
+    private IHoaDon_Service hoaDonDAO;
+    private IHoaDon_Ban_Service hoaDonBanDAO;
 
     private final List<BanAn> danhSachBanChon;
 
@@ -79,9 +79,9 @@ public class DatBanNgay_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            this.hoaDonBanDAO = (IHoaDon_Ban_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
         } catch (Exception e) {
             e.printStackTrace();
         }

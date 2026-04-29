@@ -9,8 +9,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.io.File;
-import rmi_interfaces.IMonAn_DAO;
-import rmi_interfaces.ILoaiMon_DAO;
+import rmi_interfaces.IMonAn_Service;
+import rmi_interfaces.ILoaiMon_Service;
 import entity.MonAn;
 import entity.LoaiMon;
 import java.nio.file.Files;
@@ -33,8 +33,8 @@ public class ThemMonAn_UI extends JPanel {
 	private Image backgroundImage;
 	private JButton btnThemNhieu;
 
-	private IMonAn_DAO monAnDAO;
-	private ILoaiMon_DAO loaiMonDAO;
+	private IMonAn_Service monAnDAO;
+	private ILoaiMon_Service loaiMonDAO;
 
 	private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
 	private final Color bgColor = new Color(48, 52, 56);
@@ -49,8 +49,8 @@ public class ThemMonAn_UI extends JPanel {
 
 	public ThemMonAn_UI() {
 		try {
-			monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-			loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+			loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

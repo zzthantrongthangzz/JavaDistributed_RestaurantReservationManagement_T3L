@@ -1,5 +1,5 @@
 import entity.BanAn;
-import rmi_interfaces.IBanAn_DAO;
+import rmi_interfaces.IBanAn_Service;
 import java.rmi.Naming;
 import java.util.List;
 
@@ -9,7 +9,7 @@ public class ClientTest {
             System.out.println("Đang kết nối đến Server...");
 
             // 1. Tìm kiếm dịch vụ BanAnService trên Server qua cổng 1099
-            IBanAn_DAO banAnService = (IBanAn_DAO) Naming.lookup("rmi://localhost:1099/BanAnService");
+            IBanAn_Service banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAnService");
 
             // 2. Gọi đúng tên hàm docDanhSachBan() có trong IBanAn_DAO / BanAn_DAO_Impl
             List<BanAn> danhSachBan = banAnService.docDanhSachBan();

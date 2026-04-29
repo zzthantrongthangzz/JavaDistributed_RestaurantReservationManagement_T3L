@@ -1,8 +1,8 @@
 package ui.monan;
 
 import org.apache.poi.ss.usermodel.Cell;
-import rmi_interfaces.ILoaiMon_DAO;
-import rmi_interfaces.IMonAn_DAO;
+import rmi_interfaces.ILoaiMon_Service;
+import rmi_interfaces.IMonAn_Service;
 import entity.LoaiMon;
 import entity.MonAn;
 import org.apache.poi.ss.usermodel.*;
@@ -48,13 +48,13 @@ public class ThemNhieuMonAn_UI extends JPanel {
     private File thuMucChuaAnhNguon = null;
     private JLabel lblThuMucAnh;
 
-    private IMonAn_DAO monAnDAO;
-    private ILoaiMon_DAO loaiMonDAO;
+    private IMonAn_Service monAnDAO;
+    private ILoaiMon_Service loaiMonDAO;
 
     public ThemNhieuMonAn_UI() {
         try {
-            monAnDAO = (IMonAn_DAO) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            loaiMonDAO = (ILoaiMon_DAO) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

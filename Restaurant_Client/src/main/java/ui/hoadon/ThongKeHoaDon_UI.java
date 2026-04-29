@@ -4,25 +4,21 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
+
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
-import rmi_interfaces.IHoaDon_DAO;
-import rmi_interfaces.IKhachHang_DAO;
+import rmi_interfaces.IHoaDon_Service;
+import rmi_interfaces.IKhachHang_Service;
 import entity.HoaDon;
 import entity.KhachHang;
 
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.CategoryLabelPositions;
-import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
@@ -31,8 +27,6 @@ import org.jfree.data.category.DefaultCategoryDataset;
 import java.awt.*;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.event.*;
-import java.beans.PropertyChangeEvent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
@@ -55,8 +49,8 @@ public class ThongKeHoaDon_UI extends JPanel {
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_KPI_VALUE = new Font("Segoe UI", Font.BOLD, 24);
 
-    private IHoaDon_DAO hoaDonDAO;
-    private IKhachHang_DAO khachHangDAO;
+    private IHoaDon_Service hoaDonDAO;
+    private IKhachHang_Service khachHangDAO;
     private JPanel panelChinh;
     private JDateChooser dcTuNgay, dcDenNgay;
     private JTable tblThongKe;
@@ -72,8 +66,8 @@ public class ThongKeHoaDon_UI extends JPanel {
 
     public ThongKeHoaDon_UI() {
         try {
-            hoaDonDAO = (IHoaDon_DAO) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            khachHangDAO = (IKhachHang_DAO) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
+            khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);

@@ -6,7 +6,6 @@ import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
@@ -16,7 +15,7 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
 import com.toedter.calendar.JDateChooser;
 import entity.KhuyenMai;
-import rmi_interfaces.IKhuyenMai_DAO;
+import rmi_interfaces.IKhuyenMai_Service;
 
 public class CapNhatKhuyenMai_UI extends JPanel {
 
@@ -61,7 +60,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     private JDateChooser dateNgayBatDau;
     private JDateChooser dateNgayKetThuc;
     private JPanel panelChinh;
-    private IKhuyenMai_DAO khuyenMaiDAO;
+    private IKhuyenMai_Service khuyenMaiDAO;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
     private JTextField txt;
     private JButton btnSua;
@@ -69,7 +68,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
 
     public CapNhatKhuyenMai_UI() {
         try {
-            khuyenMaiDAO = (IKhuyenMai_DAO) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+            khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMaiService");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
