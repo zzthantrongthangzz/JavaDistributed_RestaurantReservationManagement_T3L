@@ -79,10 +79,13 @@ public class CapNhatMon_UI extends JPanel {
     private ILoaiMon_Service loaiMonDAO;
     private List<MonAn> danhSachMonAnHienThi;
 
+    private JButton btnCapNhat;
+    private JButton btnXoa;
+
     public CapNhatMon_UI() {
         try {
-            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -210,12 +213,12 @@ public class CapNhatMon_UI extends JPanel {
         scrollMoTa.setBounds(940, 180, 280, 88);
         panel.add(scrollMoTa);
 
-        JButton btnCapNhat = taoNutChucNang("Cập nhật", MAU_NUT_CAP_NHAT);
+        btnCapNhat = taoNutChucNang("Cập nhật", MAU_NUT_CAP_NHAT);
         btnCapNhat.setBounds(1260, 130, 140, 40);
         panel.add(btnCapNhat);
         btnCapNhat.addActionListener(e -> capNhatMonAn());
 
-        JButton btnXoa = taoNutChucNang("Xoá", MAU_NUT_XOA);
+        btnXoa = taoNutChucNang("Xoá", MAU_NUT_XOA);
         btnXoa.setBounds(1260, 180, 140, 40);
         panel.add(btnXoa);
         btnXoa.addActionListener(e -> xoaMonAn());
@@ -641,23 +644,30 @@ public class CapNhatMon_UI extends JPanel {
     }
 
     private void taiDuLieuLoaiMon() {
-        try {
-            List<LoaiMon> dsLoai = loaiMonDAO.docDanhSachLoaiMon();
-            cmbLoai.removeAllItems();
-            cmbBoLoc.removeAllItems();
-            cmbBoLoc.addItem("Tất cả");
-
-            for (LoaiMon loai : dsLoai) {
-                cmbLoai.addItem(loai);
-                cmbBoLoc.addItem(loai);
+        if (loaiMonDAO == null) return;
+        SwingWorker<List<LoaiMon>, Void> worker = new SwingWorker<List<LoaiMon>, Void>() {
+            @Override
+            protected List<LoaiMon> doInBackground() throws Exception {
+                return loaiMonDAO.docDanhSachLoaiMon();
             }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải danh sách loại món: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<LoaiMon> dsLoai = get();
+                    cmbLoai.removeAllItems();
+                    cmbBoLoc.removeAllItems();
+                    cmbBoLoc.addItem("Tất cả");
+
+                    for (LoaiMon loai : dsLoai) {
+                        cmbLoai.addItem(loai);
+                        cmbBoLoc.addItem(loai);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void chonAnh() {
@@ -678,16 +688,22 @@ public class CapNhatMon_UI extends JPanel {
     }
 
     private void docDuLieuTuSQL() {
-        try {
-            List<MonAn> danhSach = monAnDAO.docDanhSachMon();
-            hienThiDanhSach(danhSach);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi đọc dữ liệu từ database: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+        if (monAnDAO == null) return;
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<List<MonAn>, Void>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                return monAnDAO.docDanhSachMon();
+            }
+            @Override
+            protected void done() {
+                try {
+                    hienThiDanhSach(get());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiDanhSach(List<MonAn> danhSach) {
@@ -749,28 +765,36 @@ public class CapNhatMon_UI extends JPanel {
             return;
         }
 
-        try {
-            MonAn monAnCu = monAnDAO.timMotMonTheoMa(maMon);
-            if (monAnCu == null) {
-                JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy món ăn gốc để cập nhật!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+        String tenMon = txtTenMon.getText().trim();
+        double gia = Double.parseDouble(txtGia.getText().trim());
+        String donVi = txtDonVi.getText().trim();
+        String tinhTrang = cmbTinhTrang.getSelectedItem().toString();
+        LoaiMon loaiChon = (LoaiMon) cmbLoai.getSelectedItem();
+        String moTa = txtMoTa.getText().trim();
 
-            String tenMon = txtTenMon.getText().trim();
-            double gia = Double.parseDouble(txtGia.getText().trim());
-            String donVi = txtDonVi.getText().trim();
-            String tinhTrang = cmbTinhTrang.getSelectedItem().toString();
-            LoaiMon loaiChon = (LoaiMon) cmbLoai.getSelectedItem();
-            String moTa = txtMoTa.getText().trim();
+        String maNhanVien = "NV_Unknown";
+        if (Auth.getCurrentNhanVien() != null) {
+            maNhanVien = Auth.getCurrentNhanVien().getMaNhanVien();
+        }
 
-            String duongDanAnh = monAnCu.getDuongDanAnh();
+        final String finalMaNhanVien = maNhanVien;
+        btnCapNhat.setEnabled(false);
 
-            if (selectedFile != null) {
-                String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
-                String tenFileAnh = "mon_" + chuyenTenMonThanhTenFile(tenMon) + extension;
-                duongDanAnh = "/img/" + tenFileAnh;
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                MonAn monAnCu = monAnDAO.timMotMonTheoMa(maMon);
+                if (monAnCu == null) {
+                    throw new Exception("Không tìm thấy món ăn gốc để cập nhật!");
+                }
 
-                try {
+                String duongDanAnh = monAnCu.getDuongDanAnh();
+
+                if (selectedFile != null) {
+                    String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
+                    String tenFileAnh = "mon_" + chuyenTenMonThanhTenFile(tenMon) + extension;
+                    duongDanAnh = "/img/" + tenFileAnh;
+
                     java.net.URL resourceUrl = getClass().getResource("/img");
                     if (resourceUrl == null) {
                         File outputDir = new File("bin/img");
@@ -779,40 +803,31 @@ public class CapNhatMon_UI extends JPanel {
                     }
                     File destFile = new File(new java.net.URI(resourceUrl.toString() + "/" + tenFileAnh));
                     Files.copy(selectedFile.toPath(), destFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
 
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Lỗi khi lưu file ảnh mới: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    ex.printStackTrace();
-                    return;
+                MonAn monAnMoi = new MonAn(maMon, tenMon, duongDanAnh, gia, tinhTrang, moTa, donVi, loaiChon);
+                return monAnDAO.capNhatMonAn(monAnMoi, finalMaNhanVien);
+            }
+
+            @Override
+            protected void done() {
+                btnCapNhat.setEnabled(true);
+                try {
+                    boolean ketQua = get();
+                    if (ketQua) {
+                        JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Cập nhật món ăn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                        docDuLieuTuSQL();
+                        lamMoiForm();
+                    } else {
+                        JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Cập nhật món ăn thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Có lỗi xảy ra: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
                 }
             }
-
-            MonAn monAnMoi = new MonAn(maMon, tenMon, duongDanAnh, gia, tinhTrang, moTa, donVi, loaiChon);
-
-            String maNhanVien = "NV_Unknown";
-            if (Auth.getCurrentNhanVien() != null) {
-                maNhanVien = Auth.getCurrentNhanVien().getMaNhanVien();
-            }
-
-            boolean ketQua = monAnDAO.capNhatMonAn(monAnMoi, maNhanVien);
-
-            if (ketQua) {
-                JOptionPane.showMessageDialog(this, "Cập nhật món ăn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                docDuLieuTuSQL();
-                lamMoiForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Cập nhật món ăn thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Giá phải là số hợp lệ!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Có lỗi xảy ra: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+        };
+        worker.execute();
     }
 
     private void xoaMonAn() {
@@ -831,113 +846,164 @@ public class CapNhatMon_UI extends JPanel {
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                boolean ketQua = monAnDAO.xoaMem(maMon);
-                if(ketQua) {
-                    JOptionPane.showMessageDialog(this, "Xóa món ăn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Xóa món ăn thất bại!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            btnXoa.setEnabled(false);
+            SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return monAnDAO.xoaMem(maMon);
                 }
-                lamMoiForm();
-                docDuLieuTuSQL();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-            }
+
+                @Override
+                protected void done() {
+                    btnXoa.setEnabled(true);
+                    try {
+                        boolean ketQua = get();
+                        if(ketQua) {
+                            JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Xóa món ăn thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Xóa món ăn thất bại!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                        lamMoiForm();
+                        docDuLieuTuSQL();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 
     private void thucHienTimKiemTheoMa() {
+        if (monAnDAO == null) return;
         String tuKhoa = txtTimKiemMa.getText().trim();
         String placeholder = "Nhập mã món. . .";
-        List<MonAn> ketQua = new ArrayList<>();
 
-        try {
-            if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
-                ketQua = monAnDAO.docDanhSachMon();
-            } else {
-                ketQua = monAnDAO.timKiemTheoMa(tuKhoa);
-                if (ketQua.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Không tìm thấy món ăn nào với mã: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<List<MonAn>, Void>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
+                    return monAnDAO.docDanhSachMon();
+                } else {
+                    return monAnDAO.timKiemTheoMa(tuKhoa);
                 }
             }
-            hienThiDanhSach(ketQua);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> ketQua = get();
+                    if (!tuKhoa.isEmpty() && !tuKhoa.equals(placeholder) && ketQua.isEmpty()) {
+                        JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Không tìm thấy món ăn nào với mã: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    hienThiDanhSach(ketQua);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void thucHienTimKiemTheoTen() {
+        if (monAnDAO == null) return;
         String tuKhoa = txtTimKiemTen.getText().trim();
         String placeholder = "Nhập tên món. . .";
-        List<MonAn> ketQua = new ArrayList<>();
 
-        try {
-            if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
-                ketQua = monAnDAO.docDanhSachMon();
-            } else {
-                ketQua = monAnDAO.timKiemTheoTen(tuKhoa);
-                if (ketQua.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Không tìm thấy món ăn nào với tên: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<List<MonAn>, Void>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
+                    return monAnDAO.docDanhSachMon();
+                } else {
+                    return monAnDAO.timKiemTheoTen(tuKhoa);
                 }
             }
-            hienThiDanhSach(ketQua);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> ketQua = get();
+                    if (!tuKhoa.isEmpty() && !tuKhoa.equals(placeholder) && ketQua.isEmpty()) {
+                        JOptionPane.showMessageDialog(CapNhatMon_UI.this, "Không tìm thấy món ăn nào với tên: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    hienThiDanhSach(ketQua);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void thucHienLoc() {
+        if (monAnDAO == null) return;
         Object itemDuocChon = cmbBoLoc.getSelectedItem();
 
         if (itemDuocChon == null) {
             return;
         }
 
-        List<MonAn> ketQuaLoc = new ArrayList<>();
-
-        try {
-            if (itemDuocChon instanceof String && itemDuocChon.equals("Tất cả")) {
-                ketQuaLoc = monAnDAO.docDanhSachMon();
-            } else if (itemDuocChon instanceof LoaiMon) {
-                String tenLoai = ((LoaiMon) itemDuocChon).getTenLoai();
-                ketQuaLoc = monAnDAO.locMonAnTheoLoai(tenLoai);
-            } else {
-                ketQuaLoc = monAnDAO.docDanhSachMon();
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<List<MonAn>, Void>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                if (itemDuocChon instanceof String && itemDuocChon.equals("Tất cả")) {
+                    return monAnDAO.docDanhSachMon();
+                } else if (itemDuocChon instanceof LoaiMon) {
+                    String tenLoai = ((LoaiMon) itemDuocChon).getTenLoai();
+                    return monAnDAO.locMonAnTheoLoai(tenLoai);
+                } else {
+                    return monAnDAO.docDanhSachMon();
+                }
             }
 
-            hienThiDanhSach(ketQuaLoc);
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> ketQuaLoc = get();
+                    hienThiDanhSach(ketQuaLoc);
 
-            txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
-            txtTimKiemMa.setText("Nhập mã món. . .");
-            txtTimKiemTen.setForeground(MAU_PLACEHOLDER);
-            txtTimKiemTen.setText("Nhập tên món. . .");
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+                    txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
+                    txtTimKiemMa.setText("Nhập mã món. . .");
+                    txtTimKiemTen.setForeground(MAU_PLACEHOLDER);
+                    txtTimKiemTen.setText("Nhập tên món. . .");
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void lamMoi() {
         lamMoiForm();
-        try {
-            List<MonAn> toanBoMonAn = monAnDAO.docDanhSachMon();
-            hienThiDanhSach(toanBoMonAn);
-            txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
-            txtTimKiemMa.setText("Nhập mã món. . .");
-            txtTimKiemTen.setForeground(MAU_PLACEHOLDER);
-            txtTimKiemTen.setText("Nhập tên món. . .");
+        if (monAnDAO == null) return;
 
-            cmbBoLoc.setSelectedIndex(0);
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<List<MonAn>, Void>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                return monAnDAO.docDanhSachMon();
+            }
 
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> toanBoMonAn = get();
+                    hienThiDanhSach(toanBoMonAn);
+                    txtTimKiemMa.setForeground(MAU_PLACEHOLDER);
+                    txtTimKiemMa.setText("Nhập mã món. . .");
+                    txtTimKiemTen.setForeground(MAU_PLACEHOLDER);
+                    txtTimKiemTen.setText("Nhập tên món. . .");
+
+                    cmbBoLoc.setSelectedIndex(0);
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void lamMoiForm() {

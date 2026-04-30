@@ -14,7 +14,6 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -48,7 +47,7 @@ public class ChiTietMonAn_UI extends JDialog {
         this.monAnDuocChon = monAn;
 
         try {
-            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
+            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -236,9 +235,7 @@ public class ChiTietMonAn_UI extends JDialog {
 
             if (parentWindow instanceof ui.TrangChu_UI) {
                 ui.TrangChu_UI trangChu = (ui.TrangChu_UI) parentWindow;
-
                 trangChu.hienThiTrangCapNhatMon(monAnDuocChon);
-
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Lỗi: Không tìm thấy cửa sổ Trang Chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -304,25 +301,7 @@ public class ChiTietMonAn_UI extends JDialog {
             public boolean isCellEditable(int row, int column) { return false; }
         };
 
-        try {
-            List<LichSuGia> list = monAnDAO.getLichSuGia(monAnDuocChon.getMaMon());
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm - dd/MM/yyyy");
-
-            for (entity.LichSuGia ls : list) {
-                model.addRow(new Object[]{
-                        sdf.format(ls.getNgayThayDoi()),
-                        currencyFormatter.format(ls.getGiaCu()) + " VNĐ",
-                        currencyFormatter.format(ls.getGiaMoi()) + " VNĐ",
-                        ls.getTenNhanVien() == null ? "Hệ thống" : ls.getTenNhanVien()
-                });
-            }
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi tải lịch sử giá: " + e.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
-
         JTable table = new JTable(model);
-
         table.setBackground(MAU_NEN_ITEM);
         table.setForeground(MAU_CHU_CHUNG);
         table.setGridColor(MAU_LUOI_BANG);
@@ -416,6 +395,34 @@ public class ChiTietMonAn_UI extends JDialog {
 
         pBot.add(btnClose);
         dialog.add(pBot, BorderLayout.SOUTH);
+
+        // BỌC SWINGWORKER
+        SwingWorker<List<LichSuGia>, Void> worker = new SwingWorker<List<LichSuGia>, Void>() {
+            @Override
+            protected List<LichSuGia> doInBackground() throws Exception {
+                if (monAnDAO == null) throw new Exception("Mất kết nối máy chủ");
+                return monAnDAO.getLichSuGia(monAnDuocChon.getMaMon());
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<LichSuGia> list = get();
+                    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm - dd/MM/yyyy");
+                    for (entity.LichSuGia ls : list) {
+                        model.addRow(new Object[]{
+                                sdf.format(ls.getNgayThayDoi()),
+                                currencyFormatter.format(ls.getGiaCu()) + " VNĐ",
+                                currencyFormatter.format(ls.getGiaMoi()) + " VNĐ",
+                                ls.getTenNhanVien() == null ? "Hệ thống" : ls.getTenNhanVien()
+                        });
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(dialog, "Lỗi tải lịch sử giá!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
 
         dialog.setVisible(true);
     }

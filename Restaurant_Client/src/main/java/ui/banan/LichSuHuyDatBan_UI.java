@@ -41,7 +41,9 @@ public class LichSuHuyDatBan_UI extends JPanel {
 
     private JTable tblLichSu;
     private DefaultTableModel modelLichSu;
-    private ILichSuHuyDatBan_Service logDAO;
+
+    // ĐÃ CHUẨN HÓA TÊN SERVICE RMI
+    private ILichSuHuyDatBan_Service lichSuHuyService;
 
     private JTextField txtTimKiemTen;
     private JTextField txtTimKiemMa;
@@ -49,11 +51,7 @@ public class LichSuHuyDatBan_UI extends JPanel {
     private TableRowSorter<DefaultTableModel> rowSorter;
 
     public LichSuHuyDatBan_UI() {
-        try {
-            logDAO = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        ketNoiRMI();
 
         setLayout(new BorderLayout(0, 15));
         setBackground(MAU_NEN_TAB);
@@ -142,35 +140,61 @@ public class LichSuHuyDatBan_UI extends JPanel {
 
         add(scrollPane, BorderLayout.CENTER);
 
+        // Tải dữ liệu ban đầu
         taiDuLieuLenBang();
     }
 
-    private void taiDuLieuLenBang() {
-        modelLichSu.setRowCount(0);
-        List<LichSuHuyDatBan> list = new ArrayList<>();
+    private void ketNoiRMI() {
         try {
-            if (logDAO != null) {
-                list = logDAO.layTatCaLichSu();
-            }
+            lichSuHuyService = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_Service");
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
 
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    // ====================================================================
+    // SWING WORKER: TẢI DỮ LIỆU TỪ SERVER VÀ ĐỔ VÀO BẢNG
+    // ====================================================================
+    private void taiDuLieuLenBang() {
+        if (lichSuHuyService == null) return;
 
-        int stt = 1;
-        for (LichSuHuyDatBan log : list) {
-            modelLichSu.addRow(new Object[] {
-                    stt++,
-                    log.getMaPhieuDatBan(),
-                    log.getTenBan(),
-                    log.getTenKhachHang() == null ? "Vãng lai" : log.getTenKhachHang(),
-                    log.getSdtKhachHang() == null ? "" : log.getSdtKhachHang(),
-                    log.getTenNhanVien(),
-                    sdf.format(log.getThoiGianHuy()),
-                    log.getLyDoHuy()
-            });
-        }
+        SwingWorker<List<LichSuHuyDatBan>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<LichSuHuyDatBan> doInBackground() throws Exception {
+                // Lấy danh sách từ RMI trong luồng ngầm
+                return lichSuHuyService.layTatCaLichSu();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<LichSuHuyDatBan> list = get();
+                    modelLichSu.setRowCount(0);
+
+                    if (list != null) {
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                        int stt = 1;
+                        for (LichSuHuyDatBan log : list) {
+                            modelLichSu.addRow(new Object[] {
+                                    stt++,
+                                    log.getMaPhieuDatBan(),
+                                    log.getTenBan(),
+                                    log.getTenKhachHang() == null ? "Vãng lai" : log.getTenKhachHang(),
+                                    log.getSdtKhachHang() == null ? "" : log.getSdtKhachHang(),
+                                    log.getTenNhanVien(),
+                                    sdf.format(log.getThoiGianHuy()),
+                                    log.getLyDoHuy()
+                            });
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(LichSuHuyDatBan_UI.this, "Lỗi khi tải lịch sử!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void thucHienTimKiem() {

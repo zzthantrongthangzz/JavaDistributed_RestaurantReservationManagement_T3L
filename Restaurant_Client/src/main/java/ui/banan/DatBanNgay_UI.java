@@ -79,9 +79,9 @@ public class DatBanNgay_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -360,23 +360,38 @@ public class DatBanNgay_UI extends JDialog {
             return;
         }
 
-        try {
-            KhachHang kh = khachHangDAO.timKhachHangTheoSDT(soDienThoai);
+        btnKiemTra.setEnabled(false);
+        btnKiemTra.setText("Đang tìm...");
 
-            if (kh != null) {
-                khachHangHienTai = kh;
-                hienThiThongTinKhachHang(kh);
-                btnDatBan.setEnabled(true);
-                hienThiThanhCong("Tìm thấy khách hàng!");
-            } else {
-                xoaThongTinKhachHang();
-                btnDatBan.setEnabled(false);
-                hienThiCanhBao("Không tìm thấy SĐT. Vui lòng thêm khách hàng mới.");
-                xuLyThemKhachHangMoi(soDienThoai);
+        SwingWorker<KhachHang, Void> worker = new SwingWorker<KhachHang, Void>() {
+            @Override
+            protected KhachHang doInBackground() throws Exception {
+                return khachHangDAO.timKhachHangTheoSDT(soDienThoai);
             }
-        } catch (Exception e) {
-            hienThiLoi("Lỗi khi tìm kiếm khách hàng:\n" + e.getMessage());
-        }
+
+            @Override
+            protected void done() {
+                btnKiemTra.setEnabled(true);
+                btnKiemTra.setText("Kiểm tra");
+                try {
+                    KhachHang kh = get();
+                    if (kh != null) {
+                        khachHangHienTai = kh;
+                        hienThiThongTinKhachHang(kh);
+                        btnDatBan.setEnabled(true);
+                        hienThiThanhCong("Tìm thấy khách hàng!");
+                    } else {
+                        xoaThongTinKhachHang();
+                        btnDatBan.setEnabled(false);
+                        hienThiCanhBao("Không tìm thấy SĐT. Vui lòng thêm khách hàng mới.");
+                        xuLyThemKhachHangMoi(soDienThoai);
+                    }
+                } catch (Exception e) {
+                    hienThiLoi("Lỗi khi tìm kiếm khách hàng:\n" + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiThongTinKhachHang(KhachHang kh) {
@@ -394,14 +409,16 @@ public class DatBanNgay_UI extends JDialog {
         khachHangHienTai = null;
     }
 
+    // ĐÃ SỬA: Truyền đủ 3 tham số (Frame, String, Runnable) vào constructor của ThemKhachHang_UI
     private void xuLyThemKhachHangMoi(String soDienThoai) {
         ThemKhachHang_UI themKhachHangUI = new ThemKhachHang_UI(
-                (Frame) SwingUtilities.getWindowAncestor(this),
+                this.parentFrame,
                 soDienThoai,
                 () -> {
                     txtSoDienThoai.setText(soDienThoai);
                     xuLyKiemTraKhachHang();
-                });
+                }
+        );
         themKhachHangUI.setVisible(true);
     }
 
@@ -432,47 +449,64 @@ public class DatBanNgay_UI extends JDialog {
                 return;
             }
 
-            try {
-                String maHoaDonMoi = hoaDonDAO.sinhMaHoaDonTuDong();
+            btnDatBan.setEnabled(false);
+            btnDatBan.setText("Đang xử lý...");
 
-                HoaDon hoaDonMoi = new HoaDon(
-                        maHoaDonMoi,
-                        "Chưa thanh toán",
-                        new Date(),
-                        BigDecimal.ZERO,
-                        nhanVienHienTai.getMaNhanVien(),
-                        null,
-                        khachHangHienTai.getMaKhachHang(),
-                        null,
-                        null,
-                        BigDecimal.ZERO,
-                        BigDecimal.ZERO,
-                        BigDecimal.ZERO);
+            SwingWorker<HoaDon, Void> worker = new SwingWorker<HoaDon, Void>() {
+                @Override
+                protected HoaDon doInBackground() throws Exception {
+                    String maHoaDonMoi = hoaDonDAO.sinhMaHoaDonTuDong();
 
-                boolean themThanhCong = hoaDonDAO.themHoaDon(hoaDonMoi);
+                    HoaDon hoaDonMoi = new HoaDon(
+                            maHoaDonMoi,
+                            "Chưa thanh toán",
+                            new Date(),
+                            BigDecimal.ZERO,
+                            nhanVienHienTai.getMaNhanVien(),
+                            null,
+                            khachHangHienTai.getMaKhachHang(),
+                            null,
+                            null,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO,
+                            BigDecimal.ZERO);
 
-                if (themThanhCong) {
-                    for (BanAn ban : danhSachBanChon) {
-                        hoaDonBanDAO.themHoaDon_Ban(maHoaDonMoi, ban.getMaBan());
+                    boolean themThanhCong = hoaDonDAO.themHoaDon(hoaDonMoi);
+
+                    if (themThanhCong) {
+                        for (BanAn ban : danhSachBanChon) {
+                            hoaDonBanDAO.themHoaDon_Ban(maHoaDonMoi, ban.getMaBan());
+                        }
+                        return hoaDonMoi;
                     }
-
-                    hienThiThanhCong("Đặt bàn thành công! Vui lòng thêm món.");
-
-                    this.dispose();
-
-                    DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
-                            parentFrame,
-                            danhSachBanChon,
-                            hoaDonMoi);
-                    themMonUI.setVisible(true);
-
-                } else {
-                    hienThiLoi("Đã xảy ra lỗi khi tạo hóa đơn. Vui lòng thử lại.");
+                    return null;
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                hienThiLoi("Lỗi kết nối máy chủ RMI khi đặt bàn!");
-            }
+
+                @Override
+                protected void done() {
+                    btnDatBan.setEnabled(true);
+                    btnDatBan.setText("Đặt bàn");
+                    try {
+                        HoaDon hoaDonMoi = get();
+                        if (hoaDonMoi != null) {
+                            hienThiThanhCong("Đặt bàn thành công! Vui lòng thêm món.");
+                            DatBanNgay_UI.this.dispose();
+
+                            DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
+                                    parentFrame,
+                                    danhSachBanChon,
+                                    hoaDonMoi);
+                            themMonUI.setVisible(true);
+                        } else {
+                            hienThiLoi("Đã xảy ra lỗi khi tạo hóa đơn. Vui lòng thử lại.");
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        hienThiLoi("Lỗi kết nối máy chủ RMI khi đặt bàn!");
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 

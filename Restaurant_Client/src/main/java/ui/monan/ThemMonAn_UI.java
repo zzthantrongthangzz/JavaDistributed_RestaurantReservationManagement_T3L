@@ -16,7 +16,6 @@ import entity.LoaiMon;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.util.List;
 
 public class ThemMonAn_UI extends JPanel {
@@ -49,8 +48,8 @@ public class ThemMonAn_UI extends JPanel {
 
 	public ThemMonAn_UI() {
 		try {
-			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-			loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+			loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -87,11 +86,7 @@ public class ThemMonAn_UI extends JPanel {
 		txtMaMon.setBounds(636, 287, 365, 45);
 		txtMaMon.setEditable(false);
 		txtMaMon.setBackground(new Color(80, 80, 80));
-		try {
-			if(monAnDAO != null) txtMaMon.setText(monAnDAO.sinhMaMonTuDong());
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
+		loadMaMonTuDong();
 		add(txtMaMon);
 
 		JLabel lblTenMon = createStyledLabel("Tên món:");
@@ -170,6 +165,19 @@ public class ThemMonAn_UI extends JPanel {
 		taiDuLieuLoaiMon();
 	}
 
+	private void loadMaMonTuDong() {
+		if (monAnDAO == null) return;
+		SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
+			@Override protected String doInBackground() throws Exception {
+				return monAnDAO.sinhMaMonTuDong();
+			}
+			@Override protected void done() {
+				try { txtMaMon.setText(get()); } catch (Exception e) {}
+			}
+		};
+		worker.execute();
+	}
+
 	private JButton taoNutChucNang(String text, Color mauNen) {
 		JButton button = new JButton(text);
 		button.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -182,17 +190,9 @@ public class ThemMonAn_UI extends JPanel {
 		button.setBorder(new EmptyBorder(10, 20, 10, 20));
 
 		button.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				button.setBackground(mauNen.brighter());
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				button.setBackground(mauNen);
-			}
+			@Override public void mouseEntered(MouseEvent e) { button.setBackground(mauNen.brighter()); }
+			@Override public void mouseExited(MouseEvent e) { button.setBackground(mauNen); }
 		});
-
 		return button;
 	}
 
@@ -209,29 +209,17 @@ public class ThemMonAn_UI extends JPanel {
 
 	private class ImagePreviewPanel extends JPanel {
 		private Image image;
-
-		public ImagePreviewPanel() {
-			setBackground(bgColor);
-			setOpaque(false);
-		}
-
-		public void setImage(Image image) {
-			this.image = image;
-			repaint();
-		}
-
+		public ImagePreviewPanel() { setBackground(bgColor); setOpaque(false); }
+		public void setImage(Image image) { this.image = image; repaint(); }
 		@Override
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 			Graphics2D g2d = (Graphics2D) g.create();
 			g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
 			int diameter = Math.min(getWidth(), getHeight());
 			int x = (getWidth() - diameter) / 2;
 			int y = (getHeight() - diameter) / 2;
-
 			Ellipse2D.Double circle = new Ellipse2D.Double(x, y, diameter, diameter);
-
 			if (image != null) {
 				g2d.setClip(circle);
 				g2d.drawImage(image, x, y, diameter, diameter, this);
@@ -264,17 +252,14 @@ public class ThemMonAn_UI extends JPanel {
 		comboBox.setBackground(componentColor);
 		comboBox.setForeground(textColor);
 		comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-
 		comboBox.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
-			@Override
-			protected JButton createArrowButton() {
+			@Override protected JButton createArrowButton() {
 				JButton button = super.createArrowButton();
 				button.setBackground(componentColor);
 				button.setBorder(BorderFactory.createEmptyBorder());
 				return button;
 			}
 		});
-
 		comboBox.setFocusable(false);
 		Border border = BorderFactory.createLineBorder(componentColor, 2);
 		Border padding = new EmptyBorder(5, 10, 5, 10);
@@ -295,32 +280,11 @@ public class ThemMonAn_UI extends JPanel {
 		button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		button.setBorder(new EmptyBorder(10, 20, 10, 20));
 		button.setFocusPainted(false);
-
 		try {
 			ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
 			Image scaledIcon = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
 			button.setIcon(new ImageIcon(scaledIcon));
-		} catch (Exception e) {
-		}
-
-		return button;
-	}
-
-	private JButton createStyledButton(String text, String iconPath, Color backgroundColor) {
-		JButton button = createStyledButton(text, iconPath);
-		button.setBackground(backgroundColor);
-
-		button.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				button.setBackground(backgroundColor.brighter());
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				button.setBackground(backgroundColor);
-			}
-		});
+		} catch (Exception e) {}
 		return button;
 	}
 
@@ -330,44 +294,33 @@ public class ThemMonAn_UI extends JPanel {
 		button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		button.setBorder(new EmptyBorder(5, 5, 5, 5));
 		button.setFocusPainted(false);
-
 		try {
 			ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
 			Image scaledIcon = icon.getImage().getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
 			button.setIcon(new ImageIcon(scaledIcon));
-		} catch (Exception e) {
-			button.setText("+");
-		}
+		} catch (Exception e) { button.setText("+"); }
 		button.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				button.setBackground(backgroundColor.brighter());
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				button.setBackground(backgroundColor);
-			}
+			@Override public void mouseEntered(MouseEvent e) { button.setBackground(backgroundColor.brighter()); }
+			@Override public void mouseExited(MouseEvent e) { button.setBackground(backgroundColor); }
 		});
 		return button;
 	}
 
 	private void taiDuLieuLoaiMon() {
-		try {
-			List<LoaiMon> dsLoai = loaiMonDAO.docDanhSachLoaiMon();
-
-			cmbLoai.removeAllItems();
-
-			for (LoaiMon loai : dsLoai) {
-				cmbLoai.addItem(loai);
+		if (loaiMonDAO == null) return;
+		SwingWorker<List<LoaiMon>, Void> worker = new SwingWorker<List<LoaiMon>, Void>() {
+			@Override protected List<LoaiMon> doInBackground() throws Exception {
+				return loaiMonDAO.docDanhSachLoaiMon();
 			}
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + e.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-		} catch (Exception e) {
-			JOptionPane.showMessageDialog(this, "Lỗi khi tải danh sách loại món: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-			e.printStackTrace();
-		}
+			@Override protected void done() {
+				try {
+					List<LoaiMon> ds = get();
+					cmbLoai.removeAllItems();
+					for (LoaiMon lm : ds) cmbLoai.addItem(lm);
+				} catch (Exception e) { e.printStackTrace(); }
+			}
+		};
+		worker.execute();
 	}
 
 	private void hienThiDialogThemLoai() {
@@ -386,9 +339,7 @@ public class ThemMonAn_UI extends JPanel {
 		lblHienCo.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
 		DefaultListModel<LoaiMon> listModel = new DefaultListModel<>();
-		for (int i = 0; i < cmbLoai.getItemCount(); i++) {
-			listModel.addElement(cmbLoai.getItemAt(i));
-		}
+		for (int i = 0; i < cmbLoai.getItemCount(); i++) listModel.addElement(cmbLoai.getItemAt(i));
 
 		JList<LoaiMon> listHienCo = new JList<>(listModel);
 		listHienCo.setBackground(componentColor);
@@ -399,7 +350,6 @@ public class ThemMonAn_UI extends JPanel {
 		listHienCo.setBorder(new EmptyBorder(5, 10, 5, 10));
 
 		JScrollPane scrollPane = new JScrollPane(listHienCo);
-		tuyChinhScrollBar(scrollPane);
 		scrollPane.setBorder(BorderFactory.createLineBorder(componentColor, 1));
 
 		pnlHienCo.add(lblHienCo, BorderLayout.NORTH);
@@ -424,17 +374,6 @@ public class ThemMonAn_UI extends JPanel {
 		btnThem.setForeground(textColor);
 		btnThem.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		btnThem.setBorder(new EmptyBorder(8, 25, 8, 25));
-		btnThem.setFocusPainted(false);
-		btnThem.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				btnThem.setBackground(MAU_NUT_CAP_NHAT.brighter());
-			}
-			@Override
-			public void mouseExited(MouseEvent e) {
-				btnThem.setBackground(MAU_NUT_CAP_NHAT);
-			}
-		});
 
 		JButton btnHuy = new JButton("Hủy");
 		btnHuy.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -442,18 +381,6 @@ public class ThemMonAn_UI extends JPanel {
 		btnHuy.setForeground(textColor);
 		btnHuy.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		btnHuy.setBorder(new EmptyBorder(8, 25, 8, 25));
-		btnHuy.setFocusPainted(false);
-		btnHuy.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				btnHuy.setBackground(MAU_NUT_XOA.brighter());
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				btnHuy.setBackground(MAU_NUT_XOA);
-			}
-		});
 
 		pnlButton.add(btnThem);
 		pnlButton.add(Box.createRigidArea(new Dimension(10, 0)));
@@ -471,40 +398,40 @@ public class ThemMonAn_UI extends JPanel {
 				JOptionPane.showMessageDialog(dialog, "Tên loại mới không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
-
-			try {
-				LoaiMon loaiTonTai = loaiMonDAO.timLoaiTheoTen(tenLoaiMoi);
-
-				if (loaiTonTai != null) {
-					JOptionPane.showMessageDialog(dialog, "Loại món này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-				} else {
+			btnThem.setEnabled(false);
+			SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
+				@Override protected Object[] doInBackground() throws Exception {
+					LoaiMon loaiTonTai = loaiMonDAO.timLoaiTheoTen(tenLoaiMoi);
+					if (loaiTonTai != null) return new Object[]{false, "exists", null};
 					String maLoaiMoi = loaiMonDAO.sinhMaLoaiTuDong();
 					LoaiMon loaiMoi = new LoaiMon(maLoaiMoi, tenLoaiMoi);
-
-					boolean themThanhCong = loaiMonDAO.themLoaiMon(loaiMoi);
-
-					if (themThanhCong) {
-						cmbLoai.addItem(loaiMoi);
-						cmbLoai.setSelectedItem(loaiMoi);
-
-						listModel.addElement(loaiMoi);
-						listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
-
-						JOptionPane.showMessageDialog(dialog, "Đã thêm loại món mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-
-						txtTenLoaiMoi.setText("");
-						txtTenLoaiMoi.requestFocus();
-
-					} else {
-						JOptionPane.showMessageDialog(dialog, "Thêm loại món mới thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-					}
+					boolean ok = loaiMonDAO.themLoaiMon(loaiMoi);
+					return new Object[]{ok, "success", loaiMoi};
 				}
-			} catch (RemoteException re) {
-				re.printStackTrace();
-				JOptionPane.showMessageDialog(dialog, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-			} catch (Exception ex) {
-				JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm loại món: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-			}
+				@Override protected void done() {
+					btnThem.setEnabled(true);
+					try {
+						Object[] res = get();
+						boolean ok = (boolean) res[0];
+						String status = (String) res[1];
+						LoaiMon loaiMoi = (LoaiMon) res[2];
+						if (status.equals("exists")) {
+							JOptionPane.showMessageDialog(dialog, "Loại món này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+						} else if (ok) {
+							cmbLoai.addItem(loaiMoi);
+							cmbLoai.setSelectedItem(loaiMoi);
+							listModel.addElement(loaiMoi);
+							listHienCo.ensureIndexIsVisible(listModel.getSize() - 1);
+							JOptionPane.showMessageDialog(dialog, "Đã thêm loại món mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+							txtTenLoaiMoi.setText("");
+							txtTenLoaiMoi.requestFocus();
+						} else {
+							JOptionPane.showMessageDialog(dialog, "Thêm loại món mới thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+						}
+					} catch (Exception ex) {}
+				}
+			};
+			worker.execute();
 		});
 
 		dialog.add(mainPanel);
@@ -515,9 +442,7 @@ public class ThemMonAn_UI extends JPanel {
 		JFileChooser fileChooser = new JFileChooser();
 		fileChooser.setDialogTitle("Chọn ảnh món ăn");
 		fileChooser.setFileFilter(new FileNameExtensionFilter("Hình ảnh", "jpg", "png", "gif", "jpeg"));
-
-		int result = fileChooser.showOpenDialog(this);
-		if (result == JFileChooser.APPROVE_OPTION) {
+		if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
 			selectedFile = fileChooser.getSelectedFile();
 			try {
 				ImageIcon imageIcon = new ImageIcon(selectedFile.getAbsolutePath());
@@ -529,95 +454,74 @@ public class ThemMonAn_UI extends JPanel {
 	}
 
 	private void lamMoi() {
-		try {
-			txtMaMon.setText(monAnDAO.sinhMaMonTuDong());
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		}
+		loadMaMonTuDong();
 		txtTenMon.setText("");
 		txtGia.setText("");
 		txtDonVi.setText("");
 		txtMoTa.setText("");
-		if (cmbLoai.getItemCount() > 0)
-			cmbLoai.setSelectedIndex(0);
+		if (cmbLoai.getItemCount() > 0) cmbLoai.setSelectedIndex(0);
 		cmbTinhTrang.setSelectedIndex(0);
-
 		pnlImagePreview.setImage(null);
 		selectedFile = null;
-
 		txtTenMon.requestFocus();
 	}
 
 	private void xuLyThemMonAn() {
-		try {
-			if (!kiemTraDuLieu()) {
-				return;
-			}
+		if (!kiemTraDuLieu()) return;
 
-			String maMon = txtMaMon.getText().trim();
-			String tenMon = txtTenMon.getText().trim();
-			double gia = Double.parseDouble(txtGia.getText().trim());
-			String donVi = txtDonVi.getText().trim();
-			String tinhTrang = (String) cmbTinhTrang.getSelectedItem();
-			String moTa = txtMoTa.getText().trim();
+		String maMon = txtMaMon.getText().trim();
+		String tenMon = txtTenMon.getText().trim();
+		double gia = Double.parseDouble(txtGia.getText().trim());
+		String donVi = txtDonVi.getText().trim();
+		String tinhTrang = (String) cmbTinhTrang.getSelectedItem();
+		String moTa = txtMoTa.getText().trim();
+		LoaiMon loaiMon = (LoaiMon) cmbLoai.getSelectedItem();
 
-			LoaiMon loaiMon = (LoaiMon) cmbLoai.getSelectedItem();
-
-			if (loaiMon == null) {
-				JOptionPane.showMessageDialog(this, "Vui lòng chọn loại món!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-
-			String duongDanAnh = null;
-
-			if (selectedFile != null) {
-				String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
-				String tenMonKhongDau = chuyenTenMonThanhTenFile(tenMon);
-				String tenFileAnh = "mon_" + tenMonKhongDau + extension;
-				duongDanAnh = "/img/" + tenFileAnh;
-
-				try {
-					java.net.URL resourceUrl = getClass().getResource("/img");
-					if (resourceUrl == null) {
-						File outputDir = new File("bin/img");
-						if (!outputDir.exists()) {
-							outputDir.mkdirs();
-						}
-						resourceUrl = outputDir.toURI().toURL();
-					}
-					File destFile = new File(new java.net.URI(resourceUrl.toString() + "/" + tenFileAnh));
-					Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				} catch (java.io.IOException | java.net.URISyntaxException ex) {
-					JOptionPane.showMessageDialog(this, "Lỗi khi lưu file ảnh: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-					ex.printStackTrace();
-					return;
-				}
-			} else {
-				duongDanAnh = "/img/default_food.png";
-			}
-
-			MonAn monAnMoi = new MonAn(maMon, tenMon, duongDanAnh, gia, tinhTrang, moTa, donVi, loaiMon);
-
-			boolean ketQua = monAnDAO.themMonAn(monAnMoi);
-
-			if (ketQua) {
-				JOptionPane.showMessageDialog(this, "Thêm món ăn thành công!\nMã món: " + maMon, "Thành công", JOptionPane.INFORMATION_MESSAGE);
-				lamMoi();
-			} else {
-				JOptionPane.showMessageDialog(this, "Thêm món ăn thất bại!\nVui lòng kiểm tra lại thông tin.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-			}
-
-		} catch (NumberFormatException e) {
-			JOptionPane.showMessageDialog(this, "Giá phải là số hợp lệ!", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-		} catch (IllegalArgumentException e) {
-			JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi dữ liệu", JOptionPane.WARNING_MESSAGE);
-		} catch (Exception e) {
-			JOptionPane.showMessageDialog(this, "Có lỗi xảy ra: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-			e.printStackTrace();
+		if (loaiMon == null) {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn loại món!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+			return;
 		}
+
+		String duongDanAnh = "/img/default_food.png";
+		if (selectedFile != null) {
+			String extension = selectedFile.getName().substring(selectedFile.getName().lastIndexOf("."));
+			String tenMonKhongDau = chuyenTenMonThanhTenFile(tenMon);
+			String tenFileAnh = "mon_" + tenMonKhongDau + extension;
+			duongDanAnh = "/img/" + tenFileAnh;
+			try {
+				java.net.URL resourceUrl = getClass().getResource("/img");
+				if (resourceUrl == null) {
+					File outputDir = new File("bin/img");
+					if (!outputDir.exists()) outputDir.mkdirs();
+					resourceUrl = outputDir.toURI().toURL();
+				}
+				File destFile = new File(new java.net.URI(resourceUrl.toString() + "/" + tenFileAnh));
+				Files.copy(selectedFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			} catch (Exception ex) {
+				JOptionPane.showMessageDialog(this, "Lỗi khi lưu file ảnh: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+		}
+
+		MonAn monAnMoi = new MonAn(maMon, tenMon, duongDanAnh, gia, tinhTrang, moTa, donVi, loaiMon);
+		JButton btnThem = (JButton) SwingUtilities.getRootPane(this).getDefaultButton(); // Optional UI disable
+
+		SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+			@Override protected Boolean doInBackground() throws Exception {
+				return monAnDAO.themMonAn(monAnMoi);
+			}
+			@Override protected void done() {
+				try {
+					if (get()) {
+						JOptionPane.showMessageDialog(ThemMonAn_UI.this, "Thêm món ăn thành công!\nMã món: " + maMon, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+						lamMoi();
+					} else {
+						JOptionPane.showMessageDialog(ThemMonAn_UI.this, "Thêm món ăn thất bại!\nVui lòng kiểm tra lại thông tin.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+					}
+				} catch (Exception e) {}
+			}
+		};
+		worker.execute();
 	}
 
 	private String chuyenTenMonThanhTenFile(String tenMon) {
@@ -638,132 +542,26 @@ public class ThemMonAn_UI extends JPanel {
 		String giaStr = txtGia.getText().trim();
 		String donVi = txtDonVi.getText().trim();
 
-		if (tenMon.isEmpty()) {
-			showValidationError("Vui lòng nhập tên món!", txtTenMon);
-			return false;
-		}
+		if (tenMon.isEmpty()) { showValidationError("Vui lòng nhập tên món!", txtTenMon); return false; }
 		if (!tenMon.matches("^[A-ZÀ-Ỹ][a-zA-Zà-ỹÀ-Ỹ\\s]*$")) {
-			showValidationError(
-					"Tên món phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\n" +
-							"Ví dụ: Gà rán, Phở Bò Tái, Lẩu nấm",
-					txtTenMon);
+			showValidationError("Tên món phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\nVí dụ: Gà rán, Phở Bò Tái, Lẩu nấm", txtTenMon);
 			return false;
 		}
 
-		if (giaStr.isEmpty()) {
-			showValidationError("Vui lòng nhập giá món!", txtGia);
-			return false;
-		}
+		if (giaStr.isEmpty()) { showValidationError("Vui lòng nhập giá món!", txtGia); return false; }
 		try {
 			double gia = Double.parseDouble(giaStr);
-			if (gia <= 0) {
-				showValidationError("Giá phải là một số dương (lớn hơn 0)!", txtGia);
-				return false;
-			}
+			if (gia <= 0) { showValidationError("Giá phải là một số dương (lớn hơn 0)!", txtGia); return false; }
 		} catch (NumberFormatException e) {
-			showValidationError("Giá phải là số hợp lệ! (Ví dụ: 50000 hoặc 50000.5)", txtGia);
-			return false;
+			showValidationError("Giá phải là số hợp lệ! (Ví dụ: 50000 hoặc 50000.5)", txtGia); return false;
 		}
 
-		if (donVi.isEmpty()) {
-			showValidationError("Vui lòng nhập đơn vị!", txtDonVi);
-			return false;
-		}
+		if (donVi.isEmpty()) { showValidationError("Vui lòng nhập đơn vị!", txtDonVi); return false; }
 		if (!donVi.matches("^[A-ZÀ-Ỹ][a-zA-Zà-ỹÀ-Ỹ\\s]*$")) {
-			showValidationError(
-					"Đơn vị phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\n" +
-							"Ví dụ: Dĩa, Ly, Phần, Tô",
-					txtDonVi);
+			showValidationError("Đơn vị phải bắt đầu bằng chữ hoa và chỉ chứa chữ cái, khoảng trắng.\nVí dụ: Dĩa, Ly, Phần, Tô", txtDonVi);
 			return false;
 		}
-
 		return true;
-	}
-
-	private void tuyChinhScrollBar(JScrollPane scrollPane) {
-		JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
-		verticalScrollBar.setPreferredSize(new Dimension(8, 0));
-		verticalScrollBar.setBackground(MAU_NEN_INPUT);
-		verticalScrollBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
-			@Override
-			protected void configureScrollBarColors() {
-				this.thumbColor = new Color(100, 105, 120);
-				this.trackColor = MAU_NEN_INPUT;
-				this.thumbDarkShadowColor = new Color(80, 85, 100);
-				this.thumbHighlightColor = new Color(120, 125, 140);
-			}
-
-			@Override
-			protected JButton createDecreaseButton(int orientation) {
-				JButton button = new JButton();
-				button.setPreferredSize(new Dimension(0, 0));
-				return button;
-			}
-
-			@Override
-			protected JButton createIncreaseButton(int orientation) {
-				JButton button = new JButton();
-				button.setPreferredSize(new Dimension(0, 0));
-				return button;
-			}
-
-			@Override
-			protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-				if (thumbBounds.isEmpty() || !verticalScrollBar.isEnabled()) {
-					return;
-				}
-				g.setColor(new Color(100, 105, 120));
-				g.fillRoundRect(thumbBounds.x + 2, thumbBounds.y, thumbBounds.width - 4, thumbBounds.height, 4, 4);
-			}
-
-			@Override
-			protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
-				g.setColor(MAU_NEN_INPUT);
-				g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
-			}
-		});
-
-		JScrollBar horizontalScrollBar = scrollPane.getHorizontalScrollBar();
-		horizontalScrollBar.setPreferredSize(new Dimension(0, 8));
-		horizontalScrollBar.setBackground(MAU_NEN_INPUT);
-		horizontalScrollBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
-			@Override
-			protected void configureScrollBarColors() {
-				this.thumbColor = new Color(100, 105, 120);
-				this.trackColor = MAU_NEN_INPUT;
-				this.thumbDarkShadowColor = new Color(80, 85, 100);
-				this.thumbHighlightColor = new Color(120, 125, 140);
-			}
-
-			@Override
-			protected JButton createDecreaseButton(int orientation) {
-				JButton button = new JButton();
-				button.setPreferredSize(new Dimension(0, 0));
-				return button;
-			}
-
-			@Override
-			protected JButton createIncreaseButton(int orientation) {
-				JButton button = new JButton();
-				button.setPreferredSize(new Dimension(0, 0));
-				return button;
-			}
-
-			@Override
-			protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
-				if (thumbBounds.isEmpty() || !horizontalScrollBar.isEnabled()) {
-					return;
-				}
-				g.setColor(new Color(100, 105, 120));
-				g.fillRoundRect(thumbBounds.x, thumbBounds.y + 2, thumbBounds.width, thumbBounds.height - 4, 4, 4);
-			}
-
-			@Override
-			protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
-				g.setColor(MAU_NEN_INPUT);
-				g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
-			}
-		});
 	}
 
 	private void showValidationError(String message, JComponent component) {
@@ -773,15 +571,10 @@ public class ThemMonAn_UI extends JPanel {
 
 	private void hienThiGiaoDienThemNhieu() {
 		JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Import Món Ăn Từ Excel", Dialog.ModalityType.APPLICATION_MODAL);
-
 		ThemNhieuMonAn_UI panelThemNhieu = new ThemNhieuMonAn_UI();
-
 		dialog.add(panelThemNhieu);
-
 		dialog.setSize(1600, 750);
-
 		dialog.setLocationRelativeTo(this);
-
 		dialog.setResizable(true);
 		dialog.setVisible(true);
 	}

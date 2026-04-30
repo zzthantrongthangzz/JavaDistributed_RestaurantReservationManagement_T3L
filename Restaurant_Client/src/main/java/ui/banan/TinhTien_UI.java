@@ -71,6 +71,8 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 	private Timer timerKiemTraThanhToan;
 	private final String SEPAY_API_TOKEN = "BKHTO6BVQKAUSJOL4RLJRLTSXZD2JBTQ2KZFPACH7IPSYN0VOHFYXCOB81KD8S5G";
 
+	private List<ChiTietHoaDon> danhSachChiTietThucTe = new ArrayList<>();
+
 	public TinhTien_UI(Frame parent, List<BanAn> dsBan) {
 		super(parent, "Tính Tiền", true);
 		this.dsBanThanhToan = dsBan;
@@ -364,7 +366,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				JOptionPane.showMessageDialog(TinhTien_UI.this, "Thuế được tính 10% cho dịch vụ ăn uống",
-						"Thông tin thuế", JOptionPane.INFORMATION_MESSAGE);
+						"Thông báo thuế", JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
 		mainPanel.add(iconInfo);
@@ -424,17 +426,9 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		txtTienNhan.setCaretColor(Color.WHITE);
 		txtTienNhan.setFont(new Font("Segoe UI", Font.PLAIN, 15));
 		txtTienNhan.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-			public void changedUpdate(javax.swing.event.DocumentEvent e) {
-				capNhatTienThua();
-			}
-
-			public void removeUpdate(javax.swing.event.DocumentEvent e) {
-				capNhatTienThua();
-			}
-
-			public void insertUpdate(javax.swing.event.DocumentEvent e) {
-				capNhatTienThua();
-			}
+			public void changedUpdate(javax.swing.event.DocumentEvent e) { capNhatTienThua(); }
+			public void removeUpdate(javax.swing.event.DocumentEvent e) { capNhatTienThua(); }
+			public void insertUpdate(javax.swing.event.DocumentEvent e) { capNhatTienThua(); }
 		});
 		panelTienMat.add(txtTienNhan);
 
@@ -456,7 +450,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		panelMaQR.setLayout(null);
 		panelMaQR.setBackground(COLOR_DARK);
 
-		JButton btnInVaCheck = new JButton("In Hoá Đơn");
+		JButton btnInVaCheck = new JButton("Quét mã QR");
 		btnInVaCheck.setBackground(new Color(33, 150, 243));
 		btnInVaCheck.setForeground(Color.WHITE);
 		btnInVaCheck.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -464,12 +458,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		btnInVaCheck.setBorder(null);
 		btnInVaCheck.setFocusPainted(false);
 
-		btnInVaCheck.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				xuLyInVaCheckQR();
-			}
-		});
+		btnInVaCheck.addActionListener(e -> xuLyInVaCheckQR());
 
 		panelMaQR.add(btnInVaCheck);
 		tabbedPane.addTab("Mã QR", panelMaQR);
@@ -498,38 +487,16 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 
 		add(mainPanel);
 
-		tabbedPane.addChangeListener(new javax.swing.event.ChangeListener() {
-			@Override
-			public void stateChanged(javax.swing.event.ChangeEvent e) {
-				int index = tabbedPane.getSelectedIndex();
-				if (index == 1) {
-					btnThanhToan.setEnabled(false);
-					btnThanhToan.setBackground(Color.GRAY);
-				} else {
-					btnThanhToan.setEnabled(true);
-					btnThanhToan.setBackground(new Color(76, 175, 80));
-				}
+		tabbedPane.addChangeListener(e -> {
+			int index = tabbedPane.getSelectedIndex();
+			if (index == 1) {
+				btnThanhToan.setEnabled(false);
+				btnThanhToan.setBackground(Color.GRAY);
+			} else {
+				btnThanhToan.setEnabled(true);
+				btnThanhToan.setBackground(new Color(76, 175, 80));
 			}
 		});
-	}
-
-	private void xuLyInVaCheckQR() {
-		long soTien = (long) tongThanhToan;
-		if (soTien <= 0) {
-			JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
-			return;
-		}
-		String qrURL = taoLinkVietQR(soTien);
-
-		double tongTienGiam = giamDiemTichLuy + giamKhuyenMai;
-		HoaDonPDF.xuatHoaDonPDF(
-				hoaDon, khachHang, nhanVien, dsBanThanhToan,
-				hoaDon != null ? hoaDon.getNgayLapHoaDon() : new Date(),
-				new Date(), tableModel, tongCong, thue, tongThanhToan, tienDaCoc,
-				BigDecimal.valueOf(tongTienGiam),
-				qrURL
-		);
-		hienThiDialogQR(qrURL);
 	}
 
 	private void loadData() {
@@ -558,9 +525,8 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 				sb.append(dsBanThanhToan.get(i).getTenBan());
 				if (i < dsBanThanhToan.size() - 1) sb.append(", ");
 			}
-			String chuoiTenBan = sb.toString();
-			lblTenBan.setText(chuoiTenBan);
-			lblTenBan.setToolTipText(chuoiTenBan);
+			lblTenBan.setText(sb.toString());
+			lblTenBan.setToolTipText(sb.toString());
 		}
 
 		try {
@@ -591,39 +557,50 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 
 	private void loadMonAnTable() {
 		tableModel.setRowCount(0);
+		danhSachChiTietThucTe.clear();
 
 		if (dsBanThanhToan == null || dsBanThanhToan.isEmpty())
 			return;
 
-		try {
-			if (hoaDonDAO != null) {
-				hoaDon = hoaDonDAO.timHoaDonChuaThanhToanTheoMaBan(dsBanThanhToan.get(0).getMaBan());
-			}
+		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				if (hoaDonDAO != null) {
+					hoaDon = hoaDonDAO.timHoaDonChuaThanhToanTheoMaBan(dsBanThanhToan.get(0).getMaBan());
+				}
 
-			if (hoaDon == null) return;
+				if (hoaDon != null) {
+					tienDaCoc = hoaDon.getTienDatCoc() != null ? hoaDon.getTienDatCoc().doubleValue() : 0;
+					if (chiTietHoaDonDAO != null && monAnDAO != null) {
+						List<ChiTietHoaDon> chiTietList = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
+						danhSachChiTietThucTe.addAll(chiTietList);
 
-			if (hoaDon.getTienDatCoc() != null) {
-				this.tienDaCoc = hoaDon.getTienDatCoc().doubleValue();
-			} else {
-				this.tienDaCoc = 0;
-			}
-
-			if (chiTietHoaDonDAO != null && monAnDAO != null) {
-				List<ChiTietHoaDon> chiTietList = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
-				int stt = 1;
-				for (ChiTietHoaDon ct : chiTietList) {
-					MonAn mon = monAnDAO.timMotMonTheoMa(ct.getMaMon());
-					if (mon != null) {
-						double thanhTien = ct.getDonGia().doubleValue() * ct.getSoLuong();
-						tableModel.addRow(
-								new Object[] { stt++, mon.getTenMon(), currencyFormatter.format(ct.getDonGia().doubleValue()),
-										mon.getDonVi(), ct.getSoLuong(), currencyFormatter.format(thanhTien) });
+						int stt = 1;
+						for (ChiTietHoaDon ct : chiTietList) {
+							List<MonAn> kq = monAnDAO.timKiemTheoMa(ct.getMaMon());
+							if (kq != null && !kq.isEmpty()) {
+								MonAn mon = kq.get(0);
+								double thanhTien = ct.getDonGia().doubleValue() * ct.getSoLuong();
+								tableModel.addRow(new Object[] {
+										stt++,
+										mon.getTenMon(),
+										currencyFormatter.format(ct.getDonGia().doubleValue()),
+										mon.getDonVi(),
+										ct.getSoLuong(),
+										currencyFormatter.format(thanhTien)
+								});
+							}
+						}
 					}
 				}
+				return null;
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			@Override
+			protected void done() {
+				calculateTotals();
+			}
+		};
+		worker.execute();
 	}
 
 	private void calculateTotals() {
@@ -643,7 +620,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lblGiaTriGiam1.setText(currencyFormatter.format(giamDiemTichLuy) + " VND");
 		lblTienDaCoc.setText(currencyFormatter.format(tienDaCoc) + " VND");
 		lblTongThanhToan.setText(currencyFormatter.format(tongThanhToan) + " VND");
-
 	}
 
 	private void capNhatTienThua() {
@@ -675,11 +651,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		} else if (e.getSource() == btnThanhToan) {
 			processPayment();
 		} else if (e.getSource() == btnKiemTra) {
-			if (txtMaGiamGia.getText().trim().isEmpty()) {
-				hienThiDialogChonKhuyenMai();
-			} else {
-				hienThiDialogChonKhuyenMai();
-			}
+			hienThiDialogChonKhuyenMai();
 		} else if (e.getSource() == rdoDoiDiem || e.getSource() == rdoKhongDoiDiem) {
 			suDungDiemTichLuy = rdoDoiDiem.isSelected();
 			calculateTotals();
@@ -689,83 +661,81 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 
 	private void processPayment() {
 		double tienNhan = 0;
-		double tienThua = 0;
-
 		int selectedTab = tabbedPane.getSelectedIndex();
 
 		if (selectedTab == 0) {
 			String tienNhanStr = txtTienNhan.getText().trim().replaceAll("[^0-9]", "");
 			if (tienNhanStr.isEmpty()) {
-				JOptionPane.showMessageDialog(this, "Vui lòng nhập tiền nhận", "Thông báo",
-						JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(this, "Vui lòng nhập tiền nhận", "Thông báo", JOptionPane.WARNING_MESSAGE);
 				return;
 			}
-
 			tienNhan = Double.parseDouble(tienNhanStr);
 			if (tienNhan < tongThanhToan) {
-				JOptionPane.showMessageDialog(this, "Tiền nhận phải >= Tổng thanh toán", "Lỗi",
-						JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(this, "Tiền nhận phải >= Tổng thanh toán", "Lỗi", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
-			tienThua = tienNhan - tongThanhToan;
-			lblTienThua.setText(currencyFormatter.format(tienThua) + " VND");
 		} else {
 			tienNhan = tongThanhToan;
-			tienThua = 0;
 		}
 
-		if (hoaDon != null) {
-			hoaDon.setTrangThai("Đã thanh toán");
-			hoaDon.setThue(BigDecimal.valueOf(thue));
-			hoaDon.setSoTienKhachTra(BigDecimal.valueOf(tienNhan));
+		btnThanhToan.setEnabled(false);
+		btnThanhToan.setText("Đang xử lý...");
+		double finalTienNhan = tienNhan;
 
-			if (khuyenMaiApDung != null) {
-				hoaDon.setMaKhuyenMai(khuyenMaiApDung.getMaKhuyenMai());
-			}
+		SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+			@Override
+			protected Boolean doInBackground() throws Exception {
+				if (hoaDon != null) {
+					hoaDon.setTrangThai("Đã thanh toán");
+					hoaDon.setThue(BigDecimal.valueOf(thue));
+					hoaDon.setSoTienKhachTra(BigDecimal.valueOf(finalTienNhan));
 
-			try {
-				if (hoaDonDAO != null && hoaDonDAO.capNhatHoaDon(hoaDon)) {
-					if (khachHang != null && khachHangDAO != null) {
-						int diemHienCo = khachHang.getTichDiem();
-						int diemSauKhiTru = diemHienCo;
-						if (suDungDiemTichLuy) {
-							int diemDaDung = (int) giamDiemTichLuy;
-							diemSauKhiTru = diemHienCo - diemDaDung;
-							if (diemSauKhiTru < 0) diemSauKhiTru = 0;
-						}
-						int diemThuong = (int) (tongCong * 0.01);
-						int diemCuoiCung = diemSauKhiTru + diemThuong;
-						khachHang.setTichDiem(diemCuoiCung);
-						khachHangDAO.capNhatKhachHang(khachHang);
-					}
-					if (dsBanThanhToan != null && banAnDAO != null) {
-						for (BanAn b : dsBanThanhToan) {
-							banAnDAO.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang trống");
-						}
+					if (khuyenMaiApDung != null) {
+						hoaDon.setMaKhuyenMai(khuyenMaiApDung.getMaKhuyenMai());
 					}
 
-					if (selectedTab == 0) {
-						int result = JOptionPane.showConfirmDialog(this, "Thanh toán thành công! Bạn có muốn xem hóa đơn PDF?",
-								"Thành công", JOptionPane.YES_NO_OPTION);
-
-						if (result == JOptionPane.YES_OPTION) {
-							double tongTienGiam = giamDiemTichLuy + giamKhuyenMai;
-							BigDecimal tienGiamBD = BigDecimal.valueOf(tongTienGiam);
-
-							HoaDonPDF.xuatHoaDonPDF(
-									hoaDon, khachHang, nhanVien, dsBanThanhToan, hoaDon.getNgayLapHoaDon(), new Date(),
-									tableModel, tongCong, thue, tongThanhToan, tienDaCoc, tienGiamBD, null
-							);
+					if (hoaDonDAO.capNhatHoaDon(hoaDon)) {
+						if (khachHang != null && khachHangDAO != null) {
+							int diemHienCo = khachHang.getTichDiem();
+							int diemSauKhiTru = suDungDiemTichLuy ? Math.max(0, diemHienCo - (int) giamDiemTichLuy) : diemHienCo;
+							int diemThuong = (int) (tongCong * 0.01);
+							khachHang.setTichDiem(diemSauKhiTru + diemThuong);
+							khachHangDAO.capNhatKhachHang(khachHang);
 						}
-					} else {
-						JOptionPane.showMessageDialog(this, "Thanh toán thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+						if (dsBanThanhToan != null && banAnDAO != null) {
+							for (BanAn b : dsBanThanhToan) {
+								b.setTrangThai("Bàn đang trống");
+								banAnDAO.capNhatBan(b);
+							}
+						}
+						return true;
 					}
-					dispose();
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
+				return false;
 			}
-		}
+
+			@Override
+			protected void done() {
+				try {
+					if (get()) {
+						if (selectedTab == 0) {
+							int result = JOptionPane.showConfirmDialog(TinhTien_UI.this, "Thanh toán thành công! Bạn có muốn xem hóa đơn PDF?", "Thành công", JOptionPane.YES_NO_OPTION);
+							if (result == JOptionPane.YES_OPTION) {
+								inPDFChayNgam(null);
+							}
+						} else {
+							JOptionPane.showMessageDialog(TinhTien_UI.this, "Thanh toán thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+						}
+						dispose();
+					} else {
+						JOptionPane.showMessageDialog(TinhTien_UI.this, "Lỗi thanh toán!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+						btnThanhToan.setEnabled(true);
+						btnThanhToan.setText("Thanh toán");
+					}
+				} catch (Exception e) { e.printStackTrace(); }
+			}
+		};
+		worker.execute();
 	}
 
 	private String taoLinkVietQR(long soTien) {
@@ -781,16 +751,69 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		}
 	}
 
-	private void hienThiDialogQR(String urlQRDaTao) {
+	// ĐÃ SỬA: Hàm gọi xuất PDF truyền đúng 13 tham số chuẩn xác nhất
+	private void inPDFChayNgam(String qrURL) {
+		SwingWorker<Void, Void> printWorker = new SwingWorker<>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				// Xử lý java.util.Date an toàn
+				java.util.Date gioVaoBan = new java.util.Date();
+				if (hoaDon != null && hoaDon.getNgayLapHoaDon() != null) {
+					gioVaoBan = new java.util.Date(hoaDon.getNgayLapHoaDon().getTime());
+				}
+				java.util.Date gioThanhToan = new java.util.Date();
+
+				double tongTienGiam = giamDiemTichLuy + giamKhuyenMai;
+				BigDecimal tienGiamBD = BigDecimal.valueOf(tongTienGiam);
+
+				// GỌI HÀM VỚI ĐỦ 13 THAM SỐ CHO TRÌNH BIÊN DỊCH
+				HoaDonPDF.xuatHoaDonPDF(
+						hoaDon,
+						khachHang,
+						nhanVien,
+						dsBanThanhToan,
+						gioVaoBan,
+						gioThanhToan,
+						tableModel,
+						tongCong,
+						thue,
+						tongThanhToan,
+						tienDaCoc,
+						tienGiamBD,
+						qrURL
+				);
+				return null;
+			}
+
+			@Override
+			protected void done() {
+				try {
+					get();
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(TinhTien_UI.this, "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		};
+		printWorker.execute();
+	}
+
+	private void xuLyInVaCheckQR() {
 		long soTien = (long) tongThanhToan;
 		if (soTien <= 0) {
 			JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!", "Lỗi", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
+		String qrURL = taoLinkVietQR(soTien);
 
+		// Chạy in PDF ngầm
+		inPDFChayNgam(qrURL);
+
+		hienThiDialogQR(qrURL);
+	}
+
+	private void hienThiDialogQR(String urlQRDaTao) {
+		long soTien = (long) tongThanhToan;
 		String noiDungCK = lblMaHoaDon.getText().trim();
-
-		String finalUrl = (urlQRDaTao != null && !urlQRDaTao.isEmpty()) ? urlQRDaTao : taoLinkVietQR(soTien);
 
 		JDialog dialogQR = new JDialog(this, "Quét Mã Thanh Toán", true);
 		dialogQR.setSize(450, 650);
@@ -818,11 +841,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lblTrangThai.setForeground(Color.RED);
 		lblTrangThai.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-		JLabel lblInstruction = new JLabel("(Hệ thống tự động duyệt sau 3-5 giây)", SwingConstants.CENTER);
-		lblInstruction.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		lblInstruction.setForeground(Color.GRAY);
-		lblInstruction.setAlignmentX(Component.CENTER_ALIGNMENT);
-
 		Dimension btnSize = new Dimension(180, 40);
 
 		JButton btnCheckNow = new JButton("Kiểm tra ngay");
@@ -832,7 +850,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		btnCheckNow.setPreferredSize(btnSize);
 		btnCheckNow.setMaximumSize(btnSize);
 		btnCheckNow.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnCheckNow.setBorder(null);
 		btnCheckNow.setFocusPainted(false);
 		btnCheckNow.addActionListener(e -> {
 			lblTrangThai.setText("Đang kiểm tra...");
@@ -847,7 +864,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		btnHuy.setPreferredSize(btnSize);
 		btnHuy.setMaximumSize(btnSize);
 		btnHuy.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnHuy.setBorder(null);
 		btnHuy.setFocusPainted(false);
 		btnHuy.addActionListener(e -> {
 			if (timerKiemTraThanhToan != null) timerKiemTraThanhToan.stop();
@@ -857,11 +873,9 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		JButton btnDemoSuccess = new JButton("Đã nhận");
 		btnDemoSuccess.setBackground(Color.GRAY);
 		btnDemoSuccess.setForeground(Color.WHITE);
-		btnDemoSuccess.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 		btnDemoSuccess.setPreferredSize(new Dimension(120, 30));
 		btnDemoSuccess.setMaximumSize(new Dimension(120, 30));
 		btnDemoSuccess.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnDemoSuccess.setBorder(null);
 		btnDemoSuccess.setFocusPainted(false);
 		btnDemoSuccess.addActionListener(e -> {
 			if (timerKiemTraThanhToan != null) timerKiemTraThanhToan.stop();
@@ -870,8 +884,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		});
 
 		pnlFooter.add(lblTrangThai);
-		pnlFooter.add(Box.createVerticalStrut(5));
-		pnlFooter.add(lblInstruction);
 		pnlFooter.add(Box.createVerticalStrut(20));
 		pnlFooter.add(btnCheckNow);
 		pnlFooter.add(Box.createVerticalStrut(10));
@@ -884,7 +896,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		new SwingWorker<ImageIcon, Void>() {
 			@Override
 			protected ImageIcon doInBackground() throws Exception {
-				java.net.URL url = new java.net.URL(finalUrl);
+				java.net.URL url = new java.net.URL(urlQRDaTao);
 				java.net.URLConnection connection = url.openConnection();
 				connection.setRequestProperty("User-Agent", "Mozilla/5.0");
 				Image image = javax.imageio.ImageIO.read(connection.getInputStream());
@@ -898,23 +910,17 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 					lblAnhQR.setIcon(get());
 				} catch (Exception e) {
 					lblAnhQR.setText("Lỗi tải QR! Vui lòng thử lại.");
-					e.printStackTrace();
 				}
 			}
 		}.execute();
 
-		timerKiemTraThanhToan = new Timer(2000, new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				checkGiaoDichSepay(noiDungCK, soTien, dialogQR, lblTrangThai);
-			}
-		});
+		timerKiemTraThanhToan = new Timer(2000, e -> checkGiaoDichSepay(noiDungCK, soTien, dialogQR, lblTrangThai));
 		timerKiemTraThanhToan.start();
 
 		dialogQR.addWindowListener(new java.awt.event.WindowAdapter() {
 			@Override
 			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-				timerKiemTraThanhToan.stop();
+				if (timerKiemTraThanhToan != null) timerKiemTraThanhToan.stop();
 			}
 		});
 
@@ -935,59 +941,37 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 					conn.setRequestProperty("Content-Type", "application/json");
 
 					int responseCode = conn.getResponseCode();
-					if (responseCode != 200) {
-						System.out.println("Lỗi kết nối Sepay: " + responseCode);
-						return false;
-					}
+					if (responseCode != 200) return false;
 
-					java.io.BufferedReader in = new java.io.BufferedReader(
-							new java.io.InputStreamReader(conn.getInputStream()));
-					String inputLine;
+					java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
 					StringBuilder content = new StringBuilder();
-					while ((inputLine = in.readLine()) != null) {
-						content.append(inputLine);
-					}
+					String inputLine;
+					while ((inputLine = in.readLine()) != null) content.append(inputLine);
 					in.close();
 
 					String responseBody = content.toString();
-
 					boolean khopNoiDung = responseBody.contains(noiDungCanTim);
 					boolean khopSoTien = responseBody.contains("\"amount_in\":\"" + soTienCanTim + ".00\"") ||
-							responseBody.contains("\"amount_in\":" + soTienCanTim) ||
-							responseBody.contains(String.valueOf(soTienCanTim));
+							responseBody.contains("\"amount_in\":" + soTienCanTim);
 
 					return khopNoiDung && khopSoTien;
 
-				} catch (Exception e) {
-					e.printStackTrace();
-					return false;
-				}
+				} catch (Exception e) { return false; }
 			}
 
 			@Override
 			protected void done() {
 				try {
-					boolean thanhCong = get();
-					if (thanhCong) {
-						timerKiemTraThanhToan.stop();
-
+					if (get()) {
+						if (timerKiemTraThanhToan != null) timerKiemTraThanhToan.stop();
 						lblStatus.setText("Giao dịch thành công!");
 						lblStatus.setForeground(new Color(76, 175, 80));
 
-						Timer delayClose = new Timer(1000, new ActionListener() {
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								dialog.dispose();
-
-								processPayment();
-							}
-						});
+						Timer delayClose = new Timer(1000, e -> { dialog.dispose(); processPayment(); });
 						delayClose.setRepeats(false);
 						delayClose.start();
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				} catch (Exception e) { e.printStackTrace(); }
 			}
 		}.execute();
 	}
@@ -1000,22 +984,8 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 				this.thumbColor = new Color(100, 105, 120);
 				this.trackColor = MAU_NEN_INPUT;
 			}
-
-			protected JButton createDecreaseButton(int o) {
-				return new JButton() {
-					{
-						setPreferredSize(new Dimension(0, 0));
-					}
-				};
-			}
-
-			protected JButton createIncreaseButton(int o) {
-				return new JButton() {
-					{
-						setPreferredSize(new Dimension(0, 0));
-					}
-				};
-			}
+			protected JButton createDecreaseButton(int o) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn; }
+			protected JButton createIncreaseButton(int o) { JButton btn = new JButton(); btn.setPreferredSize(new Dimension(0,0)); return btn; }
 		});
 	}
 
@@ -1041,32 +1011,38 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		SimpleDateFormat dateFormatOnly = new SimpleDateFormat("dd/MM/yyyy");
 		final List<KhuyenMai> listKM = new ArrayList<>();
 
-		try {
-			if (khuyenMaiDAO != null) {
-				listKM.addAll(khuyenMaiDAO.getAllList());
+		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				if (khuyenMaiDAO != null) {
+					listKM.addAll(khuyenMaiDAO.getAllList());
+				}
+				return null;
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			@Override
+			protected void done() {
+				if (listKM.isEmpty()) {
+					JOptionPane.showMessageDialog(TinhTien_UI.this, "Không có khuyến mãi nào khả dụng!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+					dialog.dispose();
+					return;
+				}
 
-		if (listKM.isEmpty()) {
-			JOptionPane.showMessageDialog(this, "Không có khuyến mãi nào khả dụng!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-			return;
-		}
+				for (KhuyenMai km : listKM) {
+					String giaTriHienThi = km.getLoaiKhuyenMai().equals("Giảm %") ?
+							String.format("%.0f%%", km.getGiaTriGiam()) :
+							currencyFormatter.format(km.getGiaTriGiam());
 
-		for (KhuyenMai km : listKM) {
-			String giaTriHienThi = km.getLoaiKhuyenMai().equals("Giảm %") ?
-					String.format("%.0f%%", km.getGiaTriGiam()) :
-					currencyFormatter.format(km.getGiaTriGiam());
-
-			modelDialog.addRow(new Object[]{
-					km.getMaKhuyenMai(),
-					km.getTenKhuyenMai(),
-					km.getLoaiKhuyenMai(),
-					giaTriHienThi,
-					dateFormatOnly.format(km.getNgayKetThuc())
-			});
-		}
+					modelDialog.addRow(new Object[]{
+							km.getMaKhuyenMai(),
+							km.getTenKhuyenMai(),
+							km.getLoaiKhuyenMai(),
+							giaTriHienThi,
+							dateFormatOnly.format(km.getNgayKetThuc())
+					});
+				}
+			}
+		};
+		worker.execute();
 
 		JTable tableDialog = new JTable(modelDialog);
 		tableDialog.setRowHeight(30);
@@ -1076,7 +1052,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		tableDialog.getTableHeader().setBackground(new Color(40, 44, 48));
 		tableDialog.getTableHeader().setForeground(Color.WHITE);
 		tableDialog.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
-		tableDialog.setSelectionForeground(Color.WHITE);
 
 		JScrollPane scroll = new JScrollPane(tableDialog);
 		scroll.getViewport().setBackground(COLOR_DARK);
@@ -1105,10 +1080,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 				JOptionPane.showMessageDialog(dialog, "Vui lòng chọn một khuyến mãi!", "Thông báo", JOptionPane.WARNING_MESSAGE);
 				return;
 			}
-			KhuyenMai kmSelected = listKM.get(selectedRow);
-
-			xuLyApDungKhuyenMai(kmSelected);
-
+			xuLyApDungKhuyenMai(listKM.get(selectedRow));
 			dialog.dispose();
 		});
 
@@ -1136,9 +1108,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		calculateTotals();
 		capNhatTienThua();
 
-		JOptionPane.showMessageDialog(this,
-				"Đã áp dụng mã: " + km.getTenKhuyenMai(),
-				"Thành công",
-				JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog(this, "Đã áp dụng mã: " + km.getTenKhuyenMai(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
 	}
 }

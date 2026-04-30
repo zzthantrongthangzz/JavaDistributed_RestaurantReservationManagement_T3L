@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,17 +43,17 @@ public class ThemNhieuMonAn_UI extends JPanel {
     private JTable tblPreview;
     private DefaultTableModel modelPreview;
     private List<MonAn> listMonAnImport;
-
     private File thuMucChuaAnhNguon = null;
     private JLabel lblThuMucAnh;
+    private JButton btnLuu;
 
     private IMonAn_Service monAnDAO;
     private ILoaiMon_Service loaiMonDAO;
 
     public ThemNhieuMonAn_UI() {
         try {
-            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
+            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -105,7 +104,7 @@ public class ThemNhieuMonAn_UI extends JPanel {
         btnLamMoi.setPreferredSize(new Dimension(110, 45));
         btnLamMoi.addActionListener(e -> lamMoi());
 
-        JButton btnLuu = taoNut("LƯU VÀO HỆ THỐNG", MAU_XANH_LUC);
+        btnLuu = taoNut("LƯU VÀO HỆ THỐNG", MAU_XANH_LUC);
         btnLuu.setPreferredSize(new Dimension(200, 45));
         btnLuu.addActionListener(e -> luuVaoDatabase());
 
@@ -122,25 +121,23 @@ public class ThemNhieuMonAn_UI extends JPanel {
         lblThuMucAnh.setForeground(Color.GRAY);
         lblThuMucAnh.setFont(new Font("Segoe UI", Font.ITALIC, 14));
         lblThuMucAnh.setBorder(new EmptyBorder(0, 0, 0, 0));
-
         pnlLabelRow.add(lblThuMucAnh);
 
         pnlActionWrapper.add(pnlButtonRow, BorderLayout.NORTH);
         pnlActionWrapper.add(pnlLabelRow, BorderLayout.CENTER);
-
         pnlTop.add(pnlActionWrapper, BorderLayout.CENTER);
-
         add(pnlTop, BorderLayout.NORTH);
 
         String[] cols = {"STT", "Tên Món", "Loại", "Giá", "Đơn Vị", "File Ảnh (Excel)", "Trạng Thái Ảnh", "Kiểm Tra"};
-        modelPreview = new DefaultTableModel(cols, 0);
+        modelPreview = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
         tblPreview = new JTable(modelPreview);
         tuyChinhBang(tblPreview);
         JScrollPane scrollPane = new JScrollPane(tblPreview);
         tuyChinhScrollBar(scrollPane);
         scrollPane.setBorder(BorderFactory.createLineBorder(MAU_KE_BANG, 1));
         scrollPane.getViewport().setBackground(MAU_NEN_BANG);
-
         add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -156,8 +153,6 @@ public class ThemNhieuMonAn_UI extends JPanel {
     private void chonThuMucAnh() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        fileChooser.setDialogTitle("Chọn thư mục chứa các file ảnh món ăn");
-
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             thuMucChuaAnhNguon = fileChooser.getSelectedFile();
             lblThuMucAnh.setText("Nguồn ảnh: " + thuMucChuaAnhNguon.getAbsolutePath());
@@ -174,7 +169,6 @@ public class ThemNhieuMonAn_UI extends JPanel {
                 Sheet sheet = workbook.createSheet("DanhSachMon");
                 Row header = sheet.createRow(0);
                 String[] headers = {"Tên Món", "Tên Loại", "Giá Bán", "Đơn Vị", "Mô Tả", "Tên File Ảnh"};
-
                 CellStyle style = workbook.createCellStyle();
                 org.apache.poi.ss.usermodel.Font font = workbook.createFont();
                 font.setBold(true);
@@ -200,7 +194,6 @@ public class ThemNhieuMonAn_UI extends JPanel {
                 out.close();
                 JOptionPane.showMessageDialog(this, "Tải file mẫu thành công!");
             } catch (IOException e) {
-                e.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Lỗi tạo file: " + e.getMessage());
             }
         }
@@ -224,87 +217,87 @@ public class ThemNhieuMonAn_UI extends JPanel {
         listMonAnImport.clear();
         modelPreview.setRowCount(0);
 
-        try (FileInputStream fis = new FileInputStream(file);
-             Workbook workbook = new XSSFWorkbook(fis)) {
+        SwingWorker<List<Object[]>, Void> worker = new SwingWorker<List<Object[]>, Void>() {
+            @Override protected List<Object[]> doInBackground() throws Exception {
+                List<Object[]> rowsData = new ArrayList<>();
+                try (FileInputStream fis = new FileInputStream(file);
+                     Workbook workbook = new XSSFWorkbook(fis)) {
 
-            Sheet sheet = workbook.getSheetAt(0);
-            List<LoaiMon> dsLoaiDB = loaiMonDAO.docDanhSachLoaiMon();
-            String currentMaxID = monAnDAO.sinhMaMonTuDong();
-            int currentNum = Integer.parseInt(currentMaxID.substring(2));
+                    Sheet sheet = workbook.getSheetAt(0);
+                    List<LoaiMon> dsLoaiDB = loaiMonDAO.docDanhSachLoaiMon();
+                    String currentMaxID = monAnDAO.sinhMaMonTuDong();
+                    int currentNum = Integer.parseInt(currentMaxID.substring(2));
 
-            int stt = 1;
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
+                    int stt = 1;
+                    for (Row row : sheet) {
+                        if (row.getRowNum() == 0) continue;
+                        try {
+                            String tenMon = getCellValue(row.getCell(0));
+                            String tenLoai = getCellValue(row.getCell(1));
+                            String giaStr = getCellValue(row.getCell(2));
+                            String donVi = getCellValue(row.getCell(3));
+                            String moTa = getCellValue(row.getCell(4));
+                            String tenFileAnh = getCellValue(row.getCell(5));
 
-                try {
-                    String tenMon = getCellValue(row.getCell(0));
-                    String tenLoai = getCellValue(row.getCell(1));
-                    String giaStr = getCellValue(row.getCell(2));
-                    String donVi = getCellValue(row.getCell(3));
-                    String moTa = getCellValue(row.getCell(4));
-                    String tenFileAnh = getCellValue(row.getCell(5));
+                            if (tenMon.isEmpty() || tenLoai.isEmpty() || giaStr.isEmpty()) continue;
+                            double gia = Double.parseDouble(giaStr);
 
-                    if (tenMon.isEmpty() || tenLoai.isEmpty() || giaStr.isEmpty()) continue;
-
-                    double gia = Double.parseDouble(giaStr);
-
-                    LoaiMon loaiChon = null;
-                    for (LoaiMon lm : dsLoaiDB) {
-                        if (lm.getTenLoai().equalsIgnoreCase(tenLoai.trim())) {
-                            loaiChon = lm;
-                            break;
-                        }
-                    }
-
-                    String trangThaiKiemTra = "Hợp lệ";
-                    String trangThaiAnh = "Mặc định";
-                    String duongDanAnhCuoiCung = "/img/default_food.png";
-
-                    if (loaiChon == null) {
-                        trangThaiKiemTra = "Lỗi: Loại không tồn tại";
-                    } else {
-                        if (!tenFileAnh.isEmpty() && thuMucChuaAnhNguon != null) {
-                            File fileAnhNguon = new File(thuMucChuaAnhNguon, tenFileAnh);
-                            if (fileAnhNguon.exists()) {
-                                trangThaiAnh = "Tìm thấy";
-                                duongDanAnhCuoiCung = fileAnhNguon.getAbsolutePath();
-                            } else {
-                                trangThaiAnh = "Không thấy file";
+                            LoaiMon loaiChon = null;
+                            for (LoaiMon lm : dsLoaiDB) {
+                                if (lm.getTenLoai().equalsIgnoreCase(tenLoai.trim())) {
+                                    loaiChon = lm; break;
+                                }
                             }
-                        } else if (!tenFileAnh.isEmpty() && thuMucChuaAnhNguon == null) {
-                            trangThaiAnh = "Chưa chọn thư mục nguồn";
-                        }
 
-                        String maMonMoi = String.format("MM%06d", currentNum + (stt - 1));
+                            String trangThaiKiemTra = "Hợp lệ";
+                            String trangThaiAnh = "Mặc định";
+                            String duongDanAnhCuoiCung = "/img/default_food.png";
 
-                        MonAn monMoi = new MonAn(maMonMoi, tenMon, duongDanAnhCuoiCung, gia, "Đang kinh doanh", moTa, donVi, loaiChon);
-                        listMonAnImport.add(monMoi);
+                            if (loaiChon == null) {
+                                trangThaiKiemTra = "Lỗi: Loại không tồn tại";
+                            } else {
+                                if (!tenFileAnh.isEmpty() && thuMucChuaAnhNguon != null) {
+                                    File fileAnhNguon = new File(thuMucChuaAnhNguon, tenFileAnh);
+                                    if (fileAnhNguon.exists()) {
+                                        trangThaiAnh = "Tìm thấy";
+                                        duongDanAnhCuoiCung = fileAnhNguon.getAbsolutePath();
+                                    } else {
+                                        trangThaiAnh = "Không thấy file";
+                                    }
+                                } else if (!tenFileAnh.isEmpty() && thuMucChuaAnhNguon == null) {
+                                    trangThaiAnh = "Chưa chọn thư mục nguồn";
+                                }
+
+                                String maMonMoi = String.format("MM%06d", currentNum + (stt - 1));
+                                MonAn monMoi = new MonAn(maMonMoi, tenMon, duongDanAnhCuoiCung, gia, "Đang kinh doanh", moTa, donVi, loaiChon);
+                                listMonAnImport.add(monMoi);
+                            }
+
+                            rowsData.add(new Object[]{
+                                    stt, tenMon, tenLoai, String.format("%,.0f", gia), donVi,
+                                    tenFileAnh, trangThaiAnh, trangThaiKiemTra
+                            });
+                            stt++;
+                        } catch (Exception ex) { System.err.println("Lỗi dòng " + row.getRowNum()); }
                     }
-
-                    modelPreview.addRow(new Object[]{
-                            stt, tenMon, tenLoai, String.format("%,.0f", gia), donVi,
-                            tenFileAnh, trangThaiAnh, trangThaiKiemTra
-                    });
-                    stt++;
-
-                } catch (Exception ex) {
-                    System.err.println("Lỗi dòng " + row.getRowNum());
+                }
+                return rowsData;
+            }
+            @Override protected void done() {
+                try {
+                    List<Object[]> rowsData = get();
+                    for(Object[] rowData : rowsData) modelPreview.addRow(rowData);
+                    if (!listMonAnImport.isEmpty()) {
+                        JOptionPane.showMessageDialog(ThemNhieuMonAn_UI.this, "Đọc file thành công! Vui lòng kiểm tra kỹ trạng thái ảnh trước khi Lưu.");
+                    } else {
+                        JOptionPane.showMessageDialog(ThemNhieuMonAn_UI.this, "File trống hoặc lỗi định dạng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(ThemNhieuMonAn_UI.this, "Lỗi xử lý file: " + e.getMessage());
                 }
             }
-
-            if (!listMonAnImport.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Đọc file thành công! Vui lòng kiểm tra kỹ trạng thái ảnh trước khi Lưu.");
-            } else {
-                JOptionPane.showMessageDialog(this, "File trống hoặc lỗi định dạng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (RemoteException re) {
-            re.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ: " + re.getMessage(), "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi đọc file: " + e.getMessage());
-        }
+        };
+        worker.execute();
     }
 
     private boolean xuLyCopyAnhVaChuanHoaDuongDan() {
@@ -314,7 +307,6 @@ public class ThemNhieuMonAn_UI extends JPanel {
 
             for (MonAn mon : listMonAnImport) {
                 String pathHienTai = mon.getDuongDanAnh();
-
                 if (pathHienTai != null && !pathHienTai.startsWith("/img/")) {
                     File sourceFile = new File(pathHienTai);
                     if (sourceFile.exists()) {
@@ -324,7 +316,6 @@ public class ThemNhieuMonAn_UI extends JPanel {
 
                         String tenFileMoi = "mon_" + chuyenTenMonThanhTenFile(mon.getTenMon()) + extension;
                         File destFile = new File(outputDir, tenFileMoi);
-
                         Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         mon.setDuongDanAnh("/img/" + tenFileMoi);
                     } else {
@@ -346,28 +337,28 @@ public class ThemNhieuMonAn_UI extends JPanel {
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Hệ thống sẽ copy hình ảnh (nếu có) và lưu dữ liệu.\nTiếp tục?",
-                "Xác nhận", JOptionPane.YES_NO_OPTION);
-
+        int confirm = JOptionPane.showConfirmDialog(this, "Hệ thống sẽ copy hình ảnh và lưu dữ liệu. Tiếp tục?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            if (!xuLyCopyAnhVaChuanHoaDuongDan()) {
-                return;
-            }
+            if (!xuLyCopyAnhVaChuanHoaDuongDan()) return;
 
-            try {
-                boolean ketQua = monAnDAO.themDanhSachMonAn(listMonAnImport);
-
-                if (ketQua) {
-                    JOptionPane.showMessageDialog(this, "Thêm thành công " + listMonAnImport.size() + " món ăn!");
-                    lamMoi();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Lỗi lưu Database!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            btnLuu.setEnabled(false);
+            SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                @Override protected Boolean doInBackground() throws Exception {
+                    return monAnDAO.themDanhSachMonAn(listMonAnImport);
                 }
-            } catch (RemoteException re) {
-                re.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Mất kết nối máy chủ khi lưu!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-            }
+                @Override protected void done() {
+                    btnLuu.setEnabled(true);
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(ThemNhieuMonAn_UI.this, "Thêm thành công " + listMonAnImport.size() + " món ăn!");
+                            lamMoi();
+                        } else {
+                            JOptionPane.showMessageDialog(ThemNhieuMonAn_UI.this, "Lỗi lưu Database!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {}
+                }
+            };
+            worker.execute();
         }
     }
 
@@ -387,14 +378,10 @@ public class ThemNhieuMonAn_UI extends JPanel {
     private String getCellValue(Cell cell) {
         if (cell == null) return "";
         switch (cell.getCellType()) {
-            case STRING:
-                return cell.getStringCellValue().trim();
-            case NUMERIC:
-                return String.valueOf((long)cell.getNumericCellValue());
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-            default:
-                return "";
+            case STRING: return cell.getStringCellValue().trim();
+            case NUMERIC: return String.valueOf((long)cell.getNumericCellValue());
+            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
+            default: return "";
         }
     }
 
@@ -412,12 +399,10 @@ public class ThemNhieuMonAn_UI extends JPanel {
     private void tuyChinhBang(JTable table) {
         table.setFont(FONT_TEXT);
         table.setRowHeight(30);
-
         table.setGridColor(MAU_KE_BANG);
         table.setShowVerticalLines(true);
         table.setShowHorizontalLines(true);
         table.setIntercellSpacing(new Dimension(1, 1));
-
         table.setBackground(MAU_NEN_BANG);
         table.setForeground(MAU_CHU_CHUNG);
         table.setSelectionBackground(MAU_XANH_DUONG);
@@ -428,31 +413,25 @@ public class ThemNhieuMonAn_UI extends JPanel {
         header.setForeground(MAU_CHU_CHUNG);
         header.setFont(FONT_HEADER);
         header.setPreferredSize(new Dimension(0, 40));
-
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            @Override public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = new JLabel(value != null ? value.toString() : "");
                 label.setFont(FONT_HEADER);
                 label.setForeground(MAU_CHU_CHUNG);
                 label.setBackground(MAU_NEN_INPUT);
                 label.setOpaque(true);
                 label.setHorizontalAlignment(JLabel.CENTER);
-
                 label.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 1, MAU_KE_BANG),
                         new EmptyBorder(10, 5, 10, 5)
                 ));
-
                 return label;
             }
         });
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        for(int i=0; i<table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
-        }
+        for(int i=0; i<table.getColumnCount(); i++) table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
 
         table.getColumnModel().getColumn(1).setPreferredWidth(200);
         table.getColumnModel().getColumn(6).setPreferredWidth(120);

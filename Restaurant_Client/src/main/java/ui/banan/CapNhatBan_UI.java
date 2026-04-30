@@ -40,14 +40,22 @@ public class CapNhatBan_UI extends JPanel {
     private JComboBox<String> cmbLoaiBan;
     private JTable table;
     private DefaultTableModel tableModel;
-    private IBanAn_Service banAnDAO;
+
+    // Đã nâng lên thành biến toàn cục để điều khiển trạng thái Enable/Disable
+    private JButton btnCapNhat;
+    private JButton btnXoa;
+    private JButton btnLamMoi;
+
+    // CHUẨN HÓA RMI SERVICE
+    private IBanAn_Service banAnService;
     private List<BanAn> danhSachBanHienThi;
 
     public CapNhatBan_UI() {
         try {
-            banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ RMI!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
 
         setBackground(bgColor);
@@ -60,7 +68,7 @@ public class CapNhatBan_UI extends JPanel {
         JPanel panelBottom = taoPanelBang();
         add(panelBottom, BorderLayout.CENTER);
 
-        docDuLieuVaoBang();
+        taiDuLieuVaoBang();
     }
 
     private JPanel taoPanelNhapLieu() {
@@ -110,13 +118,13 @@ public class CapNhatBan_UI extends JPanel {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
-        JButton btnCapNhat = createStyledButton("Cập nhật", MAU_NUT_CAP_NHAT);
-        btnCapNhat.addActionListener(e -> capNhatBan());
+        btnCapNhat = createStyledButton("Cập nhật", MAU_NUT_CAP_NHAT);
+        btnCapNhat.addActionListener(e -> xuLyCapNhatBan());
 
-        JButton btnXoa = createStyledButton("Xoá", MAU_NUT_XOA);
-        btnXoa.addActionListener(e -> xoaBan());
+        btnXoa = createStyledButton("Xoá", MAU_NUT_XOA);
+        btnXoa.addActionListener(e -> xuLyXoaBan());
 
-        JButton btnLamMoi = createStyledButton("Làm mới", MAU_NUT_LAM_MOI);
+        btnLamMoi = createStyledButton("Làm mới", MAU_NUT_LAM_MOI);
         btnLamMoi.addActionListener(e -> lamMoiForm());
 
         buttonPanel.add(btnCapNhat);
@@ -283,12 +291,16 @@ public class CapNhatBan_UI extends JPanel {
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                button.setBackground(color.brighter());
+                if (button.isEnabled()) {
+                    button.setBackground(color.brighter());
+                }
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setBackground(color);
+                if (button.isEnabled()) {
+                    button.setBackground(color);
+                }
             }
         });
         return button;
@@ -315,7 +327,7 @@ public class CapNhatBan_UI extends JPanel {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                                                            boolean hasFocus, int row, int column) {
-                JLabel label = new JLabel(value.toString());
+                JLabel label = new JLabel(value != null ? value.toString() : "");
                 label.setFont(FONT_HEADER_BANG);
                 label.setForeground(textColor);
                 label.setBackground(MAU_NEN_ITEM);
@@ -336,26 +348,43 @@ public class CapNhatBan_UI extends JPanel {
         }
     }
 
-    private void docDuLieuVaoBang() {
-        try {
-            danhSachBanHienThi = banAnDAO.docDanhSachBan();
-            tableModel.setRowCount(0);
-            if (danhSachBanHienThi != null) {
-                for (BanAn ban : danhSachBanHienThi) {
-                    tableModel.addRow(new Object[] {
-                            ban.getMaBan(),
-                            ban.getTenBan(),
-                            ban.getTenKhu(),
-                            ban.getTenTang(),
-                            ban.getLoaiBan(),
-                            ban.getSucChua(),
-                            ban.getTrangThai()
-                    });
+    // =========================================================================================
+    // SWING WORKER: TẢI DỮ LIỆU VÀO BẢNG
+    // =========================================================================================
+    private void taiDuLieuVaoBang() {
+        if (banAnService == null) return;
+
+        SwingWorker<List<BanAn>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<BanAn> doInBackground() throws Exception {
+                return banAnService.docDanhSachBan();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    danhSachBanHienThi = get();
+                    tableModel.setRowCount(0);
+                    if (danhSachBanHienThi != null) {
+                        for (BanAn ban : danhSachBanHienThi) {
+                            tableModel.addRow(new Object[] {
+                                    ban.getMaBan(),
+                                    ban.getTenBan(),
+                                    ban.getTenKhu(),
+                                    ban.getTenTang(),
+                                    ban.getLoaiBan(),
+                                    ban.getSucChua(),
+                                    ban.getTrangThai()
+                            });
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Lỗi khi tải dữ liệu bàn ăn: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        };
+        worker.execute();
     }
 
     private void hienThiDuLieuLenForm(int row) {
@@ -375,11 +404,13 @@ public class CapNhatBan_UI extends JPanel {
         table.clearSelection();
     }
 
-    private void capNhatBan() {
+    // =========================================================================================
+    // SWING WORKER: CẬP NHẬT BÀN
+    // =========================================================================================
+    private void xuLyCapNhatBan() {
         String maBan = txtMaBan.getText().trim();
         if (maBan.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một bàn để cập nhật.", "Thông báo",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn một bàn để cập nhật.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -389,81 +420,101 @@ public class CapNhatBan_UI extends JPanel {
         String trangThai = txtTrangThai.getText().trim();
 
         String maKhu = "K01";
-        if (loaiBan.equals("Bàn nhỏ"))
-            maKhu = "K01";
-        else if (loaiBan.equals("Bàn vừa"))
-            maKhu = "K02";
-        else if (loaiBan.equals("Bàn lớn"))
-            maKhu = "K03";
-        else if (loaiBan.equals("Phòng VIP"))
-            maKhu = "K03";
+        if (loaiBan.equals("Bàn nhỏ")) maKhu = "K01";
+        else if (loaiBan.equals("Bàn vừa")) maKhu = "K02";
+        else if (loaiBan.equals("Bàn lớn")) maKhu = "K03";
+        else if (loaiBan.equals("Phòng VIP")) maKhu = "K03";
 
         try {
             int sucChua = Integer.parseInt(sucChuaStr);
+            if (sucChua <= 0) throw new IllegalArgumentException("Sức chứa phải lớn hơn 0");
 
             BanAn banCapNhat = new BanAn(maBan, tenBan, loaiBan, sucChua, trangThai, maKhu);
 
-            if (banAnDAO.capNhatBan(banCapNhat)) {
-                JOptionPane.showMessageDialog(this, "Cập nhật thành công!", "Thông báo",
-                        JOptionPane.INFORMATION_MESSAGE);
-                docDuLieuVaoBang();
-                lamMoiForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Cập nhật thất bại (Lỗi Database).", "Lỗi",
-                        JOptionPane.ERROR_MESSAGE);
-            }
+            btnCapNhat.setEnabled(false);
+            btnCapNhat.setText("Đang xử lý...");
+
+            SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return banAnService.capNhatBan(banCapNhat);
+                }
+
+                @Override
+                protected void done() {
+                    btnCapNhat.setEnabled(true);
+                    btnCapNhat.setText("Cập nhật");
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Cập nhật thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                            taiDuLieuVaoBang();
+                            lamMoiForm();
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Cập nhật thất bại (Lỗi Database).", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
 
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sức chứa phải là số nguyên hợp lệ.", "Lỗi nhập liệu",
-                    JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Sức chứa phải là số nguyên hợp lệ.", "Lỗi nhập liệu", JOptionPane.ERROR_MESSAGE);
             txtSucChua.requestFocus();
-
         } catch (IllegalArgumentException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
-
-            if (e.getMessage().toLowerCase().contains("sức chứa"))
-                txtSucChua.requestFocus();
-            else if (e.getMessage().toLowerCase().contains("tên"))
-                txtTenBan.requestFocus();
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
+            txtSucChua.requestFocus();
         }
     }
 
-    private void xoaBan() {
+    // =========================================================================================
+    // SWING WORKER: XÓA BÀN
+    // =========================================================================================
+    private void xuLyXoaBan() {
         String maBan = txtMaBan.getText().trim();
         if (maBan.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một bàn để xóa.", "Thông báo",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn một bàn để xóa.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         if (!txtTrangThai.getText().equals("Bàn đang trống")) {
-            JOptionPane.showMessageDialog(this, "Chỉ có thể xóa bàn đang ở trạng thái 'Bàn đang trống'.", "Thông báo",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Chỉ có thể xóa bàn đang ở trạng thái 'Bàn đang trống'.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc chắn muốn xóa '" + txtTenBan.getText() + "' không?",
-                "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa '" + txtTenBan.getText() + "' không?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                if (banAnDAO.xoaBan(maBan)) {
-                    JOptionPane.showMessageDialog(this, "Xóa bàn thành công!", "Thành công",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    docDuLieuVaoBang();
-                    lamMoiForm();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Xóa bàn thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            btnXoa.setEnabled(false);
+            btnXoa.setText("Đang xóa...");
+
+            SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return banAnService.xoaBan(maBan);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+
+                @Override
+                protected void done() {
+                    btnXoa.setEnabled(true);
+                    btnXoa.setText("Xoá");
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Xóa bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                            taiDuLieuVaoBang();
+                            lamMoiForm();
+                        } else {
+                            JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Xóa bàn thất bại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Lỗi kết nối khi xóa: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 

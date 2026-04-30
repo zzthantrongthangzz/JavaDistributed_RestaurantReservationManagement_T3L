@@ -10,12 +10,8 @@ import rmi_interfaces.IMonAn_Service;
 import rmi_interfaces.ILoaiMon_Service;
 
 import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.rmi.Naming;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,8 +26,10 @@ public class TraCuuMonAn_UI extends JPanel {
     private final int KICH_THUOC_ITEM_RONG = 220;
     private final int KICH_THUOC_ITEM_CAO = 300;
 
-    private IMonAn_Service monAn_DAO;
-    private ILoaiMon_Service loaiMonDAO;
+    // ĐÃ CHUẨN HÓA TÊN BIẾN THEO CHUẨN SERVICE
+    private IMonAn_Service monAnService;
+    private ILoaiMon_Service loaiMonService;
+
     private JPanel panelLuoiMonAn;
     private JLabel lblSoMon;
     private JTextField txtTimKiem;
@@ -44,14 +42,15 @@ public class TraCuuMonAn_UI extends JPanel {
     public TraCuuMonAn_UI() {
 
         try {
-            monAn_DAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
-            danhSachMonAnHienThi = monAn_DAO.docDanhSachMon();
+            // SỬA LẠI ĐƯỜNG DẪN RMI CHO KHỚP VỚI SERVERMAIN
+            monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            loaiMonService = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
-            danhSachMonAnHienThi = new ArrayList<>();
         }
+
+        danhSachMonAnHienThi = new ArrayList<>();
 
         setLayout(new BorderLayout());
         setBackground(MAU_NEN_TAB);
@@ -116,26 +115,18 @@ public class TraCuuMonAn_UI extends JPanel {
         comboWrapper.setBackground(MAU_NEN_TAB);
 
         this.cmbBoLoc = new JComboBox<Object>();
-        taiDuLieuLoaiMon();
         cmbBoLoc.setFont(new Font("Segoe UI", Font.BOLD, 14));
         cmbBoLoc.setBackground(MAU_THANH_TIM_KIEM);
         cmbBoLoc.setForeground(MAU_CHU_CHUNG);
-
         cmbBoLoc.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        cmbBoLoc.addActionListener(e -> {
-            thucHienLoc();
-        });
         cmbBoLoc.setFocusable(false);
 
         cmbBoLoc.setUI(new BasicComboBoxUI() {
             @Override
             protected JButton createArrowButton() {
-
                 ImageIcon icon = new ImageIcon(getClass().getResource("/IMG/muitenxuong_32px.png"));
                 Image img = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
                 JButton button = new JButton(new ImageIcon(img));
-
                 button.setBackground(MAU_THANH_TIM_KIEM);
                 button.setOpaque(true);
                 button.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
@@ -187,18 +178,15 @@ public class TraCuuMonAn_UI extends JPanel {
         JPanel panelNoiDung = new JPanel(new BorderLayout(0, 15));
         panelNoiDung.setBackground(MAU_NEN_TAB);
 
-        this.lblSoMon = new JLabel("Số món trong nhà hàng: " + danhSachMonAnHienThi.size());
+        this.lblSoMon = new JLabel("Số món trong nhà hàng: 0");
         lblSoMon.setForeground(new Color(180, 180, 180));
         lblSoMon.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         lblSoMon.setBorder(new EmptyBorder(0, 0, 5, 0));
         panelNoiDung.add(lblSoMon, BorderLayout.NORTH);
 
         this.panelLuoiMonAn = new WrapFlowPanel();
-
         panelLuoiMonAn.setLayout(new FlowLayout(FlowLayout.LEFT, 40, 35));
         panelLuoiMonAn.setBackground(MAU_NEN_TAB);
-
-        capNhatLuoiMonAn(danhSachMonAnHienThi);
 
         JScrollPane scrollPane = new JScrollPane(panelLuoiMonAn);
         tuyChinhScrollBar(scrollPane);
@@ -213,6 +201,9 @@ public class TraCuuMonAn_UI extends JPanel {
         panelNoiDung.add(scrollPane, BorderLayout.CENTER);
         panelChinh.add(panelNoiDung, BorderLayout.CENTER);
         add(panelChinh, BorderLayout.CENTER);
+
+        // Gọi tải dữ liệu bất đồng bộ khi khởi tạo xong UI
+        taiDuLieuLoaiMonVaMonAnBanDau();
     }
 
     private JPanel taoPanelTieuDe() {
@@ -240,33 +231,24 @@ public class TraCuuMonAn_UI extends JPanel {
     }
 
     private class WrapFlowPanel extends JPanel implements Scrollable {
-
-        public WrapFlowPanel() {
-        }
+        public WrapFlowPanel() {}
 
         @Override
         public Dimension getPreferredSize() {
             int parentWidth = getParent().getWidth();
-
             if (parentWidth == 0) {
                 return super.getPreferredSize();
             }
-
             int hgap = ((FlowLayout) getLayout()).getHgap();
             int vgap = ((FlowLayout) getLayout()).getVgap();
-
             int availableWidth = parentWidth - hgap;
-
             int itemsPerRow = Math.max(1, availableWidth / (KICH_THUOC_ITEM_RONG + hgap));
-
             int componentCount = getComponentCount();
             if (componentCount == 0) {
                 return new Dimension(parentWidth, 0);
             }
-
             int rowCount = (int) Math.ceil((double) componentCount / itemsPerRow);
             int totalHeight = (rowCount * KICH_THUOC_ITEM_CAO) + ((rowCount - 1) * vgap) + vgap * 2;
-
             return new Dimension(parentWidth, totalHeight);
         }
         @Override
@@ -300,15 +282,12 @@ public class TraCuuMonAn_UI extends JPanel {
 
         JPanel panelHinhAnh = new JPanel(new BorderLayout()) {
             private final int ARC_SIZE = 15;
-
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setColor(MAU_NEN_ITEM);
-
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), ARC_SIZE, ARC_SIZE);
-
                 g2d.dispose();
             }
         };
@@ -353,18 +332,14 @@ public class TraCuuMonAn_UI extends JPanel {
         panelThongTin.add(Box.createRigidArea(new Dimension(0, 5)));
         panelThongTin.add(lblGia);
 
-
         panelHinhAnh.add(panelThongTin, BorderLayout.CENTER);
         panelItem.add(panelHinhAnh, BorderLayout.CENTER);
 
         panelItem.addMouseListener(new MouseAdapter() {
-
             @Override
             public void mouseClicked(MouseEvent e) {
                 Frame parentFrame = (Frame) SwingUtilities.getWindowAncestor(TraCuuMonAn_UI.this);
-
                 ChiTietMonAn_UI chiTietDialog = new ChiTietMonAn_UI(parentFrame, monAn);
-
                 chiTietDialog.setVisible(true);
             }
         });
@@ -377,14 +352,16 @@ public class TraCuuMonAn_UI extends JPanel {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ImageIcon icon = new ImageIcon(getClass().getResource("/IMG/search.png"));
-                Image img = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
-                Icon searchIcon = new ImageIcon(img);
-
-                int y = (getHeight() - searchIcon.getIconHeight()) / 2;
-
-                int x = getWidth() - searchIcon.getIconWidth() - 10;
-                searchIcon.paintIcon(this, g, x, y);
+                try {
+                    ImageIcon icon = new ImageIcon(getClass().getResource("/IMG/search.png"));
+                    Image img = icon.getImage().getScaledInstance(24, 24, Image.SCALE_SMOOTH);
+                    Icon searchIcon = new ImageIcon(img);
+                    int y = (getHeight() - searchIcon.getIconHeight()) / 2;
+                    int x = getWidth() - searchIcon.getIconWidth() - 10;
+                    searchIcon.paintIcon(this, g, x, y);
+                } catch (Exception ex) {
+                    // Ignored if icon is missing
+                }
             }
         };
 
@@ -487,23 +464,12 @@ public class TraCuuMonAn_UI extends JPanel {
 
         button.addActionListener(e -> {
             if (text.equals("Làm mới")) {
-                try {
-                    List<MonAn> toanBoMonAn = monAn_DAO.docDanhSachMon();
-                    capNhatLuoiMonAn(toanBoMonAn);
-                    txtTimKiem.setForeground(new Color(150, 150, 160));
-                    txtTimKiem.setText("Nhập mã món. . .");
-                    txtTimKiem2.setForeground(new Color(150, 150, 160));
-                    txtTimKiem2.setText("Nhập tên món. . .");
-                    cmbBoLoc.setSelectedIndex(0);
-
-                    panelChinh.requestFocusInWindow();
-                } catch (RemoteException re) {
-                    re.printStackTrace();
-                    JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-            else {
-                System.out.println("Nút: " + text + " vừa được chọn.");
+                txtTimKiem.setForeground(new Color(150, 150, 160));
+                txtTimKiem.setText("Nhập mã món. . .");
+                txtTimKiem2.setForeground(new Color(150, 150, 160));
+                txtTimKiem2.setText("Nhập tên món. . .");
+                taiDuLieuMonAnVaResetLoc();
+                panelChinh.requestFocusInWindow();
             }
         });
 
@@ -516,109 +482,193 @@ public class TraCuuMonAn_UI extends JPanel {
         for (MonAn monAn : danhSachMonAnHienThi) {
             panelLuoiMonAn.add(taoItemMonAn(monAn));
         }
-        lblSoMon.setText("Số món kinh doanh: " + danhSachMonAnHienThi.size());
+        lblSoMon.setText("Số món trong nhà hàng: " + danhSachMonAnHienThi.size());
         panelLuoiMonAn.revalidate();
         panelLuoiMonAn.repaint();
     }
 
-    private void thucHienTimKiemTheoMa() {
-        String tuKhoa = txtTimKiem.getText().trim();
-        String placeholder = "Nhập mã món. . .";
-        List<MonAn> ketQua = new ArrayList<>();
+    // =========================================================================================
+    // KHU VỰC ÁP DỤNG SWING WORKER CHO CÁC THAO TÁC RMI
+    // =========================================================================================
 
-        try {
-            if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
-                ketQua = monAn_DAO.docDanhSachMon();
-            } else {
-                ketQua = monAn_DAO.timKiemTheoMa(tuKhoa);
-                if (ketQua.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Không tìm thấy món ăn nào với mã: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+    private void taiDuLieuLoaiMonVaMonAnBanDau() {
+        if (monAnService == null || loaiMonService == null) return;
+
+        SwingWorker<Object[], Void> worker = new SwingWorker<>() {
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                List<LoaiMon> dsLoai = loaiMonService.docDanhSachLoaiMon();
+                List<MonAn> dsMon = monAnService.docDanhSachMon();
+                return new Object[]{dsLoai, dsMon};
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Object[] data = get();
+                    List<LoaiMon> dsLoai = (List<LoaiMon>) data[0];
+                    List<MonAn> dsMon = (List<MonAn>) data[1];
+
+                    // Xử lý JComboBox
+                    cmbBoLoc.removeAllItems();
+                    cmbBoLoc.addItem("Tất cả");
+                    if (dsLoai != null) {
+                        for (LoaiMon loai : dsLoai) {
+                            cmbBoLoc.addItem(loai);
+                        }
+                    }
+
+                    // Gắn sự kiện sau khi đã load xong dữ liệu
+                    cmbBoLoc.addActionListener(e -> thucHienLoc());
+
+                    // Cập nhật Grid
+                    if (dsMon != null) capNhatLuoiMonAn(dsMon);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Lỗi tải dữ liệu ban đầu: " + e.getMessage());
                 }
             }
-            capNhatLuoiMonAn(ketQua);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+        };
+        worker.execute();
+    }
+
+    private void taiDuLieuMonAnVaResetLoc() {
+        if (monAnService == null) return;
+
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                return monAnService.docDanhSachMon();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    // Tạm gỡ sự kiện để không bị trigger khi setSelectedIndex
+                    ActionListener[] listeners = cmbBoLoc.getActionListeners();
+                    for (ActionListener l : listeners) cmbBoLoc.removeActionListener(l);
+
+                    cmbBoLoc.setSelectedIndex(0);
+
+                    for (ActionListener l : listeners) cmbBoLoc.addActionListener(l);
+
+                    List<MonAn> dsMon = get();
+                    if (dsMon != null) capNhatLuoiMonAn(dsMon);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Lỗi tải danh sách món ăn: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void thucHienTimKiemTheoMa() {
+        if (monAnService == null) return;
+
+        String tuKhoa = txtTimKiem.getText().trim();
+        String placeholder = "Nhập mã món. . .";
+
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
+                    return monAnService.docDanhSachMon();
+                } else {
+                    return monAnService.timKiemTheoMa(tuKhoa);
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> ketQua = get();
+                    if (ketQua.isEmpty() && !tuKhoa.equals(placeholder)) {
+                        JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Không tìm thấy món ăn nào với mã: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    capNhatLuoiMonAn(ketQua);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void thucHienTimKiemTheoTen() {
+        if (monAnService == null) return;
+
         String tuKhoa = txtTimKiem2.getText().trim();
         String placeholder = "Nhập tên món. . .";
-        List<MonAn> ketQua = new ArrayList<>();
 
-        try {
-            if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
-                ketQua = monAn_DAO.docDanhSachMon();
-            } else {
-                ketQua = monAn_DAO.timKiemTheoTen(tuKhoa);
-                if (ketQua.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Không tìm thấy món ăn nào với tên: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                if (tuKhoa.isEmpty() || tuKhoa.equals(placeholder)) {
+                    return monAnService.docDanhSachMon();
+                } else {
+                    return monAnService.timKiemTheoTen(tuKhoa);
                 }
             }
-            capNhatLuoiMonAn(ketQua);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
-    private void taiDuLieuLoaiMon() {
-        try {
-            if (this.cmbBoLoc == null) {
-                this.cmbBoLoc = new JComboBox<Object>();
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> ketQua = get();
+                    if (ketQua.isEmpty() && !tuKhoa.equals(placeholder)) {
+                        JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Không tìm thấy món ăn nào với tên: \"" + tuKhoa + "\"", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    capNhatLuoiMonAn(ketQua);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+                }
             }
-
-            cmbBoLoc.removeAllItems();
-
-            cmbBoLoc.addItem("Tất cả");
-
-            List<LoaiMon> dsLoai = loaiMonDAO.docDanhSachLoaiMon();
-
-            for (LoaiMon loai : dsLoai) {
-                cmbBoLoc.addItem(loai);
-            }
-        } catch (RemoteException re) {
-            re.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ khi tải loại món!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi tải danh sách loại món!");
-        }
+        };
+        worker.execute();
     }
 
     private void thucHienLoc() {
+        if (monAnService == null) return;
+
         Object itemDuocChon = cmbBoLoc.getSelectedItem();
+        if (itemDuocChon == null) return;
 
-        if (itemDuocChon == null) {
-            return;
-        }
-
-        List<MonAn> ketQuaLoc = new ArrayList<>();
-
-        try {
-            if (itemDuocChon instanceof String && itemDuocChon.equals("Tất cả")) {
-                ketQuaLoc = monAn_DAO.docDanhSachMon();
-            } else if (itemDuocChon instanceof LoaiMon) {
-                String tenLoai = ((LoaiMon) itemDuocChon).getTenLoai();
-                ketQuaLoc = monAn_DAO.locMonAnTheoLoai(tenLoai);
-            } else {
-                ketQuaLoc = monAn_DAO.docDanhSachMon();
+        SwingWorker<List<MonAn>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<MonAn> doInBackground() throws Exception {
+                if (itemDuocChon instanceof String && itemDuocChon.equals("Tất cả")) {
+                    return monAnService.docDanhSachMon();
+                } else if (itemDuocChon instanceof LoaiMon) {
+                    String tenLoai = ((LoaiMon) itemDuocChon).getTenLoai();
+                    return monAnService.locMonAnTheoLoai(tenLoai);
+                } else {
+                    return monAnService.docDanhSachMon();
+                }
             }
 
-            capNhatLuoiMonAn(ketQuaLoc);
+            @Override
+            protected void done() {
+                try {
+                    List<MonAn> ketQuaLoc = get();
+                    capNhatLuoiMonAn(ketQuaLoc);
 
-            txtTimKiem.setForeground(new Color(150, 150, 160));
-            txtTimKiem.setText("Nhập mã món. . .");
+                    txtTimKiem.setForeground(new Color(150, 150, 160));
+                    txtTimKiem.setText("Nhập mã món. . .");
 
-            txtTimKiem2.setForeground(new Color(150, 150, 160));
-            txtTimKiem2.setText("Nhập tên món. . .");
+                    txtTimKiem2.setForeground(new Color(150, 150, 160));
+                    txtTimKiem2.setText("Nhập tên món. . .");
 
-            panelChinh.requestFocusInWindow();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
-        }
+                    panelChinh.requestFocusInWindow();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(TraCuuMonAn_UI.this, "Lỗi kết nối máy chủ!", "Lỗi Mạng", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void tuyChinhScrollBar(JScrollPane scrollPane) {

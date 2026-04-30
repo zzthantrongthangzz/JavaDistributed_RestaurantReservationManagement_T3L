@@ -49,8 +49,8 @@ public class ThongKeHoaDon_UI extends JPanel {
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_KPI_VALUE = new Font("Segoe UI", Font.BOLD, 24);
 
-    private IHoaDon_Service hoaDonDAO;
-    private IKhachHang_Service khachHangDAO;
+    private IHoaDon_Service hoaDonService;
+    private IKhachHang_Service khachHangService;
     private JPanel panelChinh;
     private JDateChooser dcTuNgay, dcDenNgay;
     private JTable tblThongKe;
@@ -66,8 +66,8 @@ public class ThongKeHoaDon_UI extends JPanel {
 
     public ThongKeHoaDon_UI() {
         try {
-            hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
+            hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+            khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -236,27 +236,44 @@ public class ThongKeHoaDon_UI extends JPanel {
     }
 
     private void thucHienThongKe() {
-        if (hoaDonDAO == null) return;
+        if (hoaDonService == null) return;
         Date tuNgay = dcTuNgay.getDate();
         Date denNgay = dcDenNgay.getDate();
         if (tuNgay == null || denNgay == null || tuNgay.after(denNgay)) return;
 
         SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
-            @Override protected Object[] doInBackground() throws Exception {
-                BigDecimal tongTien = hoaDonDAO.getTongDoanhThu(tuNgay, denNgay);
-                int tongSL = hoaDonDAO.getTongSoHoaDon(tuNgay, denNgay);
-                Map<Date, BigDecimal> chartData = hoaDonDAO.getDoanhThuTheoNgay(tuNgay, denNgay);
-                List<HoaDon> listDetail = hoaDonDAO.getDanhSachHoaDon(tuNgay, denNgay);
-                return new Object[]{tongTien, tongSL, chartData, listDetail};
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                BigDecimal tongTien = hoaDonService.getTongDoanhThu(tuNgay, denNgay);
+                int tongSL = hoaDonService.getTongSoHoaDon(tuNgay, denNgay);
+                Map<Date, BigDecimal> chartData = hoaDonService.getDoanhThuTheoNgay(tuNgay, denNgay);
+                List<HoaDon> listDetail = hoaDonService.getDanhSachHoaDon(tuNgay, denNgay);
+
+                Map<String, String> tenKHMap = new HashMap<>();
+                if (listDetail != null) {
+                    for (HoaDon hd : listDetail) {
+                        if (hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty() && !tenKHMap.containsKey(hd.getMaKhachHang())) {
+                            List<KhachHang> khs = khachHangService.timKiemTheoMa(hd.getMaKhachHang());
+                            if (khs != null && !khs.isEmpty()) {
+                                tenKHMap.put(hd.getMaKhachHang(), khs.get(0).getHoTen());
+                            } else {
+                                tenKHMap.put(hd.getMaKhachHang(), "Khách lẻ");
+                            }
+                        }
+                    }
+                }
+
+                return new Object[]{tongTien, tongSL, chartData, listDetail, tenKHMap};
             }
-            @Override @SuppressWarnings("unchecked")
+            @Override
+            @SuppressWarnings("unchecked")
             protected void done() {
                 try {
                     Object[] result = get();
                     lblTongDoanhThu.setText(currencyFormat.format((BigDecimal) result[0]));
                     lblTongSoHoaDon.setText(numberFormat.format((Integer) result[1]));
                     capNhatBieuDo((Map<Date, BigDecimal>) result[2]);
-                    capNhatBang((List<HoaDon>) result[3]);
+                    capNhatBang((List<HoaDon>) result[3], (Map<String, String>) result[4]);
                 } catch (Exception e) {}
             }
         };
@@ -293,7 +310,7 @@ public class ThongKeHoaDon_UI extends JPanel {
         panelBieuDoContainer.repaint();
     }
 
-    private void capNhatBang(List<HoaDon> list) {
+    private void capNhatBang(List<HoaDon> list, Map<String, String> tenKHMap) {
         modelThongKe.setRowCount(0);
         danhSachThongKe = list;
         int stt = 1;
@@ -301,13 +318,9 @@ public class ThongKeHoaDon_UI extends JPanel {
         for (HoaDon hd : list) {
             String maNV = hd.getMaNhanVien() != null ? hd.getMaNhanVien() : "";
 
-            String maKH = "Khách lẻ";
-            if(hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty()) {
-                try {
-                    // CẬP NHẬT: Dùng timKiemTheoMa
-                    List<KhachHang> khs = khachHangDAO.timKiemTheoMa(hd.getMaKhachHang());
-                    if(khs != null && !khs.isEmpty()) maKH = khs.get(0).getHoTen();
-                } catch(Exception e){}
+            String tenKH = "Khách lẻ";
+            if (hd.getMaKhachHang() != null && tenKHMap.containsKey(hd.getMaKhachHang())) {
+                tenKH = tenKHMap.get(hd.getMaKhachHang());
             }
 
             double tongTien = (hd.getSoTienKhachTra() != null && hd.getSoTienThoi() != null) ?
@@ -316,7 +329,7 @@ public class ThongKeHoaDon_UI extends JPanel {
             modelThongKe.addRow(new Object[]{
                     stt++, hd.getMaHoaDon(),
                     hd.getNgayLapHoaDon() != null ? sdf.format(hd.getNgayLapHoaDon()) : "",
-                    maNV, maKH, currencyFormat.format(tongTien)
+                    maNV, tenKH, currencyFormat.format(tongTien)
             });
         }
     }
@@ -330,7 +343,29 @@ public class ThongKeHoaDon_UI extends JPanel {
             if (!f.getName().endsWith(".xlsx")) f = new File(f.getAbsolutePath() + ".xlsx");
             try (Workbook wb = new XSSFWorkbook(); FileOutputStream fos = new FileOutputStream(f)) {
                 Sheet sheet = wb.createSheet("DoanhThu");
-                // (Các logic tạo Row, Cell như các form khác...)
+
+                CellStyle headerStyle = wb.createCellStyle();
+                org.apache.poi.ss.usermodel.Font font = wb.createFont();
+                font.setBold(true);
+                headerStyle.setFont(font);
+
+                Row rowHeader = sheet.createRow(0);
+                for(int i=0; i<modelThongKe.getColumnCount(); i++) {
+                    Cell cell = rowHeader.createCell(i);
+                    cell.setCellValue(modelThongKe.getColumnName(i));
+                    cell.setCellStyle(headerStyle);
+                }
+
+                for(int i=0; i<modelThongKe.getRowCount(); i++) {
+                    Row r = sheet.createRow(i + 1);
+                    for(int j=0; j<modelThongKe.getColumnCount(); j++) {
+                        Cell cell = r.createCell(j);
+                        Object val = modelThongKe.getValueAt(i, j);
+                        cell.setCellValue(val != null ? val.toString() : "");
+                    }
+                }
+                for(int i=0; i<modelThongKe.getColumnCount(); i++) sheet.autoSizeColumn(i);
+
                 wb.write(fos);
                 JOptionPane.showMessageDialog(this, "Xuất thành công: " + f.getAbsolutePath());
             } catch (Exception e) {}

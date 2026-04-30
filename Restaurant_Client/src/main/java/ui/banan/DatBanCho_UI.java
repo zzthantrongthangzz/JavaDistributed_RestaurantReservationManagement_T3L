@@ -87,9 +87,9 @@ public class DatBanCho_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -383,6 +383,9 @@ public class DatBanCho_UI extends JDialog {
         return button;
     }
 
+    // ---------------------------------------------------------
+    // SWING WORKER: KIỂM TRA KHÁCH HÀNG
+    // ---------------------------------------------------------
     private void xuLyKiemTraKhachHang() {
         String soDienThoai = txtSoDienThoai.getText().trim();
         if (soDienThoai.isEmpty()) {
@@ -393,22 +396,39 @@ public class DatBanCho_UI extends JDialog {
             hienThiLoi("Số điện thoại không hợp lệ!\nPhải có 10 chữ số và bắt đầu bằng 0");
             return;
         }
-        try {
-            KhachHang kh = khachHangDAO.timKhachHangTheoSDT(soDienThoai);
-            if (kh != null) {
-                khachHangHienTai = kh;
-                hienThiThongTinKhachHang(kh);
-                btnDatBan.setEnabled(true);
-                hienThiThanhCong("Tìm thấy khách hàng!");
-            } else {
-                xoaThongTinKhachHang();
-                btnDatBan.setEnabled(false);
-                hienThiCanhBao("Không tìm thấy SĐT. Vui lòng thêm khách hàng mới.");
-                xuLyThemKhachHangMoi(soDienThoai);
+
+        btnKiemTra.setEnabled(false);
+        btnKiemTra.setText("Đang tìm...");
+
+        SwingWorker<KhachHang, Void> worker = new SwingWorker<KhachHang, Void>() {
+            @Override
+            protected KhachHang doInBackground() throws Exception {
+                return khachHangDAO.timKhachHangTheoSDT(soDienThoai);
             }
-        } catch (Exception e) {
-            hienThiLoi("Lỗi khi tìm kiếm khách hàng:\n" + e.getMessage());
-        }
+
+            @Override
+            protected void done() {
+                btnKiemTra.setEnabled(true);
+                btnKiemTra.setText("Kiểm tra");
+                try {
+                    KhachHang kh = get();
+                    if (kh != null) {
+                        khachHangHienTai = kh;
+                        hienThiThongTinKhachHang(kh);
+                        btnDatBan.setEnabled(true);
+                        hienThiThanhCong("Tìm thấy khách hàng!");
+                    } else {
+                        xoaThongTinKhachHang();
+                        btnDatBan.setEnabled(false);
+                        hienThiCanhBao("Không tìm thấy SĐT. Vui lòng thêm khách hàng mới.");
+                        xuLyThemKhachHangMoi(soDienThoai);
+                    }
+                } catch (Exception e) {
+                    hienThiLoi("Lỗi khi tìm kiếm khách hàng:\n" + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void hienThiThongTinKhachHang(KhachHang kh) {
@@ -426,17 +446,22 @@ public class DatBanCho_UI extends JDialog {
         khachHangHienTai = null;
     }
 
+    // ĐÃ FIX: Truyền đủ 3 tham số gồm Runnable callback.
     private void xuLyThemKhachHangMoi(String soDienThoai) {
         ThemKhachHang_UI themKhachHangUI = new ThemKhachHang_UI(
-                (Frame) SwingUtilities.getWindowAncestor(this),
+                this.parentFrame,
                 soDienThoai,
                 () -> {
                     txtSoDienThoai.setText(soDienThoai);
                     xuLyKiemTraKhachHang();
-                });
+                }
+        );
         themKhachHangUI.setVisible(true);
     }
 
+    // ---------------------------------------------------------
+    // SWING WORKER: ĐẶT BÀN & RMI
+    // ---------------------------------------------------------
     private void xuLyDatBan() {
         if (khachHangHienTai == null) {
             hienThiLoi("Vui lòng kiểm tra thông tin khách hàng trước!");
@@ -448,158 +473,204 @@ public class DatBanCho_UI extends JDialog {
             return;
         }
 
-        try {
-            IPhieuDatBan_Service phieuDAO_Check = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            java.util.Map<String, String> mapBanDaDat = phieuDAO_Check.layThongTinBanDatVaTenKhach(selectedDate);
+        Integer selectedHour = (Integer) spinGio.getValue();
+        Integer selectedMinute = (Integer) spinPhut.getValue();
 
-            StringBuilder trungBanMsg = new StringBuilder();
-            boolean coTrungLap = false;
-            for (BanAn banMuonDat : danhSachBanChon) {
-                if (mapBanDaDat.containsKey(banMuonDat.getMaBan())) {
-                    coTrungLap = true;
-                    trungBanMsg.append(banMuonDat.getTenBan()).append(", ");
-                }
-            }
-            if (coTrungLap) {
-                if (trungBanMsg.length() > 2) {
-                    trungBanMsg.setLength(trungBanMsg.length() - 2);
-                }
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(selectedDate);
+        cal.set(Calendar.HOUR_OF_DAY, selectedHour);
+        cal.set(Calendar.MINUTE, selectedMinute);
+        cal.set(Calendar.SECOND, 0);
+        Date gioNhanDuKien = cal.getTime();
 
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-                String ngayString = sdf.format(selectedDate);
-
-                hienThiLoi("Không thể đặt bàn!\n " + trungBanMsg.toString() +
-                        "\nĐã được đặt trước vào ngày " + ngayString + " rồi.");
-                return;
-            }
-            StringBuilder sbTenBan = new StringBuilder();
-            for (BanAn b : danhSachBanChon)
-                sbTenBan.append(b.getTenBan()).append(", ");
-            String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length() - 2) : sbTenBan.toString();
-
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    String.format("Xác nhận đặt bàn chờ cho các bàn: %s\nKhách hàng: %s?",
-                            strTenBan, khachHangHienTai.getHoTen()),
-                    "Xác nhận đặt bàn", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-
-            if (confirm != JOptionPane.YES_OPTION) {
-                return;
-            }
-
-            NhanVien nhanVienHienTai = Auth.getCurrentNhanVien();
-            if (nhanVienHienTai == null) {
-                hienThiLoi("Lỗi: Không tìm thấy thông tin nhân viên.");
-                return;
-            }
-
-            Integer selectedHour = (Integer) spinGio.getValue();
-            Integer selectedMinute = (Integer) spinPhut.getValue();
-
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(selectedDate);
-            cal.set(Calendar.HOUR_OF_DAY, selectedHour);
-            cal.set(Calendar.MINUTE, selectedMinute);
-            cal.set(Calendar.SECOND, 0);
-            Date gioNhanDuKien = cal.getTime();
-
-            Calendar nowPlus1Min = Calendar.getInstance();
-            nowPlus1Min.add(Calendar.MINUTE, 1);
-            if (gioNhanDuKien.before(nowPlus1Min.getTime())) {
-                hienThiLoi("Giờ nhận bàn dự kiến phải sau thời điểm hiện tại ít nhất 1 phút!");
-                return;
-            }
-
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd");
-            boolean isDatChoHomNay = sdf.format(gioNhanDuKien).equals(sdf.format(new Date()));
-
-            IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            IPhieuDatBan_Ban_Service phieuBanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
-            String maPhieuDat = phieuDAO.sinhMaPhieuDatTuDong();
-            double tienCocBanDau = 0.0;
-            String ghiChu = txtGhiChu.getText().trim();
-            if (ghiChu.isEmpty()) {
-                ghiChu = "";
-            }
-            PhieuDatBan phieuMoi = new PhieuDatBan(
-                    maPhieuDat,
-                    gioNhanDuKien,
-                    "Đang chờ",
-                    khachHangHienTai.getMaKhachHang(),
-                    nhanVienHienTai.getMaNhanVien(),
-                    tienCocBanDau,
-                    ghiChu);
-
-            if (!phieuDAO.themPhieuDatBan(phieuMoi)) {
-                hienThiLoi("Lỗi khi tạo phiếu đặt bàn!");
-                return;
-            }
-
-            for (BanAn ban : danhSachBanChon) {
-                // Giả định rmi_interfaces có IPhieuDatBan_Ban_DAO tương ứng với cấu trúc entity
-                // Nếu chưa có, bạn có thể gọi gián tiếp qua DAO chung.
-                // Ở đây bám sát code gốc của bạn đã được chuyển RMI
-                phieuBanDAO.themPhieuDatBan_Ban(maPhieuDat, ban.getMaBan());
-
-                if (isDatChoHomNay) {
-                    banAnDAO.capNhatTrangThaiBan(ban.getMaBan(), "Bàn đang chờ");
-                }
-            }
-
-            double tienDatCocSauCung = 0.0;
-            IChiTietPhieuDatBan_Service ctPhieuDao = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-            List<ChiTietPhieuDatBan> dsChiTiet = new ArrayList<>();
-
-            int datMonConfirm = JOptionPane.showConfirmDialog(this, "Bạn có muốn đặt món trước cho nhóm này không?",
-                    "Đặt món trước",
-                    JOptionPane.YES_NO_OPTION);
-
-            if (datMonConfirm == JOptionPane.YES_OPTION) {
-                DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
-                        parentFrame,
-                        danhSachBanChon,
-                        maPhieuDat);
-                themMonUI.setVisible(true);
-
-                dsChiTiet = ctPhieuDao.getChiTietTheoPhieu(maPhieuDat);
-            }
-
-            tienDatCocSauCung = tinhTienDatCoc(danhSachBanChon, dsChiTiet);
-
-            if (tienDatCocSauCung > 0) {
-                phieuMoi.setTienDatCoc(tienDatCocSauCung);
-                phieuDAO.capNhatTienCoc(maPhieuDat, tienDatCocSauCung);
-            }
-
-            dispose();
-
-            String message = String.format(
-                    "Đặt bàn thành công!\nSố tiền cọc cần thanh toán: %,.0f VNĐ.\n\nBạn có muốn xuất phiếu đặt bàn (PDF) không?",
-                    tienDatCocSauCung);
-
-            int confirmPDF = JOptionPane.showConfirmDialog(this,
-                    message,
-                    "Thành công",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.INFORMATION_MESSAGE);
-
-            if (confirmPDF == JOptionPane.YES_OPTION) {
-                PhieuDatBanPDF.xuatPhieuDatBanPDF(
-                        phieuMoi,
-                        khachHangHienTai,
-                        nhanVienHienTai,
-                        danhSachBanChon,
-                        tienDatCocSauCung);
-            }
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            hienThiLoi("Lỗi kết nối RMI khi đặt bàn chờ!");
+        Calendar nowPlus1Min = Calendar.getInstance();
+        nowPlus1Min.add(Calendar.MINUTE, 1);
+        if (gioNhanDuKien.before(nowPlus1Min.getTime())) {
+            hienThiLoi("Giờ nhận bàn dự kiến phải sau thời điểm hiện tại ít nhất 1 phút!");
+            return;
         }
+
+        btnDatBan.setEnabled(false);
+        btnDatBan.setText("Đang kiểm tra...");
+
+        SwingWorker<java.util.Map<String, String>, Void> checkWorker = new SwingWorker<>() {
+            @Override
+            protected java.util.Map<String, String> doInBackground() throws Exception {
+                IPhieuDatBan_Service phieuDAO_Check = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+                return phieuDAO_Check.layThongTinBanDatVaTenKhach(selectedDate);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.Map<String, String> mapBanDaDat = get();
+                    StringBuilder trungBanMsg = new StringBuilder();
+                    boolean coTrungLap = false;
+                    for (BanAn banMuonDat : danhSachBanChon) {
+                        if (mapBanDaDat.containsKey(banMuonDat.getMaBan())) {
+                            coTrungLap = true;
+                            trungBanMsg.append(banMuonDat.getTenBan()).append(", ");
+                        }
+                    }
+                    if (coTrungLap) {
+                        if (trungBanMsg.length() > 2) {
+                            trungBanMsg.setLength(trungBanMsg.length() - 2);
+                        }
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                        hienThiLoi("Không thể đặt bàn!\n Bàn: " + trungBanMsg.toString() +
+                                "\nđã được đặt trước vào ngày " + sdf.format(selectedDate) + " rồi.");
+                        btnDatBan.setEnabled(true);
+                        btnDatBan.setText("Đặt bàn");
+                        return;
+                    }
+
+                    xacNhanVaLuuDatBan(gioNhanDuKien);
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    hienThiLoi("Lỗi kết nối RMI khi kiểm tra thông tin trùng lặp!");
+                    btnDatBan.setEnabled(true);
+                    btnDatBan.setText("Đặt bàn");
+                }
+            }
+        };
+        checkWorker.execute();
+    }
+
+    private void xacNhanVaLuuDatBan(Date gioNhanDuKien) {
+        StringBuilder sbTenBan = new StringBuilder();
+        for (BanAn b : danhSachBanChon) sbTenBan.append(b.getTenBan()).append(", ");
+        String strTenBan = sbTenBan.length() > 2 ? sbTenBan.substring(0, sbTenBan.length() - 2) : sbTenBan.toString();
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                String.format("Xác nhận đặt bàn chờ cho các bàn: %s\nKhách hàng: %s?",
+                        strTenBan, khachHangHienTai.getHoTen()),
+                "Xác nhận đặt bàn", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            btnDatBan.setEnabled(true);
+            btnDatBan.setText("Đặt bàn");
+            return;
+        }
+
+        NhanVien nhanVienHienTai = Auth.getCurrentNhanVien();
+        if (nhanVienHienTai == null) {
+            hienThiLoi("Lỗi: Không tìm thấy thông tin nhân viên.");
+            btnDatBan.setEnabled(true);
+            btnDatBan.setText("Đặt bàn");
+            return;
+        }
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd");
+        boolean isDatChoHomNay = sdf.format(gioNhanDuKien).equals(sdf.format(new Date()));
+
+        btnDatBan.setText("Đang lưu...");
+
+        SwingWorker<PhieuDatBan, Void> saveWorker = new SwingWorker<>() {
+            @Override
+            protected PhieuDatBan doInBackground() throws Exception {
+                IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+                IPhieuDatBan_Ban_Service phieuBanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_Service");
+
+                String maPhieuDat = phieuDAO.sinhMaPhieuDatTuDong();
+                String ghiChu = txtGhiChu.getText().trim();
+
+                PhieuDatBan phieuMoi = new PhieuDatBan(
+                        maPhieuDat, gioNhanDuKien, "Đang chờ",
+                        khachHangHienTai.getMaKhachHang(), nhanVienHienTai.getMaNhanVien(),
+                        0.0, ghiChu);
+
+                if (!phieuDAO.themPhieuDatBan(phieuMoi)) {
+                    throw new Exception("Thêm phiếu đặt bàn thất bại trên Database!");
+                }
+
+                for (BanAn ban : danhSachBanChon) {
+                    phieuBanDAO.themPhieuDatBan_Ban(maPhieuDat, ban.getMaBan());
+                    if (isDatChoHomNay) {
+                        banAnDAO.capNhatTrangThaiBan(ban.getMaBan(), "Bàn đang chờ");
+                    }
+                }
+                return phieuMoi;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    PhieuDatBan phieuMoi = get();
+                    tienHanhDatMonVaTinhCoc(phieuMoi);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    hienThiLoi("Lỗi lưu phiếu đặt bàn: " + e.getMessage());
+                    btnDatBan.setEnabled(true);
+                    btnDatBan.setText("Đặt bàn");
+                }
+            }
+        };
+        saveWorker.execute();
+    }
+
+    private void tienHanhDatMonVaTinhCoc(PhieuDatBan phieuMoi) {
+        int datMonConfirm = JOptionPane.showConfirmDialog(this, "Bạn có muốn đặt món trước cho nhóm này không?",
+                "Đặt món trước", JOptionPane.YES_NO_OPTION);
+
+        if (datMonConfirm == JOptionPane.YES_OPTION) {
+            DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
+                    parentFrame, danhSachBanChon, phieuMoi.getMaPhieuDatBan());
+            themMonUI.setVisible(true);
+        }
+
+        SwingWorker<Double, Void> calcDepositWorker = new SwingWorker<>() {
+            List<ChiTietPhieuDatBan> danhSachChiTietThucTe = new ArrayList<>();
+
+            @Override
+            protected Double doInBackground() throws Exception {
+                IChiTietPhieuDatBan_Service ctPhieuDao = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
+                danhSachChiTietThucTe = ctPhieuDao.getChiTietTheoPhieu(phieuMoi.getMaPhieuDatBan());
+
+                double tienDatCocSauCung = tinhTienDatCoc(danhSachBanChon, danhSachChiTietThucTe);
+                if (tienDatCocSauCung > 0) {
+                    IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+                    phieuMoi.setTienDatCoc(tienDatCocSauCung);
+                    phieuDAO.capNhatTienCoc(phieuMoi.getMaPhieuDatBan(), tienDatCocSauCung);
+                }
+                return tienDatCocSauCung;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    double tienDatCocSauCung = get();
+                    dispose();
+
+                    String message = String.format(
+                            "Đặt bàn thành công!\nSố tiền cọc cần thanh toán: %,.0f VNĐ.\n\nBạn có muốn xuất phiếu đặt bàn (PDF) không?",
+                            tienDatCocSauCung);
+
+                    int confirmPDF = JOptionPane.showConfirmDialog(parentFrame,
+                            message, "Thành công", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+
+                    if (confirmPDF == JOptionPane.YES_OPTION) {
+                        String tenNV = Auth.getCurrentNhanVien() != null ? Auth.getCurrentNhanVien().getHoTen() : "Không xác định";
+                        String tenKH = khachHangHienTai != null ? khachHangHienTai.getHoTen() : "Khách lẻ";
+
+                        List<String> dsTenBan = new ArrayList<>();
+                        for(BanAn b : danhSachBanChon) {
+                            dsTenBan.add(b.getTenBan());
+                        }
+
+                        PhieuDatBanPDF.xuatPhieuDatBan(phieuMoi, danhSachChiTietThucTe, tenNV, tenKH, dsTenBan);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    hienThiLoi("Lỗi khi tính toán tiền cọc!");
+                }
+            }
+        };
+        calcDepositWorker.execute();
     }
 
     private double tinhTienDatCoc(List<BanAn> dsBan, List<ChiTietPhieuDatBan> dsChiTiet) {
         double tongTienCocCoBan = 0.0;
-
         for (BanAn ban : dsBan) {
             switch (ban.getLoaiBan()) {
                 case "Phòng VIP":

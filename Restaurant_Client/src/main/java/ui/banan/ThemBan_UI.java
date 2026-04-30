@@ -24,9 +24,10 @@ public class ThemBan_UI extends JDialog {
     private JComboBox<String> cmbTang;
     private JComboBox<String> cmbKhu;
 
-    private IBanAn_Service banAnDAO;
-    private IKhu_Service khuDAO;
-    private ITang_Service tangDAO;
+    // ĐÃ SỬA THÀNH _SERVICE CHO CHUẨN RMI
+    private IBanAn_Service banAnService;
+    private IKhu_Service khuService;
+    private ITang_Service tangService;
     private Runnable onTableAdded;
 
     private final Color MAU_NEN = new Color(48, 52, 56);
@@ -58,11 +59,13 @@ public class ThemBan_UI extends JDialog {
         this.onTableAdded = onTableAdded;
 
         try {
-            banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            khuDAO = (IKhu_Service) Naming.lookup("rmi://localhost:1099/Khu_DAO");
-            tangDAO = (ITang_Service) Naming.lookup("rmi://localhost:1099/Tang_DAO");
+            // SỬA ĐƯỜNG DẪN RMI CHO KHỚP VỚI SERVER
+            banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+            khuService = (IKhu_Service) Naming.lookup("rmi://localhost:1099/Khu_Service");
+            tangService = (ITang_Service) Naming.lookup("rmi://localhost:1099/Tang_Service");
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
 
         khoiTaoGiaoDien();
@@ -320,164 +323,202 @@ public class ThemBan_UI extends JDialog {
         return button;
     }
 
+    // =========================================================================================
+    // SWING WORKER: TẢI DỮ LIỆU TẦNG
+    // =========================================================================================
     private void loadDuLieuTang() {
-        try {
-            List<String> dsTang = tangDAO.docDanhSachTenTang();
-            dsTang.remove("Tất cả");
-
-            cmbTang.setModel(new DefaultComboBoxModel<>(dsTang.toArray(new String[0])));
-            capNhatDanhSachKhu();
-        } catch (Exception e) {
-            cmbTang.setModel(new DefaultComboBoxModel<>(new String[]{"Lỗi tải tầng"}));
-        }
+        if (tangService == null) return;
+        SwingWorker<List<String>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<String> doInBackground() throws Exception {
+                List<String> dsTang = tangService.docDanhSachTenTang();
+                dsTang.remove("Tất cả");
+                return dsTang;
+            }
+            @Override
+            protected void done() {
+                try {
+                    List<String> dsTang = get();
+                    cmbTang.setModel(new DefaultComboBoxModel<>(dsTang.toArray(new String[0])));
+                    capNhatDanhSachKhu();
+                } catch (Exception e) {
+                    cmbTang.setModel(new DefaultComboBoxModel<>(new String[]{"Lỗi tải tầng"}));
+                }
+            }
+        };
+        worker.execute();
     }
 
+    // =========================================================================================
+    // SWING WORKER: TẢI DỮ LIỆU KHU
+    // =========================================================================================
     private void capNhatDanhSachKhu() {
         String tenTang = (String) cmbTang.getSelectedItem();
-        if (tenTang == null || tenTang.equals("Lỗi tải tầng")) {
+        if (tenTang == null || tenTang.equals("Lỗi tải tầng") || tenTang.equals("Đang tải...")) {
             cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Vui lòng chọn tầng"}));
             return;
         }
 
-        try {
-            List<String> dsKhu = banAnDAO.docDanhSachTenKhuTheoTang(tenTang);
-            dsKhu.remove("Tất cả");
-
-            if (dsKhu.isEmpty()) {
-                cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Không có khu"}));
-            } else {
-                cmbKhu.setModel(new DefaultComboBoxModel<>(dsKhu.toArray(new String[0])));
+        if (banAnService == null) return;
+        SwingWorker<List<String>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<String> doInBackground() throws Exception {
+                List<String> dsKhu = banAnService.docDanhSachTenKhuTheoTang(tenTang);
+                dsKhu.remove("Tất cả");
+                return dsKhu;
             }
-        } catch (Exception e) {
-            cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Lỗi tải khu"}));
-        }
+            @Override
+            protected void done() {
+                try {
+                    List<String> dsKhu = get();
+                    if (dsKhu.isEmpty()) {
+                        cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Không có khu"}));
+                    } else {
+                        cmbKhu.setModel(new DefaultComboBoxModel<>(dsKhu.toArray(new String[0])));
+                    }
+                } catch (Exception e) {
+                    cmbKhu.setModel(new DefaultComboBoxModel<>(new String[]{"Lỗi tải khu"}));
+                }
+            }
+        };
+        worker.execute();
     }
 
+    // =========================================================================================
+    // SWING WORKER: THÊM BÀN
+    // =========================================================================================
     private void xuLyThemBan() {
-        try {
-            String maBan = txtMaBan.getText().trim();
-            String tenBan = txtTenBan.getText().trim();
-            String loaiBan = (String) cmbLoaiBan.getSelectedItem();
-            String sucChuaStr = txtSucChua.getText().trim();
-            String trangThai = "Bàn đang trống";
+        String maBan = txtMaBan.getText().trim();
+        String tenBan = txtTenBan.getText().trim();
+        String loaiBan = (String) cmbLoaiBan.getSelectedItem();
+        String sucChuaStr = txtSucChua.getText().trim();
+        String trangThai = "Bàn đang trống";
+        String tenKhu = (String) cmbKhu.getSelectedItem();
 
-            String tenKhu = (String) cmbKhu.getSelectedItem();
-            if (tenKhu == null || tenKhu.startsWith("Vui lòng") || tenKhu.startsWith("Không có")) {
-                throw new IllegalArgumentException("Vui lòng chọn Khu vực hợp lệ.");
-            }
-            String maKhu = khuDAO.layMaKhuTheoTen(tenKhu);
-            if (maKhu == null) throw new IllegalArgumentException("Khu vực không tồn tại.");
-
-            int sucChua;
-            try {
-                sucChua = Integer.parseInt(sucChuaStr);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Sức chứa phải là số nguyên.");
-            }
-
-            BanAn ban = new BanAn(maBan, tenBan, loaiBan, sucChua, trangThai, maKhu);
-
-            if (banAnDAO.themBanMoi(ban)) {
-                JOptionPane.showMessageDialog(this, "Thêm bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                if (onTableAdded != null) onTableAdded.run();
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "Thêm thất bại (Trùng mã hoặc lỗi DB).", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (IllegalArgumentException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Dữ liệu sai", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        if (tenKhu == null || tenKhu.startsWith("Vui lòng") || tenKhu.startsWith("Không có")) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn Khu vực hợp lệ.", "Dữ liệu sai", JOptionPane.WARNING_MESSAGE);
+            return;
         }
+
+        int sucChua;
+        try {
+            sucChua = Integer.parseInt(sucChuaStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Sức chứa phải là số nguyên.", "Dữ liệu sai", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                String maKhu = khuService.layMaKhuTheoTen(tenKhu);
+                if (maKhu == null) throw new Exception("Khu vực không tồn tại.");
+                BanAn ban = new BanAn(maBan, tenBan, loaiBan, sucChua, trangThai, maKhu);
+                return banAnService.themBanMoi(ban);
+            }
+            @Override
+            protected void done() {
+                try {
+                    if (get()) {
+                        JOptionPane.showMessageDialog(ThemBan_UI.this, "Thêm bàn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                        if (onTableAdded != null) onTableAdded.run();
+                        dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(ThemBan_UI.this, "Thêm thất bại (Trùng mã hoặc lỗi DB).", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(ThemBan_UI.this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
     }
 
+    // =========================================================================================
+    // SWING WORKER: TỰ ĐỘNG LẤY MÃ
+    // =========================================================================================
     private void taoMaBanTuDong() {
-        try {
-            List<BanAn> danhSachBan = banAnDAO.docDanhSachBan();
-            int soThuTu = 1;
-
-            if (!danhSachBan.isEmpty()) {
-                for (BanAn ban : danhSachBan) {
-                    String maBan = ban.getMaBan();
-                    if (maBan.startsWith("MB")) {
-                        try {
-                            int so = Integer.parseInt(maBan.substring(2));
-                            if (so >= soThuTu) {
-                                soThuTu = so + 1;
-                            }
-                        } catch (NumberFormatException e) {
+        if (banAnService == null) return;
+        SwingWorker<String, Void> worker = new SwingWorker<>() {
+            @Override
+            protected String doInBackground() throws Exception {
+                List<BanAn> danhSachBan = banAnService.docDanhSachBan();
+                int soThuTu = 1;
+                if (!danhSachBan.isEmpty()) {
+                    for (BanAn ban : danhSachBan) {
+                        String maBan = ban.getMaBan();
+                        if (maBan.startsWith("MB")) {
+                            try {
+                                int so = Integer.parseInt(maBan.substring(2));
+                                if (so >= soThuTu) soThuTu = so + 1;
+                            } catch (NumberFormatException e) {}
                         }
                     }
                 }
+                return String.format("MB%06d", soThuTu);
             }
-            String maBan = String.format("MB%06d", soThuTu);
-            txtMaBan.setText(maBan);
-        } catch (Exception e) {
-            txtMaBan.setText("MB000001");
-        }
+            @Override
+            protected void done() {
+                try { txtMaBan.setText(get()); } catch (Exception e) { txtMaBan.setText("MB000001"); }
+            }
+        };
+        worker.execute();
     }
 
+    // =========================================================================================
+    // SWING WORKER: TỰ ĐỘNG TẠO TÊN & SỨC CHỨA
+    // =========================================================================================
     private void capNhatTenBanVaSucChua() {
-        try {
-            String loaiBanDuocChon = (String) cmbLoaiBan.getSelectedItem();
-            if (loaiBanDuocChon == null) {
-                return;
+        String loaiBanDuocChon = (String) cmbLoaiBan.getSelectedItem();
+        if (loaiBanDuocChon == null || banAnService == null) return;
+
+        SwingWorker<Integer[], Void> worker = new SwingWorker<>() {
+            @Override
+            protected Integer[] doInBackground() throws Exception {
+                List<BanAn> danhSachBan = banAnService.docDanhSachBan();
+                int soPhongVipHienCo = 0;
+                int soBanThuongHienCo = 0;
+
+                for (BanAn ban : danhSachBan) {
+                    String loaiBanHienTai = ban.getLoaiBan();
+                    if ("Phòng VIP".equals(loaiBanHienTai)) soPhongVipHienCo++;
+                    else if ("Bàn nhỏ".equals(loaiBanHienTai) || "Bàn vừa".equals(loaiBanHienTai) || "Bàn lớn".equals(loaiBanHienTai)) {
+                        soBanThuongHienCo++;
+                    }
+                }
+                return new Integer[]{soPhongVipHienCo, soBanThuongHienCo};
             }
+            @Override
+            protected void done() {
+                try {
+                    Integer[] counts = get();
+                    String tenBan;
+                    if ("Phòng VIP".equals(loaiBanDuocChon)) {
+                        tenBan = String.format("Phòng VIP %02d", counts[0] + 1);
+                    } else {
+                        tenBan = String.format("Bàn %03d", counts[1] + 1);
+                    }
+                    txtTenBan.setText(tenBan);
 
-            List<BanAn> danhSachBan = banAnDAO.docDanhSachBan();
-            int soPhongVipHienCo = 0;
-            int soBanThuongHienCo = 0;
-
-            for (BanAn ban : danhSachBan) {
-                String loaiBanHienTai = ban.getLoaiBan();
-                if ("Phòng VIP".equals(loaiBanHienTai)) {
-                    soPhongVipHienCo++;
-                } else if ("Bàn nhỏ".equals(loaiBanHienTai) ||
-                        "Bàn vừa".equals(loaiBanHienTai) ||
-                        "Bàn lớn".equals(loaiBanHienTai)) {
-                    soBanThuongHienCo++;
+                    int sucChua = 0;
+                    switch (loaiBanDuocChon) {
+                        case "Bàn nhỏ": sucChua = 4; break;
+                        case "Bàn vừa": sucChua = 8; break;
+                        case "Bàn lớn": sucChua = 15; break;
+                        case "Phòng VIP": sucChua = 30; break;
+                    }
+                    txtSucChua.setText(String.valueOf(sucChua));
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-
-            String tenBan;
-            if ("Phòng VIP".equals(loaiBanDuocChon)) {
-                int soThuTuVIP = soPhongVipHienCo + 1;
-                tenBan = String.format("Phòng VIP %02d", soThuTuVIP);
-            } else {
-                int soThuTuBanThuong = soBanThuongHienCo + 1;
-                tenBan = String.format("Bàn %03d", soThuTuBanThuong);
-            }
-
-            txtTenBan.setText(tenBan);
-
-            int sucChua;
-            switch (loaiBanDuocChon) {
-                case "Bàn nhỏ":
-                    sucChua = 4;
-                    break;
-                case "Bàn vừa":
-                    sucChua = 8;
-                    break;
-                case "Bàn lớn":
-                    sucChua = 15;
-                    break;
-                case "Phòng VIP":
-                    sucChua = 30;
-                    break;
-                default:
-                    sucChua = 0;
-            }
-            txtSucChua.setText(String.valueOf(sucChua));
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Lỗi khi cập nhật tên bàn và sức chứa: " + e.getMessage(),
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        };
+        worker.execute();
     }
 
+    // =========================================================================================
+    // DIALOG THÊM TẦNG BỌC SWING WORKER
+    // =========================================================================================
     private void hienThiDialogThemTang() {
         JDialog dialog = new JDialog(this, "Thêm Tầng Mới", true);
         dialog.setSize(400, 450);
@@ -541,25 +582,34 @@ public class ThemBan_UI extends JDialog {
                         JOptionPane.showMessageDialog(dialog, "Tên tầng không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                    try {
-                        if (tangDAO.timTangTheoTen(tenMoi) != null) {
-                            JOptionPane.showMessageDialog(dialog, "Tầng này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                        } else {
-                            String maMoi = tangDAO.sinhMaTangTuDong();
-                            Tang tangMoi = new Tang(maMoi, tenMoi);
 
-                            if(tangDAO.themTang(tangMoi)) {
-                                loadDuLieuTang();
-                                cmbTang.setSelectedItem(tenMoi);
-                                JOptionPane.showMessageDialog(dialog, "Đã thêm tầng mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                                dialog.dispose();
-                            } else {
-                                JOptionPane.showMessageDialog(dialog, "Thêm tầng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    SwingWorker<Boolean, Void> tangWorker = new SwingWorker<>() {
+                        @Override
+                        protected Boolean doInBackground() throws Exception {
+                            if (tangService.timTangTheoTen(tenMoi) != null) {
+                                throw new Exception("Tầng này đã tồn tại!");
+                            }
+                            String maMoi = tangService.sinhMaTangTuDong();
+                            Tang tangMoi = new Tang(maMoi, tenMoi);
+                            return tangService.themTang(tangMoi);
+                        }
+                        @Override
+                        protected void done() {
+                            try {
+                                if (get()) {
+                                    loadDuLieuTang();
+                                    cmbTang.setSelectedItem(tenMoi);
+                                    JOptionPane.showMessageDialog(dialog, "Đã thêm tầng mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                                    dialog.dispose();
+                                } else {
+                                    JOptionPane.showMessageDialog(dialog, "Thêm tầng thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                                }
+                            } catch (Exception ex) {
+                                JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                             }
                         }
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm tầng: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    }
+                    };
+                    tangWorker.execute();
                 },
                 e -> dialog.dispose()
         );
@@ -570,6 +620,9 @@ public class ThemBan_UI extends JDialog {
         dialog.setVisible(true);
     }
 
+    // =========================================================================================
+    // DIALOG THÊM KHU BỌC SWING WORKER
+    // =========================================================================================
     private void hienThiDialogThemKhu() {
         JDialog dialog = new JDialog(this, "Thêm Khu Mới", true);
         dialog.setSize(400, 280);
@@ -594,7 +647,7 @@ public class ThemBan_UI extends JDialog {
         JComboBox<String> cmbChonTang = taoComboBox(new String[]{});
         DefaultComboBoxModel<String> modelTang = new DefaultComboBoxModel<>();
         for (int i = 0; i < cmbTang.getItemCount(); i++) {
-            modelTang.addElement(cmbTang.getItemAt(i));
+            modelTang.addElement((String) cmbTang.getItemAt(i));
         }
         cmbChonTang.setModel(modelTang);
         cmbChonTang.setSelectedItem(cmbTang.getSelectedItem());
@@ -630,31 +683,36 @@ public class ThemBan_UI extends JDialog {
                         return;
                     }
 
-                    try {
-                        if (khuDAO.timKhuTheoTen(tenKhuMoi) != null) {
-                            JOptionPane.showMessageDialog(dialog, "Tên khu này đã tồn tại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
-                        } else {
-                            Tang tang = tangDAO.timTangTheoTen(tenTangDuocChon);
-                            if (tang == null) {
-                                JOptionPane.showMessageDialog(dialog, "Không tìm thấy tầng đã chọn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                                return;
+                    SwingWorker<Boolean, Void> khuWorker = new SwingWorker<>() {
+                        @Override
+                        protected Boolean doInBackground() throws Exception {
+                            if (khuService.timKhuTheoTen(tenKhuMoi) != null) {
+                                throw new Exception("Tên khu này đã tồn tại!");
                             }
+                            Tang tang = tangService.timTangTheoTen(tenTangDuocChon);
+                            if (tang == null) throw new Exception("Không tìm thấy tầng đã chọn!");
 
-                            String maKhuMoi = khuDAO.sinhMaKhuTuDong();
+                            String maKhuMoi = khuService.sinhMaKhuTuDong();
                             Khu khuMoi = new Khu(maKhuMoi, tenKhuMoi, tang.getMaTang());
-
-                            if(khuDAO.themKhu(khuMoi)) {
-                                capNhatDanhSachKhu();
-                                cmbKhu.setSelectedItem(tenKhuMoi);
-                                JOptionPane.showMessageDialog(dialog, "Đã thêm khu mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-                                dialog.dispose();
-                            } else {
-                                JOptionPane.showMessageDialog(dialog, "Thêm khu thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            return khuService.themKhu(khuMoi);
+                        }
+                        @Override
+                        protected void done() {
+                            try {
+                                if (get()) {
+                                    capNhatDanhSachKhu();
+                                    cmbKhu.setSelectedItem(tenKhuMoi);
+                                    JOptionPane.showMessageDialog(dialog, "Đã thêm khu mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                                    dialog.dispose();
+                                } else {
+                                    JOptionPane.showMessageDialog(dialog, "Thêm khu thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                                }
+                            } catch (Exception ex) {
+                                JOptionPane.showMessageDialog(dialog, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                             }
                         }
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(dialog, "Lỗi khi thêm khu: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-                    }
+                    };
+                    khuWorker.execute();
                 },
                 e -> dialog.dispose()
         );

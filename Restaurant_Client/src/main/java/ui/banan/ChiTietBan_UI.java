@@ -6,7 +6,10 @@ import entity.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,17 +29,31 @@ public class ChiTietBan_UI extends JDialog {
     private JLabel lblTongCongValue;
     private JLabel lblTienCocValue;
     private JLabel lblTamTinhValue;
+
+    // Các Label hiển thị thông tin động
+    private JLabel valSDT;
+    private JLabel valMaHD;
+    private JLabel valTenKhach;
+    private JLabel valGioVao;
+    private JLabel valNhanVien;
+    private JLabel valThoiLuong;
+
     private final BanAn banDuocChon;
     private HoaDon hoaDonHienTai;
+    private String maPhieuDatBan;
     private KhachHang khachHangHienTai;
     private NhanVien nhanVienHienTai;
 
-    private IMonAn_Service monAnDAO;
-    private IChiTietHoaDon_Service chiTietHoaDonDAO;
-    private IKhachHang_Service khachHangDAO;
-    private INhanVien_Service nhanVienDAO;
-    private IPhieuDatBan_Service phieuDatBanDAO;
-    private IChiTietPhieuDatBan_Service chiTietPhieuDAO;
+    // ĐÃ CHUẨN HÓA SANG _SERVICE VÀ BỔ SUNG HOADON_SERVICE
+    private IMonAn_Service monAnService;
+    private IChiTietHoaDon_Service chiTietHoaDonService;
+    private IKhachHang_Service khachHangService;
+    private INhanVien_Service nhanVienService;
+    private IPhieuDatBan_Service phieuDatBanService;
+    private IChiTietPhieuDatBan_Service chiTietPhieuService;
+    private IHoaDon_Service hoaDonService;
+    private IHoaDon_Ban_Service hoaDonBanService;
+
     private List<ChiTietHoaDon> danhSachChiTiet = new ArrayList<>();
     private List<MonAn> danhSachMonAn = new ArrayList<>();
     private boolean isCheDoPhieuDat = false;
@@ -68,73 +85,38 @@ public class ChiTietBan_UI extends JDialog {
         this.banDuocChon = ban;
         this.hoaDonHienTai = hoaDon;
         this.isCheDoPhieuDat = false;
-
-        try {
-            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.nhanVienDAO = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
-            this.phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-
-            this.danhSachMonAn = monAnDAO.docDanhSachMon();
-            this.danhSachChiTiet = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        loadKhachHangVaNhanVien();
-        khoiTaoGiaoDien();
-        capNhatBangChiTiet();
-
-        configWindow(parent);
+        khoiTao(parent);
     }
 
     public ChiTietBan_UI(Frame parent, BanAn ban, String maPhieuDatBan) {
         super(parent, "Chi tiết bàn (Phiếu đặt)", true);
         this.banDuocChon = ban;
+        this.maPhieuDatBan = maPhieuDatBan;
         this.isCheDoPhieuDat = true;
+        khoiTao(parent);
+    }
 
+    private void khoiTao(Frame parent) {
+        ketNoiRMI();
+        khoiTaoGiaoDien();
+        configWindow(parent);
+        taiDuLieuBanDau();
+    }
+
+    private void ketNoiRMI() {
         try {
-            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-            this.nhanVienDAO = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_DAO");
-            this.phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-
-            this.danhSachMonAn = monAnDAO.docDanhSachMon();
-            PhieuDatBan phieu = phieuDatBanDAO.getPhieuDatBanTheoMa(maPhieuDatBan);
-
-            this.hoaDonHienTai = new HoaDon(
-                    maPhieuDatBan,
-                    "Phiếu đặt chờ",
-                    phieu.getThoiGianDat(),
-                    BigDecimal.ZERO,
-                    phieu.getMaNhanVien(),
-                    null,
-                    phieu.getMaKhachHang(),
-                    null, null,
-                    BigDecimal.valueOf(phieu.getTienDatCoc()),
-                    BigDecimal.ZERO, BigDecimal.ZERO);
-
-            this.danhSachChiTiet = new ArrayList<>();
-            List<ChiTietPhieuDatBan> listPhieu = chiTietPhieuDAO.getChiTietTheoPhieu(maPhieuDatBan);
-            if (listPhieu != null) {
-                for (ChiTietPhieuDatBan item : listPhieu) {
-                    danhSachChiTiet.add(new ChiTietHoaDon(
-                            maPhieuDatBan, item.getMaMon(), item.getSoLuong(), item.getDonGia()));
-                }
-            }
+            this.monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
+            this.khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            this.nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
+            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
+            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
-
-        loadKhachHangVaNhanVien();
-        khoiTaoGiaoDien();
-        capNhatBangChiTiet();
-
-        configWindow(parent);
     }
 
     private void configWindow(Frame parent) {
@@ -143,21 +125,145 @@ public class ChiTietBan_UI extends JDialog {
         setResizable(false);
     }
 
-    private void loadKhachHangVaNhanVien() {
-        try {
-            if (hoaDonHienTai.getMaKhachHang() != null && khachHangDAO != null) {
-                List<KhachHang> khList = khachHangDAO.timKiemTheoMa(hoaDonHienTai.getMaKhachHang());
-                if (khList != null && !khList.isEmpty()) {
-                    khachHangHienTai = khList.get(0);
+    // ====================================================================
+    // SWING WORKER: THUẬT TOÁN BẤT TỬ - CHỐNG KHOẢNG TRẮNG, TÌM MỌI HÓA ĐƠN
+    // ====================================================================
+
+    private void taiDuLieuBanDau() {
+        if (monAnService == null) return;
+
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                danhSachMonAn = monAnService.docDanhSachMon();
+
+                if (!isCheDoPhieuDat) {
+                    // Xóa triệt để khoảng trắng bằng trim() để không bị miss hóa đơn
+                    if (hoaDonHienTai == null || hoaDonHienTai.getMaHoaDon() == null || hoaDonHienTai.getMaHoaDon().trim().isEmpty()) {
+                        String maBanCanTim = banDuocChon.getMaBan().trim();
+                        boolean timThay = false;
+
+                        // BƯỚC 1: Quét Hóa Đơn Chưa Thanh Toán trước
+                        try {
+                            List<HoaDon> dsChuaThanhToan = hoaDonService.locTheoTrangThai("Chưa thanh toán");
+                            if (dsChuaThanhToan != null) {
+                                for (HoaDon hd : dsChuaThanhToan) {
+                                    List<String> dsBan = hoaDonBanService.layDanhSachMaBanTheoHoaDon(hd.getMaHoaDon());
+                                    // Dùng trim().equalsIgnoreCase() để miễn nhiễm với khoảng trắng dư thừa trong DB
+                                    if (dsBan != null && dsBan.stream().anyMatch(b -> b.trim().equalsIgnoreCase(maBanCanTim))) {
+                                        hoaDonHienTai = hd;
+                                        timThay = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {}
+
+                        // BƯỚC 2: NẾU KHÔNG THẤY -> Mò sang Hóa Đơn Đã Thanh Toán
+                        if (!timThay) {
+                            try {
+                                List<HoaDon> dsDaThanhToan = hoaDonService.locTheoTrangThai("Đã thanh toán");
+                                if (dsDaThanhToan != null) {
+                                    for (HoaDon hd : dsDaThanhToan) {
+                                        List<String> dsBan = hoaDonBanService.layDanhSachMaBanTheoHoaDon(hd.getMaHoaDon());
+                                        if (dsBan != null && dsBan.stream().anyMatch(b -> b.trim().equalsIgnoreCase(maBanCanTim))) {
+                                            hoaDonHienTai = hd;
+                                            timThay = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {}
+                        }
+                    }
+
+                    // Tải dữ liệu Khách Hàng, Nhân Viên, Chi Tiết
+                    if (hoaDonHienTai != null && hoaDonHienTai.getMaHoaDon() != null) {
+                        List<ChiTietHoaDon> dsDaGoi = chiTietHoaDonService.getChiTietTheoMaHoaDon(hoaDonHienTai.getMaHoaDon());
+                        if (dsDaGoi != null) danhSachChiTiet.addAll(dsDaGoi);
+
+                        if (hoaDonHienTai.getMaKhachHang() != null && !hoaDonHienTai.getMaKhachHang().trim().isEmpty()) {
+                            List<KhachHang> khs = khachHangService.timKiemTheoMa(hoaDonHienTai.getMaKhachHang());
+                            if(khs != null && !khs.isEmpty()) khachHangHienTai = khs.get(0);
+                        }
+                        if (hoaDonHienTai.getMaNhanVien() != null && !hoaDonHienTai.getMaNhanVien().trim().isEmpty()) {
+                            nhanVienHienTai = nhanVienService.timMotNhanVienTheoMa(hoaDonHienTai.getMaNhanVien());
+                        }
+                    }
+                } else { // Chế độ Phiếu Đặt Chờ
+                    PhieuDatBan phieu = phieuDatBanService.getPhieuDatBanTheoMa(maPhieuDatBan);
+                    if (phieu != null) {
+                        hoaDonHienTai = new HoaDon(maPhieuDatBan, "Phiếu đặt chờ", phieu.getThoiGianDat(),
+                                BigDecimal.ZERO, phieu.getMaNhanVien(), null, phieu.getMaKhachHang(),
+                                null, null, BigDecimal.valueOf(phieu.getTienDatCoc()), BigDecimal.ZERO, BigDecimal.ZERO);
+
+                        if (phieu.getMaKhachHang() != null && !phieu.getMaKhachHang().trim().isEmpty()) {
+                            List<KhachHang> khs = khachHangService.timKiemTheoMa(phieu.getMaKhachHang());
+                            if(khs != null && !khs.isEmpty()) khachHangHienTai = khs.get(0);
+                        }
+                        if (phieu.getMaNhanVien() != null && !phieu.getMaNhanVien().trim().isEmpty()) {
+                            nhanVienHienTai = nhanVienService.timMotNhanVienTheoMa(phieu.getMaNhanVien());
+                        }
+
+                        List<ChiTietPhieuDatBan> listPhieu = chiTietPhieuService.getChiTietTheoPhieu(maPhieuDatBan);
+                        if (listPhieu != null) {
+                            for (ChiTietPhieuDatBan item : listPhieu) {
+                                danhSachChiTiet.add(new ChiTietHoaDon(maPhieuDatBan, item.getMaMon(), item.getSoLuong(), item.getDonGia()));
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    if (hoaDonHienTai == null) {
+                        JOptionPane.showMessageDialog(ChiTietBan_UI.this,
+                                "Không thể tìm thấy thông tin Hóa Đơn/Phiếu Đặt cho bàn này!",
+                                "Thông báo dữ liệu", JOptionPane.WARNING_MESSAGE);
+                        dispose();
+                        return;
+                    }
+                    capNhatThongTinHeader();
+                    capNhatBangChiTiet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(ChiTietBan_UI.this, "Lỗi tải dữ liệu chi tiết!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
-            if (hoaDonHienTai.getMaNhanVien() != null && nhanVienDAO != null) {
-                nhanVienHienTai = nhanVienDAO.timMotNhanVienTheoMa(hoaDonHienTai.getMaNhanVien());
+        };
+        worker.execute();
+    }
+
+    private void capNhatThongTinHeader() {
+        valSDT.setText(khachHangHienTai != null ? khachHangHienTai.getSoDienThoai() : "Khách lẻ");
+        valMaHD.setText(hoaDonHienTai.getMaHoaDon());
+        valTenKhach.setText(khachHangHienTai != null ? khachHangHienTai.getHoTen() : "Khách lẻ");
+
+        String gioVao = hoaDonHienTai.getNgayLapHoaDon() != null ? dateTimeFormatter.format(hoaDonHienTai.getNgayLapHoaDon()) : "";
+        valGioVao.setText(gioVao);
+
+        valNhanVien.setText(nhanVienHienTai != null ? nhanVienHienTai.getHoTen() : "Hệ thống");
+
+        if (!isCheDoPhieuDat) {
+            if (hoaDonHienTai.getNgayLapHoaDon() != null) {
+                long diff = new Date().getTime() - hoaDonHienTai.getNgayLapHoaDon().getTime();
+                if (diff < 0) diff = 0;
+                valThoiLuong.setText((diff / (60 * 1000)) + " Phút");
+            } else {
+                valThoiLuong.setText("0 Phút");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } else {
+            valThoiLuong.setText("");
         }
     }
+
+    // ====================================================================
+    // GIAO DIỆN
+    // ====================================================================
 
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
@@ -287,56 +393,42 @@ public class ChiTietBan_UI extends JDialog {
         JLabel lblSDT = new JLabel("SDT Khách:");
         lblSDT.setFont(FONT_TIEU_DE_PHU);
         lblSDT.setForeground(COLOR_TEXT_WHITE);
-        String sdt = khachHangHienTai != null ? khachHangHienTai.getSoDienThoai() : "Khách lẻ";
-        JLabel valSDT = new JLabel(sdt);
+        valSDT = new JLabel("Đang tải...");
         valSDT.setFont(FONT_O_NHAP);
         valSDT.setForeground(COLOR_TEXT_GRAY);
 
         JLabel lblMaHD = new JLabel(isCheDoPhieuDat ? "Mã phiếu:" : "Mã hóa đơn:");
         lblMaHD.setFont(FONT_TIEU_DE_PHU);
         lblMaHD.setForeground(COLOR_TEXT_WHITE);
-        JLabel valMaHD = new JLabel(hoaDonHienTai.getMaHoaDon());
+        valMaHD = new JLabel("Đang tải...");
         valMaHD.setFont(FONT_O_NHAP);
         valMaHD.setForeground(COLOR_TEXT_GRAY);
 
         JLabel lblTenKhach = new JLabel("Tên khách:");
         lblTenKhach.setFont(FONT_TIEU_DE_PHU);
         lblTenKhach.setForeground(COLOR_TEXT_WHITE);
-        String tenKhach = khachHangHienTai != null ? khachHangHienTai.getHoTen() : "Khách lẻ";
-        JLabel valTenKhach = new JLabel(tenKhach);
+        valTenKhach = new JLabel("Đang tải...");
         valTenKhach.setFont(FONT_O_NHAP);
         valTenKhach.setForeground(COLOR_TEXT_GRAY);
 
         JLabel lblGioVao = new JLabel(isCheDoPhieuDat ? "Giờ đặt:" : "Giờ vào:");
         lblGioVao.setFont(FONT_TIEU_DE_PHU);
         lblGioVao.setForeground(COLOR_TEXT_WHITE);
-        String gioVao = hoaDonHienTai.getNgayLapHoaDon() != null
-                ? dateTimeFormatter.format(hoaDonHienTai.getNgayLapHoaDon())
-                : "";
-        JLabel valGioVao = new JLabel(gioVao);
+        valGioVao = new JLabel("Đang tải...");
         valGioVao.setFont(FONT_O_NHAP);
         valGioVao.setForeground(COLOR_TEXT_GRAY);
 
         JLabel lblNhanVien = new JLabel(isCheDoPhieuDat ? "Người lập:" : "Nhân viên:");
         lblNhanVien.setFont(FONT_TIEU_DE_PHU);
         lblNhanVien.setForeground(COLOR_TEXT_WHITE);
-        String tenNhanVien = nhanVienHienTai != null ? nhanVienHienTai.getHoTen() : "N/A";
-        JLabel valNhanVien = new JLabel(tenNhanVien);
+        valNhanVien = new JLabel("Đang tải...");
         valNhanVien.setFont(FONT_O_NHAP);
         valNhanVien.setForeground(COLOR_TEXT_GRAY);
 
         JLabel lblThoiLuong = new JLabel("Thời gian chờ:");
         lblThoiLuong.setFont(FONT_TIEU_DE_PHU);
         lblThoiLuong.setForeground(COLOR_TEXT_WHITE);
-        String thoiLuong = "0 Phút";
-        if (hoaDonHienTai.getNgayLapHoaDon() != null) {
-            long diff = new Date().getTime() - hoaDonHienTai.getNgayLapHoaDon().getTime();
-            if (diff < 0)
-                diff = 0;
-            long diffMinutes = diff / (60 * 1000);
-            thoiLuong = diffMinutes + " Phút";
-        }
-        JLabel valThoiLuong = new JLabel(thoiLuong);
+        valThoiLuong = new JLabel("Đang tải...");
         valThoiLuong.setFont(FONT_O_NHAP);
         valThoiLuong.setForeground(COLOR_TEXT_GRAY);
 
@@ -456,10 +548,15 @@ public class ChiTietBan_UI extends JDialog {
 
     private void capNhatTongTien() {
         double tienDichVu = tinhTongTienDichVu();
+
+        // KIỂM TRA BẢO MẬT TRƯỚC KHI ÉP KIỂU ĐỂ CHỐNG LỖI NULLPOINTER
         double tienCoc = 0.0;
-        if (hoaDonHienTai.getTienDatCoc() != null) {
-            tienCoc = hoaDonHienTai.getTienDatCoc().doubleValue();
+        if (hoaDonHienTai != null && hoaDonHienTai.getTienDatCoc() != null) {
+            try {
+                tienCoc = hoaDonHienTai.getTienDatCoc().doubleValue();
+            } catch (Exception e) {}
         }
+
         double thueVATPercent = 0.1;
         double tongChuaThue = tienDichVu;
         double tienThue = tongChuaThue * thueVATPercent;

@@ -52,7 +52,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     private final Font FONT_TEXTFIELD = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_KPI_VALUE = new Font("Segoe UI", Font.BOLD, 24);
 
-    private IKhuyenMai_Service khuyenMaiDAO;
+    private IKhuyenMai_Service khuyenMaiService;
     private JPanel panelChinh;
     private JDateChooser dcTuNgay, dcDenNgay;
     private JTable tblThongKe;
@@ -67,7 +67,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
 
     public ThongKeKhuyenMai_UI() {
         try {
-            khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMaiService");
+            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -317,7 +317,7 @@ public class ThongKeKhuyenMai_UI extends JPanel {
     }
 
     private void thucHienThongKe() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         final Date tuNgay = dcTuNgay.getDate();
         final Date denNgay = dcDenNgay.getDate();
         if (tuNgay == null || denNgay == null) return;
@@ -329,10 +329,13 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
             @Override
             protected Object[] doInBackground() throws Exception {
-                BigDecimal tongTien = khuyenMaiDAO.getTongTienGiam(tuNgay, denNgay);
-                int tongLuot = khuyenMaiDAO.getTongLuotSuDung(tuNgay, denNgay);
-                Map<Date, BigDecimal> dataChart = khuyenMaiDAO.getTienGiamTheoNgay(tuNgay, denNgay);
-                List<ThongKeKhuyenMaiDTO> listKM = khuyenMaiDAO.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
+                BigDecimal tongTien = khuyenMaiService.getTongTienGiam(tuNgay, denNgay);
+                int tongLuot = khuyenMaiService.getTongLuotSuDung(tuNgay, denNgay);
+                Map<Date, BigDecimal> dataChart = khuyenMaiService.getTienGiamTheoNgay(tuNgay, denNgay);
+
+                // Đã sử dụng List<ThongKeKhuyenMaiDTO> thay vì List<Object[]>
+                List<ThongKeKhuyenMaiDTO> listKM = khuyenMaiService.getThongKeChiTietKhuyenMai(tuNgay, denNgay);
+
                 return new Object[]{tongTien, tongLuot, dataChart, listKM};
             }
             @Override
@@ -398,20 +401,21 @@ public class ThongKeKhuyenMai_UI extends JPanel {
         panelBieuDoContainer.repaint();
     }
 
+    // Đã thay đổi tham số truyền vào thành List<ThongKeKhuyenMaiDTO>
     private void capNhatBang(List<ThongKeKhuyenMaiDTO> list) {
         modelThongKe.setRowCount(0);
         int stt = 1;
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 
-        for (ThongKeKhuyenMaiDTO km : list) {
+        for (ThongKeKhuyenMaiDTO dto : list) {
             modelThongKe.addRow(new Object[]{
                     stt++,
-                    km.getMaKhuyenMai(),
-                    km.getTenKhuyenMai(),
-                    numberFormat.format(km.getSoLuotSuDung()),
-                    currencyFormat.format(km.getTongTienGiam()),
-                    sdf.format(km.getNgayBatDau()),
-                    sdf.format(km.getNgayKetThuc())
+                    dto.getMaKhuyenMai(),
+                    dto.getTenKhuyenMai(),
+                    numberFormat.format(dto.getSoLuotSuDung()),
+                    currencyFormat.format(dto.getTongTienGiam()),
+                    sdf.format(dto.getNgayBatDau()),
+                    sdf.format(dto.getNgayKetThuc())
             });
         }
     }

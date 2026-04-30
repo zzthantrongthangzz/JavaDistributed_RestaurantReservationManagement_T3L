@@ -1,6 +1,8 @@
 package ui.banan;
 
 import rmi_interfaces.IBanAn_Service;
+import rmi_interfaces.IHoaDon_Service;
+import rmi_interfaces.IHoaDon_Ban_Service;
 import rmi_interfaces.ILoaiMon_Service;
 import rmi_interfaces.IMonAn_Service;
 import rmi_interfaces.IChiTietHoaDon_Service;
@@ -38,15 +40,19 @@ public class DatMonChoBan_UI extends JDialog {
     private JButton btnHoanTat;
     private JButton btnHuy;
     private JLabel lblTongTien;
+    private JLabel lblThongTinBan; // Đã biến thành biến toàn cục để cập nhật
     private JComboBox<Object> cmbLoaiMon;
     private JTextField txtTimMaMon;
     private JTextField txtTimTenMon;
 
-    private IMonAn_Service monAnDAO;
-    private IBanAn_Service banAnDAO;
-    private ILoaiMon_Service loaiMonDAO;
-    private IChiTietHoaDon_Service chiTietHoaDonDAO;
-    private IChiTietPhieuDatBan_Service chiTietPhieuDAO;
+    // ĐÃ SỬA THÀNH CHUẨN _SERVICE VÀ THÊM SERVICE HÓA ĐƠN
+    private IMonAn_Service monAnService;
+    private IBanAn_Service banAnService;
+    private ILoaiMon_Service loaiMonService;
+    private IChiTietHoaDon_Service chiTietHoaDonService;
+    private IChiTietPhieuDatBan_Service chiTietPhieuService;
+    private IHoaDon_Service hoaDonService;
+    private IHoaDon_Ban_Service hoaDonBanService;
 
     private final List<BanAn> danhSachBan;
 
@@ -63,7 +69,6 @@ public class DatMonChoBan_UI extends JDialog {
     private final Color MAU_NEN_FORM = new Color(48, 52, 56);
     private final Color MAU_NEN_INPUT = new Color(45, 49, 56);
     private final Color MAU_VIEN_INPUT = new Color(60, 65, 73);
-    private final Color MAU_VIEN_INPUT_FOCUS = new Color(79, 134, 247);
     private final Color MAU_CHU_TRANG = new Color(240, 242, 245);
     private final Color MAU_CHU_XAM = new Color(155, 160, 170);
     private final Color MAU_NUT_THEM = new Color(34, 197, 94);
@@ -84,41 +89,20 @@ public class DatMonChoBan_UI extends JDialog {
     private final Font FONT_NUT = new Font("Segoe UI", Font.BOLD, 15);
     private final Font FONT_SECTION = new Font("Segoe UI", Font.BOLD, 17);
 
+    // ====================================================================
+    // CONSTRUCTORS
+    // ====================================================================
+
     public DatMonChoBan_UI(Frame parent, List<BanAn> dsBan, HoaDon hoaDon) {
         super(parent, "Đặt món cho bàn", true);
         this.danhSachBan = dsBan;
         this.hoaDonHienTai = hoaDon;
         this.isDatBanCho = false;
 
-        try {
-            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            this.loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-
-            this.danhSachMonAn = monAnDAO.docDanhSachMon();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        this.danhSachMonAnHienThi = new ArrayList<>(this.danhSachMonAn);
-        this.danhSachChiTietTam = new ArrayList<>();
-
-        if (hoaDon != null) {
-            try {
-                List<ChiTietHoaDon> dsDaGoi = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
-                if (dsDaGoi != null) {
-                    this.danhSachChiTietTam.addAll(dsDaGoi);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
+        ketNoiRMI();
         khoiTaoGiaoDien();
-        capNhatBangChiTiet();
         configWindow(parent);
+        taiDuLieuBanDau(); // Tải bằng SwingWorker
     }
 
     public DatMonChoBan_UI(Frame parent, BanAn ban, HoaDon hoaDon) {
@@ -131,27 +115,34 @@ public class DatMonChoBan_UI extends JDialog {
         this.maPhieuDatBan = maPhieuDatBan;
         this.isDatBanCho = true;
 
-        try {
-            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-            this.loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_DAO");
-            this.chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-            this.chiTietPhieuDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-
-            this.danhSachMonAn = monAnDAO.docDanhSachMon();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        this.danhSachMonAnHienThi = new ArrayList<>(this.danhSachMonAn);
-        this.danhSachChiTietTam = new ArrayList<>();
-
+        ketNoiRMI();
         khoiTaoGiaoDien();
         configWindow(parent);
+        taiDuLieuBanDau(); // Tải bằng SwingWorker
     }
 
     public DatMonChoBan_UI(Frame parent, BanAn ban, String maPhieuDatBan) {
         this(parent, new ArrayList<>(Arrays.asList(ban)), maPhieuDatBan);
+    }
+
+    // ====================================================================
+    // INIT & RMI
+    // ====================================================================
+
+    private void ketNoiRMI() {
+        try {
+            this.monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            this.banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+            this.loaiMonService = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
+            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
+            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
+            // KẾT NỐI THÊM ĐỂ TỰ ĐỘNG TÌM HÓA ĐƠN
+            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void configWindow(Frame parent) {
@@ -159,6 +150,93 @@ public class DatMonChoBan_UI extends JDialog {
         setLocationRelativeTo(parent);
         setResizable(false);
     }
+
+    // ====================================================================
+    // SWING WORKER: TẢI DỮ LIỆU BAN ĐẦU VÀ TỰ ĐỘNG TÌM HÓA ĐƠN
+    // ====================================================================
+
+    private void taiDuLieuBanDau() {
+        if (monAnService == null) return;
+
+        SwingWorker<Object[], Void> worker = new SwingWorker<>() {
+            @Override
+            protected Object[] doInBackground() throws Exception {
+                // 1. Tải danh sách Món & Loại
+                List<MonAn> dsMon = monAnService.docDanhSachMon();
+                List<LoaiMon> dsLoai = loaiMonService.docDanhSachLoaiMon();
+
+                // 2. Tải danh sách chi tiết (Món đã gọi)
+                List<ChiTietHoaDon> dsChiTietTam = new ArrayList<>();
+                if (!isDatBanCho) {
+                    // THUẬT TOÁN TỰ ĐỘNG TÌM HÓA ĐƠN AN TOÀN (VƯỢT LỖI NEO4J)
+                    if ((hoaDonHienTai == null || hoaDonHienTai.getMaHoaDon() == null) && danhSachBan != null && !danhSachBan.isEmpty()) {
+                        List<HoaDon> dsChuaThanhToan = hoaDonService.locTheoTrangThai("Chưa thanh toán");
+                        if (dsChuaThanhToan != null) {
+                            for (HoaDon hd : dsChuaThanhToan) {
+                                List<String> dsBanCuaHD = hoaDonBanService.layDanhSachMaBanTheoHoaDon(hd.getMaHoaDon());
+                                if (dsBanCuaHD != null && dsBanCuaHD.contains(danhSachBan.get(0).getMaBan())) {
+                                    hoaDonHienTai = hd;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Nếu đã tìm thấy thì lấy chi tiết món
+                    if (hoaDonHienTai != null && hoaDonHienTai.getMaHoaDon() != null) {
+                        List<ChiTietHoaDon> dsDaGoi = chiTietHoaDonService.getChiTietTheoMaHoaDon(hoaDonHienTai.getMaHoaDon());
+                        if (dsDaGoi != null) dsChiTietTam.addAll(dsDaGoi);
+                    }
+                } else if (isDatBanCho && maPhieuDatBan != null) {
+                    List<ChiTietPhieuDatBan> dsDaGoi = chiTietPhieuService.getChiTietTheoPhieu(maPhieuDatBan);
+                    if (dsDaGoi != null) {
+                        for(ChiTietPhieuDatBan ct : dsDaGoi) {
+                            dsChiTietTam.add(new ChiTietHoaDon(maPhieuDatBan, ct.getMaMon(), ct.getSoLuong(), ct.getDonGia()));
+                        }
+                    }
+                }
+                return new Object[]{dsMon, dsLoai, dsChiTietTam};
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Object[] res = get();
+                    danhSachMonAn = (List<MonAn>) res[0];
+                    danhSachMonAnHienThi = new ArrayList<>(danhSachMonAn);
+
+                    List<LoaiMon> dsLoai = (List<LoaiMon>) res[1];
+                    cmbLoaiMon.removeAllItems();
+                    cmbLoaiMon.addItem("Tất cả");
+                    for (LoaiMon loai : dsLoai) cmbLoaiMon.addItem(loai);
+
+                    danhSachChiTietTam = (List<ChiTietHoaDon>) res[2];
+
+                    // Cập nhật lại nhãn Hóa Đơn nếu vừa mò tìm thấy
+                    if (!isDatBanCho && hoaDonHienTai != null && hoaDonHienTai.getMaHoaDon() != null) {
+                        StringBuilder tenBanSb = new StringBuilder();
+                        for (BanAn b : danhSachBan) {
+                            if (tenBanSb.length() > 0) tenBanSb.append(", ");
+                            tenBanSb.append(b.getTenBan().replace("Bàn", "").trim());
+                        }
+                        String dsBanStr = tenBanSb.length() > 60 ? tenBanSb.substring(0, 57) + "..." : tenBanSb.toString();
+                        lblThongTinBan.setText(String.format("Hóa đơn: %s • Bàn: %s", hoaDonHienTai.getMaHoaDon(), dsBanStr));
+                    }
+
+                    capNhatBangMonAn(danhSachMonAnHienThi);
+                    capNhatBangChiTiet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    hienThiLoi("Lỗi khi tải dữ liệu từ máy chủ!");
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    // ====================================================================
+    // GIAO DIỆN
+    // ====================================================================
 
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
@@ -188,27 +266,22 @@ public class DatMonChoBan_UI extends JDialog {
         lblTieuDe.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         StringBuilder tenBanSb = new StringBuilder();
-
         for (BanAn b : danhSachBan) {
-            if (tenBanSb.length() > 0)
-                tenBanSb.append(", ");
-            String tenRutGon = b.getTenBan().replace("Bàn", "").trim();
-            tenBanSb.append(tenRutGon);
+            if (tenBanSb.length() > 0) tenBanSb.append(", ");
+            tenBanSb.append(b.getTenBan().replace("Bàn", "").trim());
         }
-
         String danhSachBanStr = tenBanSb.toString();
-        if (danhSachBanStr.length() > 60) {
-            danhSachBanStr = danhSachBanStr.substring(0, 57) + "...";
-        }
+        if (danhSachBanStr.length() > 60) danhSachBanStr = danhSachBanStr.substring(0, 57) + "...";
 
         String subInfo;
         if (isDatBanCho) {
             subInfo = String.format("Mã Phiếu: %s • Bàn: %s", maPhieuDatBan, danhSachBanStr);
         } else {
-            subInfo = String.format("Hóa đơn: %s • Bàn: %s", hoaDonHienTai.getMaHoaDon(), danhSachBanStr);
+            String maHD = (hoaDonHienTai != null && hoaDonHienTai.getMaHoaDon() != null) ? hoaDonHienTai.getMaHoaDon() : "Đang tìm...";
+            subInfo = String.format("Hóa đơn: %s • Bàn: %s", maHD, danhSachBanStr);
         }
 
-        JLabel lblThongTinBan = new JLabel(subInfo);
+        lblThongTinBan = new JLabel(subInfo);
         lblThongTinBan.setFont(FONT_TIEU_DE_PHU);
         lblThongTinBan.setForeground(MAU_CHU_XAM);
         lblThongTinBan.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -300,11 +373,9 @@ public class DatMonChoBan_UI extends JDialog {
             }
         });
 
-        capNhatBangMonAn(danhSachMonAnHienThi);
         JScrollPane scrollPane = new JScrollPane(tableMonAn);
         tuyChinhScrollBar(scrollPane);
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1));
-
         scrollPane.setBackground(MAU_NEN_FORM);
         scrollPane.getViewport().setBackground(MAU_NEN_INPUT);
 
@@ -315,9 +386,11 @@ public class DatMonChoBan_UI extends JDialog {
         lblSoLuong.setForeground(MAU_CHU_TRANG);
         txtSoLuong = taoTextField("1");
         txtSoLuong.setPreferredSize(new Dimension(100, 35));
+
         btnThemMon = taoNut("Thêm món", MAU_NUT_THEM, MAU_NUT_THEM_HOVER);
         btnThemMon.setPreferredSize(new Dimension(120, 35));
         btnThemMon.addActionListener(e -> xuLyThemMon());
+
         pSoLuong.add(lblSoLuong);
         pSoLuong.add(txtSoLuong);
         pSoLuong.add(btnThemMon);
@@ -338,7 +411,7 @@ public class DatMonChoBan_UI extends JDialog {
         JPanel pComboBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pComboBox.setBackground(MAU_NEN_FORM);
         this.cmbLoaiMon = new JComboBox<Object>();
-        taiDuLieuLoaiMon();
+        cmbLoaiMon.addItem("Đang tải...");
 
         cmbLoaiMon.setFont(new Font("Segoe UI", Font.BOLD, 14));
         cmbLoaiMon.setBackground(MAU_THANH_TIM_KIEM);
@@ -364,7 +437,6 @@ public class DatMonChoBan_UI extends JDialog {
     private JPanel taoPanelChiTietHoaDon() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(MAU_NEN_FORM);
-
         panel.setPreferredSize(new Dimension(800, 0));
 
         JLabel lblTieuDe = new JLabel("Chi tiết gọi món");
@@ -392,9 +464,7 @@ public class DatMonChoBan_UI extends JDialog {
 
         JScrollPane scrollPane = new JScrollPane(tableChiTiet);
         tuyChinhScrollBar(scrollPane);
-
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1));
-
         scrollPane.setBackground(MAU_NEN_FORM);
         scrollPane.getViewport().setBackground(MAU_NEN_INPUT);
 
@@ -417,6 +487,7 @@ public class DatMonChoBan_UI extends JDialog {
         lblTongTien.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblTongTien.setForeground(new Color(34, 197, 94));
         lblTongTien.setHorizontalAlignment(SwingConstants.RIGHT);
+
         pTongTien.add(lblTongTienLabel, BorderLayout.WEST);
         pTongTien.add(lblTongTien, BorderLayout.CENTER);
 
@@ -434,6 +505,7 @@ public class DatMonChoBan_UI extends JDialog {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         panel.setBackground(MAU_NEN);
         panel.setBorder(new EmptyBorder(20, 50, 30, 50));
+
         btnHoanTat = taoNut("Hoàn tất", MAU_NUT_HOAN_TAT, MAU_NUT_HOAN_TAT_HOVER);
         btnHoanTat.setPreferredSize(new Dimension(150, 44));
         btnHoanTat.addActionListener(e -> xuLyHoanTat());
@@ -441,23 +513,80 @@ public class DatMonChoBan_UI extends JDialog {
         btnHuy = taoNut("Hủy", MAU_NUT_HUY, MAU_NUT_HUY_HOVER);
         btnHuy.setPreferredSize(new Dimension(150, 44));
         btnHuy.addActionListener(e -> dispose());
+
         panel.add(btnHoanTat);
         panel.add(btnHuy);
         return panel;
     }
 
+    // ====================================================================
+    // LOGIC NGHIỆP VỤ & LỌC
+    // ====================================================================
+
+    private void locVaTimKiemMonAn() {
+        if (danhSachMonAn == null) return;
+
+        String ma = txtTimMaMon.getText().trim().toLowerCase();
+        String ten = txtTimTenMon.getText().trim().toLowerCase();
+        Object loaiSel = cmbLoaiMon.getSelectedItem();
+
+        danhSachMonAnHienThi = danhSachMonAn.stream().filter(m -> {
+            boolean kMa = ma.isEmpty() || m.getMaMon().toLowerCase().contains(ma);
+            boolean kTen = ten.isEmpty() || m.getTenMon().toLowerCase().contains(ten);
+            boolean kLoai = true;
+            if (loaiSel instanceof LoaiMon) {
+                kLoai = m.getLoaiMon().getMaLoai().equals(((LoaiMon) loaiSel).getMaLoai());
+            }
+            return kMa && kTen && kLoai;
+        }).collect(Collectors.toList());
+
+        capNhatBangMonAn(danhSachMonAnHienThi);
+    }
+
+    private void capNhatBangMonAn(List<MonAn> ds) {
+        if (ds == null) return;
+        DefaultTableModel m = (DefaultTableModel) tableMonAn.getModel();
+        m.setRowCount(0);
+        for (MonAn x : ds) {
+            m.addRow(new Object[] { x.getMaMon(), x.getTenMon(), String.format("%,.0f đ", x.getGia()), x.getDonVi() });
+        }
+    }
+
+    private void capNhatBangChiTiet() {
+        if (danhSachChiTietTam == null) return;
+        DefaultTableModel model = (DefaultTableModel) tableChiTiet.getModel();
+        model.setRowCount(0);
+        double tongTien = 0;
+
+        for (ChiTietHoaDon ct : danhSachChiTietTam) {
+            String tenMon = "Unknown";
+            if (danhSachMonAn != null) {
+                tenMon = danhSachMonAn.stream()
+                        .filter(mon -> mon.getMaMon().equals(ct.getMaMon()))
+                        .map(MonAn::getTenMon).findFirst().orElse("Unknown");
+            }
+
+            double thanhTien = ct.getDonGia().doubleValue() * ct.getSoLuong();
+            model.addRow(new Object[] { tenMon, ct.getSoLuong(), String.format("%,.0f đ", ct.getDonGia().doubleValue()),
+                    String.format("%,.0f đ", thanhTien) });
+            tongTien += thanhTien;
+        }
+        lblTongTien.setText(String.format("%,.0f đ", tongTien));
+    }
+
     private void themMonVaoChiTiet(MonAn monThem, int soLuong) {
-        if (monThem == null)
-            return;
-        ChiTietHoaDon chiTietHienCo = danhSachChiTietTam.stream().filter(ct -> ct.getMaMon().equals(monThem.getMaMon()))
+        if (monThem == null) return;
+
+        ChiTietHoaDon chiTietHienCo = danhSachChiTietTam.stream()
+                .filter(ct -> ct.getMaMon().equals(monThem.getMaMon()))
                 .findFirst().orElse(null);
 
         if (chiTietHienCo != null) {
             chiTietHienCo.setSoLuong(chiTietHienCo.getSoLuong() + soLuong);
         } else {
-            String tempID = isDatBanCho ? maPhieuDatBan : hoaDonHienTai.getMaHoaDon();
-            ChiTietHoaDon chiTietMoi = new ChiTietHoaDon(tempID, monThem.getMaMon(), soLuong,
-                    BigDecimal.valueOf(monThem.getGia()));
+            // Nếu là Hóa đơn nhưng chưa có mã (lỗi hờ), tạo tạm chuỗi để lưu list
+            String tempID = isDatBanCho ? maPhieuDatBan : (hoaDonHienTai != null ? hoaDonHienTai.getMaHoaDon() : "TEMP");
+            ChiTietHoaDon chiTietMoi = new ChiTietHoaDon(tempID, monThem.getMaMon(), soLuong, BigDecimal.valueOf(monThem.getGia()));
             danhSachChiTietTam.add(chiTietMoi);
         }
         capNhatBangChiTiet();
@@ -465,7 +594,7 @@ public class DatMonChoBan_UI extends JDialog {
 
     private void xuLyThemMon() {
         if (monAnDuocChon == null) {
-            hienThiLoi("Vui lòng chọn một món ăn!");
+            hienThiLoi("Vui lòng chọn một món ăn ở danh sách bên trái!");
             return;
         }
         try {
@@ -479,121 +608,88 @@ public class DatMonChoBan_UI extends JDialog {
             tableMonAn.clearSelection();
             monAnDuocChon = null;
         } catch (NumberFormatException e) {
-            hienThiLoi("Số lượng phải là số nguyên!");
+            hienThiLoi("Số lượng phải là số nguyên hợp lệ!");
         }
-    }
-
-    private void capNhatBangChiTiet() {
-        DefaultTableModel model = (DefaultTableModel) tableChiTiet.getModel();
-        model.setRowCount(0);
-        double tongTien = 0;
-
-        for (ChiTietHoaDon ct : danhSachChiTietTam) {
-            String tenMon = danhSachMonAn.stream().filter(mon -> mon.getMaMon().equals(ct.getMaMon()))
-                    .map(MonAn::getTenMon).findFirst().orElse("Unknown");
-
-            double thanhTien = ct.getDonGia().doubleValue() * ct.getSoLuong();
-
-            model.addRow(new Object[] { tenMon, ct.getSoLuong(), String.format("%,.0f đ", ct.getDonGia().doubleValue()),
-                    String.format("%,.0f đ", thanhTien) });
-            tongTien += thanhTien;
-        }
-        lblTongTien.setText(String.format("%,.0f đ", tongTien));
     }
 
     private void xuLyXoaMon() {
         int row = tableChiTiet.getSelectedRow();
         if (row < 0) {
-            hienThiLoi("Chọn dòng để xóa!");
+            hienThiLoi("Chọn dòng bên bảng Món đã gọi để xóa!");
             return;
         }
-        if (JOptionPane.showConfirmDialog(this, "Xóa món này?", "Xác nhận",
-                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+        if (JOptionPane.showConfirmDialog(this, "Xóa món này khỏi thực đơn?", "Xác nhận", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             danhSachChiTietTam.remove(row);
             capNhatBangChiTiet();
         }
     }
 
+    // ====================================================================
+    // SWING WORKER: LƯU DATABASE
+    // ====================================================================
+
     private void xuLyHoanTat() {
         if (danhSachChiTietTam.isEmpty()) {
-            hienThiLoi("Vui lòng chọn ít nhất một món!");
+            hienThiLoi("Vui lòng chọn ít nhất một món để thêm vào đơn!");
             return;
         }
 
         String message = isDatBanCho ? "Xác nhận lưu thực đơn cho phiếu đặt bàn này?" : "Xác nhận gọi món cho bàn này?";
-
         int xacNhan = JOptionPane.showConfirmDialog(this, message, "Xác nhận", JOptionPane.YES_NO_OPTION);
 
         if (xacNhan == JOptionPane.YES_OPTION) {
-            try {
-                if (isDatBanCho) {
-                    chiTietPhieuDAO.xoaChiTietTheoPhieu(maPhieuDatBan);
-                    for (ChiTietHoaDon item : danhSachChiTietTam) {
-                        ChiTietPhieuDatBan ctPhieu = new ChiTietPhieuDatBan(maPhieuDatBan, item.getMaMon(),
-                                item.getSoLuong(), item.getDonGia());
-                        chiTietPhieuDAO.themChiTietPhieuDat(ctPhieu);
-                    }
-                } else {
-                    chiTietHoaDonDAO.xoaChiTietTheoMaHoaDon(hoaDonHienTai.getMaHoaDon());
+            btnHoanTat.setEnabled(false);
+            btnHoanTat.setText("Đang lưu...");
 
-                    for (ChiTietHoaDon item : danhSachChiTietTam) {
-                        item.setMaHoaDon(hoaDonHienTai.getMaHoaDon());
-                        chiTietHoaDonDAO.themChiTietHoaDon(item);
-                    }
-
-                    for (BanAn b : danhSachBan) {
-                        if (!b.getTrangThai().equals("Bàn đang phục vụ")) {
-                            banAnDAO.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang phục vụ");
+            SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    if (isDatBanCho) {
+                        chiTietPhieuService.xoaChiTietTheoPhieu(maPhieuDatBan);
+                        for (ChiTietHoaDon item : danhSachChiTietTam) {
+                            ChiTietPhieuDatBan ctPhieu = new ChiTietPhieuDatBan(maPhieuDatBan, item.getMaMon(), item.getSoLuong(), item.getDonGia());
+                            chiTietPhieuService.themChiTietPhieuDat(ctPhieu);
+                        }
+                    } else {
+                        if (hoaDonHienTai == null || hoaDonHienTai.getMaHoaDon() == null) {
+                            throw new Exception("Lỗi: Không tìm thấy hóa đơn của bàn này (Vui lòng kiểm tra đã Mở Bàn chưa)!");
+                        }
+                        chiTietHoaDonService.xoaChiTietTheoMaHoaDon(hoaDonHienTai.getMaHoaDon());
+                        for (ChiTietHoaDon item : danhSachChiTietTam) {
+                            item.setMaHoaDon(hoaDonHienTai.getMaHoaDon());
+                            chiTietHoaDonService.themChiTietHoaDon(item);
+                        }
+                        for (BanAn b : danhSachBan) {
+                            if (!b.getTrangThai().equals("Bàn đang phục vụ")) {
+                                banAnService.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang phục vụ");
+                            }
                         }
                     }
+                    return true;
                 }
 
-                dispose();
-
-            } catch (Exception e) {
-                hienThiLoi("Lỗi khi lưu dữ liệu RMI: " + e.getMessage());
-                e.printStackTrace();
-            }
+                @Override
+                protected void done() {
+                    btnHoanTat.setEnabled(true);
+                    btnHoanTat.setText("Hoàn tất");
+                    try {
+                        if (get()) {
+                            JOptionPane.showMessageDialog(DatMonChoBan_UI.this, "Đã lưu thực đơn thành công!");
+                            dispose();
+                        }
+                    } catch (Exception e) {
+                        hienThiLoi(e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            };
+            worker.execute();
         }
     }
 
-    private void taiDuLieuLoaiMon() {
-        try {
-            if (this.cmbLoaiMon == null)
-                this.cmbLoaiMon = new JComboBox<Object>();
-            cmbLoaiMon.removeAllItems();
-            cmbLoaiMon.addItem("Tất cả");
-            List<LoaiMon> dsLoai = loaiMonDAO.docDanhSachLoaiMon();
-            for (LoaiMon loai : dsLoai)
-                cmbLoaiMon.addItem(loai);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void locVaTimKiemMonAn() {
-        String ma = txtTimMaMon.getText().trim().toLowerCase();
-        String ten = txtTimTenMon.getText().trim().toLowerCase();
-        Object loaiSel = cmbLoaiMon.getSelectedItem();
-        if (loaiSel == null)
-            return;
-
-        danhSachMonAnHienThi = danhSachMonAn.stream().filter(m -> {
-            boolean kMa = ma.isEmpty() || m.getMaMon().toLowerCase().contains(ma);
-            boolean kTen = ten.isEmpty() || m.getTenMon().toLowerCase().contains(ten);
-            boolean kLoai = (loaiSel instanceof String) || (loaiSel instanceof LoaiMon
-                    && m.getLoaiMon().getMaLoai().equals(((LoaiMon) loaiSel).getMaLoai()));
-            return kMa && kTen && kLoai;
-        }).collect(Collectors.toList());
-        capNhatBangMonAn(danhSachMonAnHienThi);
-    }
-
-    private void capNhatBangMonAn(List<MonAn> ds) {
-        DefaultTableModel m = (DefaultTableModel) tableMonAn.getModel();
-        m.setRowCount(0);
-        for (MonAn x : ds)
-            m.addRow(new Object[] { x.getMaMon(), x.getTenMon(), String.format("%,.0f đ", x.getGia()), x.getDonVi() });
-    }
+    // ====================================================================
+    // HELPER METHODS
+    // ====================================================================
 
     private void hienThiLoi(String m) {
         JOptionPane.showMessageDialog(this, m, "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -619,15 +715,8 @@ public class DatMonChoBan_UI extends JDialog {
         b.setBorderPainted(false);
         b.setBorder(new EmptyBorder(10, 20, 10, 20));
         b.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                if (b.isEnabled())
-                    b.setBackground(h);
-            }
-
-            public void mouseExited(MouseEvent e) {
-                if (b.isEnabled())
-                    b.setBackground(bg);
-            }
+            public void mouseEntered(MouseEvent e) { if (b.isEnabled()) b.setBackground(h); }
+            public void mouseExited(MouseEvent e) { if (b.isEnabled()) b.setBackground(bg); }
         });
         return b;
     }
@@ -652,22 +741,8 @@ public class DatMonChoBan_UI extends JDialog {
                 this.thumbColor = new Color(100, 105, 120);
                 this.trackColor = MAU_NEN_INPUT;
             }
-
-            protected JButton createDecreaseButton(int o) {
-                return new JButton() {
-                    {
-                        setPreferredSize(new Dimension(0, 0));
-                    }
-                };
-            }
-
-            protected JButton createIncreaseButton(int o) {
-                return new JButton() {
-                    {
-                        setPreferredSize(new Dimension(0, 0));
-                    }
-                };
-            }
+            protected JButton createDecreaseButton(int o) { return new JButton() {{ setPreferredSize(new Dimension(0, 0)); }}; }
+            protected JButton createIncreaseButton(int o) { return new JButton() {{ setPreferredSize(new Dimension(0, 0)); }}; }
         });
     }
 }

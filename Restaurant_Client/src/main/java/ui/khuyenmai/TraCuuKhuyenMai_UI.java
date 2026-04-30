@@ -14,7 +14,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import com.toedter.calendar.JDateChooser;
 import java.text.SimpleDateFormat;
 import java.rmi.Naming;
-
+import java.rmi.RemoteException;
 import rmi_interfaces.IKhuyenMai_Service;
 import entity.KhuyenMai;
 
@@ -56,17 +56,17 @@ public class TraCuuKhuyenMai_UI extends JPanel {
     private JComboBox<String> cmbSapXep, cmbLocTheoGiaTri;
     private JButton btnLamMoi;
     private JPanel panelChinh;
-    private IKhuyenMai_Service kmDAO;
+    private IKhuyenMai_Service khuyenMaiService;
 
     public TraCuuKhuyenMai_UI() {
         try {
-            kmDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMaiService");
+            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
         khoiTaoGiaoDien();
-        docDuLieuTuSQL();
+        taiDuLieuLenBang();
     }
 
     private void khoiTaoGiaoDien() {
@@ -420,12 +420,12 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         return panel;
     }
 
-    private void docDuLieuTuSQL() {
-        if (kmDAO == null) return;
+    private void taiDuLieuLenBang() {
+        if (khuyenMaiService == null) return;
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
-                return kmDAO.getAllList();
+                return khuyenMaiService.getAllList();
             }
             @Override
             protected void done() {
@@ -455,7 +455,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
     }
 
     private void apDungTatCaBoLoc() {
-        if (kmDAO == null) return;
+        if (khuyenMaiService == null) return;
         final String tuKhoaMa = txtTimKiemMa.getText().trim().equals(PLACEHOLDER_MA) ? "" : txtTimKiemMa.getText().trim();
         final String tuKhoaTen = txtTimKiemTen.getText().trim().equals(PLACEHOLDER_TEN) ? "" : txtTimKiemTen.getText().trim();
         final String loaiKM = cmbTimKiemLoai.getSelectedItem().equals("Tất cả loại") ? "" : (String) cmbTimKiemLoai.getSelectedItem();
@@ -467,7 +467,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
-                return kmDAO.locDanhSach(tuKhoaMa, tuKhoaTen, loaiKM, giaTriFilter, tuNgay, denNgay, sapXep);
+                return khuyenMaiService.locDanhSach(tuKhoaMa, tuKhoaTen, loaiKM, giaTriFilter, tuNgay, denNgay, sapXep);
             }
             @Override
             protected void done() {
@@ -560,7 +560,7 @@ public class TraCuuKhuyenMai_UI extends JPanel {
         cmbSapXep.setSelectedIndex(0);
         cmbLocTheoGiaTri.setSelectedIndex(0);
 
-        docDuLieuTuSQL();
+        taiDuLieuLenBang();
 
         panelChinh.requestFocusInWindow();
     }

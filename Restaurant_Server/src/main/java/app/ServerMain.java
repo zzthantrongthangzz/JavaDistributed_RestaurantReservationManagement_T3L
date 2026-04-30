@@ -28,24 +28,23 @@ public class ServerMain {
             TaiKhoan_Service_Impl taiKhoanService = new TaiKhoan_Service_Impl();
             Tang_Service_Impl tangService = new Tang_Service_Impl();
 
-            Naming.rebind("rmi://localhost:1099/BanAnService", banAnService);
-            Naming.rebind("rmi://localhost:1099/ChiTietHoaDonService", chiTietHoaDonService);
-            Naming.rebind("rmi://localhost:1099/ChiTietPhieuDatBanService", chiTietPhieuDatBanService);
-            Naming.rebind("rmi://localhost:1099/ChucVuService", chucVuService);
-            Naming.rebind("rmi://localhost:1099/HoaDonBanService", hoaDonBanService);
-            Naming.rebind("rmi://localhost:1099/HoaDonService", hoaDonService);
-            Naming.rebind("rmi://localhost:1099/KhachHangService", khachHangService);
-            Naming.rebind("rmi://localhost:1099/KhuService", khuService);
-            Naming.rebind("rmi://localhost:1099/KhuyenMaiService", khuyenMaiService);
-            Naming.rebind("rmi://localhost:1099/LichSuHuyDatBanService", lichSuHuyDatBanService);
-            Naming.rebind("rmi://localhost:1099/LoaiMonService", loaiMonService);
-            Naming.rebind("rmi://localhost:1099/MonAnService", monAnService);
-            Naming.rebind("rmi://localhost:1099/NhanVienService", nhanVienService);
-            Naming.rebind("rmi://localhost:1099/PhieuDatBanBanService", phieuDatBanBanService);
-            Naming.rebind("rmi://localhost:1099/PhieuDatBanService", phieuDatBanService);
-            Naming.rebind("rmi://localhost:1099/TaiKhoanService", taiKhoanService);
-            Naming.rebind("rmi://localhost:1099/TangService", tangService);
-
+            Naming.rebind("rmi://localhost:1099/BanAn_Service", banAnService);
+            Naming.rebind("rmi://localhost:1099/ChiTietHoaDon_Service", chiTietHoaDonService);
+            Naming.rebind("rmi://localhost:1099/ChiTietPhieuDatBan_Service", chiTietPhieuDatBanService);
+            Naming.rebind("rmi://localhost:1099/ChucVu_Service", chucVuService);
+            Naming.rebind("rmi://localhost:1099/HoaDon_Ban_Service", hoaDonBanService);
+            Naming.rebind("rmi://localhost:1099/HoaDon_Service", hoaDonService);
+            Naming.rebind("rmi://localhost:1099/KhachHang_Service", khachHangService);
+            Naming.rebind("rmi://localhost:1099/Khu_Service", khuService);
+            Naming.rebind("rmi://localhost:1099/KhuyenMai_Service", khuyenMaiService);
+            Naming.rebind("rmi://localhost:1099/LichSuHuyDatBan_Service", lichSuHuyDatBanService);
+            Naming.rebind("rmi://localhost:1099/LoaiMon_Service", loaiMonService);
+            Naming.rebind("rmi://localhost:1099/MonAn_Service", monAnService);
+            Naming.rebind("rmi://localhost:1099/NhanVien_Service", nhanVienService);
+            Naming.rebind("rmi://localhost:1099/PhieuDatBan_Ban_Service", phieuDatBanBanService);
+            Naming.rebind("rmi://localhost:1099/PhieuDatBan_Service", phieuDatBanService);
+            Naming.rebind("rmi://localhost:1099/TaiKhoan_Service", taiKhoanService);
+            Naming.rebind("rmi://localhost:1099/Tang_Service", tangService);
             System.out.println("RMI Server is running on port 1099...");
 
         } catch (Exception e) {

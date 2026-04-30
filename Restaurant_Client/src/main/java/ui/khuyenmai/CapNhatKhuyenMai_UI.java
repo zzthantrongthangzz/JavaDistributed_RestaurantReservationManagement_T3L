@@ -6,6 +6,7 @@ import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
@@ -60,7 +61,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     private JDateChooser dateNgayBatDau;
     private JDateChooser dateNgayKetThuc;
     private JPanel panelChinh;
-    private IKhuyenMai_Service khuyenMaiDAO;
+    private IKhuyenMai_Service khuyenMaiService;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
     private JTextField txt;
     private JButton btnSua;
@@ -68,13 +69,13 @@ public class CapNhatKhuyenMai_UI extends JPanel {
 
     public CapNhatKhuyenMai_UI() {
         try {
-            khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMaiService");
+            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
         }
         khoiTaoGiaoDien();
-        docDuLieuTuSQL();
+        taiDuLieuLenBang();
     }
 
     private void khoiTaoGiaoDien() {
@@ -136,7 +137,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
         cmbSapXep.addActionListener(e -> {
             int selectedIndex = cmbSapXep.getSelectedIndex();
             if (selectedIndex == 0) {
-                docDuLieuTuSQL();
+                taiDuLieuLenBang();
             } else {
                 thucHienSapXep(selectedIndex);
             }
@@ -519,12 +520,12 @@ public class CapNhatKhuyenMai_UI extends JPanel {
         return panel;
     }
 
-    private void docDuLieuTuSQL() {
-        if (khuyenMaiDAO == null) return;
+    private void taiDuLieuLenBang() {
+        if (khuyenMaiService == null) return;
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
-                return khuyenMaiDAO.getAllList();
+                return khuyenMaiService.getAllList();
             }
             @Override
             protected void done() {
@@ -553,29 +554,29 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     }
 
     private void thucHienSapXep(int loaiSapXep) {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
                 List<KhuyenMai> kq = null;
                 switch (loaiSapXep) {
-                    case 1: kq = khuyenMaiDAO.getAllListSorted("Tên"); break;
+                    case 1: kq = khuyenMaiService.getAllListSorted("Tên"); break;
                     case 2:
-                        kq = khuyenMaiDAO.getAllListSorted("Tên");
+                        kq = khuyenMaiService.getAllListSorted("Tên");
                         if (kq != null) java.util.Collections.reverse(kq);
                         break;
-                    case 3: kq = khuyenMaiDAO.getAllListSorted("Giá trị"); break;
+                    case 3: kq = khuyenMaiService.getAllListSorted("Giá trị"); break;
                     case 4:
-                        kq = khuyenMaiDAO.getAllListSorted("Giá trị");
+                        kq = khuyenMaiService.getAllListSorted("Giá trị");
                         if (kq != null) java.util.Collections.reverse(kq);
                         break;
-                    case 5: kq = khuyenMaiDAO.getAllListSorted("Ngày bắt đầu"); break;
+                    case 5: kq = khuyenMaiService.getAllListSorted("Ngày bắt đầu"); break;
                     case 6:
-                        kq = khuyenMaiDAO.getAllListSorted("Ngày bắt đầu");
+                        kq = khuyenMaiService.getAllListSorted("Ngày bắt đầu");
                         if (kq != null) java.util.Collections.reverse(kq);
                         break;
                 }
-                return kq != null ? kq : khuyenMaiDAO.getAllList();
+                return kq != null ? kq : khuyenMaiService.getAllList();
             }
             @Override
             protected void done() {
@@ -589,15 +590,15 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     }
 
     private void thucHienLoc() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         String loaiDuocChon = (String) cmbLocLoai.getSelectedItem();
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
                 if (loaiDuocChon.equals("Loại khuyến mãi") || loaiDuocChon.equals("Lọc theo loại")) {
-                    return khuyenMaiDAO.getAllList();
+                    return khuyenMaiService.getAllList();
                 } else {
-                    return khuyenMaiDAO.getByLoaiKhuyenMai(loaiDuocChon);
+                    return khuyenMaiService.getByLoaiKhuyenMai(loaiDuocChon);
                 }
             }
             @Override
@@ -624,12 +625,12 @@ public class CapNhatKhuyenMai_UI extends JPanel {
         cmbLoaiKhuyenMai.setSelectedIndex(0);
         dateNgayBatDau.setDate(null);
         dateNgayKetThuc.setDate(null);
-        docDuLieuTuSQL();
+        taiDuLieuLenBang();
         panelChinh.requestFocusInWindow();
     }
 
     private void timKiemKhuyenMai() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         String tuKhoa = txtTimKiem.getText().trim();
         if (tuKhoa.isEmpty() || tuKhoa.equals("Tìm kiếm khuyến mãi. . .")) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập từ khóa tìm kiếm!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -638,7 +639,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
-                return khuyenMaiDAO.timKiem(tuKhoa);
+                return khuyenMaiService.timKiem(tuKhoa);
             }
             @Override
             protected void done() {
@@ -656,7 +657,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     }
 
     private void capNhatKhuyenMai() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         String maKM = txtMaKhuyenMai.getText().trim();
         String tenKM = txtTenKhuyenMai.getText().trim();
         String giaTriStr = txtGiaTri.getText().trim();
@@ -709,7 +710,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
             SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
                 @Override
                 protected Boolean doInBackground() throws Exception {
-                    return khuyenMaiDAO.capNhatKhuyenMai(km);
+                    return khuyenMaiService.capNhatKhuyenMai(km);
                 }
                 @Override
                 protected void done() {
@@ -729,7 +730,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     }
 
     private void xoaKhuyenMai() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         String maKM = txtMaKhuyenMai.getText().trim();
         if (maKM.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn khuyến mãi cần xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
@@ -741,7 +742,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
             SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
                 @Override
                 protected Boolean doInBackground() throws Exception {
-                    return khuyenMaiDAO.anKhuyenMai(maKM);
+                    return khuyenMaiService.anKhuyenMai(maKM);
                 }
                 @Override
                 protected void done() {
@@ -761,7 +762,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
     }
 
     private void hienThiDialogKhuyenMaiHetHan() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Danh sách khuyến mãi đã hết hạn", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(950, 600);
         dialog.setLocationRelativeTo(this);
@@ -855,7 +856,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
         SwingWorker<List<KhuyenMai>, Void> worker = new SwingWorker<List<KhuyenMai>, Void>() {
             @Override
             protected List<KhuyenMai> doInBackground() throws Exception {
-                return khuyenMaiDAO.getKhuyenMaiHetHan();
+                return khuyenMaiService.getKhuyenMaiHetHan();
             }
             @Override
             protected void done() {

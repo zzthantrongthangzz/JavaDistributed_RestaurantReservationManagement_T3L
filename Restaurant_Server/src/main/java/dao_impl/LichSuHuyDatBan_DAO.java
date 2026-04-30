@@ -6,6 +6,7 @@ import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Values;
+import org.neo4j.driver.Value;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -19,11 +20,14 @@ public class LichSuHuyDatBan_DAO {
                 "tenNhanVien: $tenNV, thoiGianHuy: $thoiGian, lyDoHuy: $lyDo})";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters(
-                    "maPhieu", log.getMaPhieuDatBan(), "tenBan", log.getTenBan(),
-                    "tenKH", log.getTenKhachHang(), "sdt", log.getSdtKhachHang(),
-                    "maNV", log.getMaNhanVien(), "tenNV", log.getTenNhanVien(),
-                    "thoiGian", log.getThoiGianHuy().getTime(),
-                    "lyDo", log.getLyDoHuy()
+                    "maPhieu", log.getMaPhieuDatBan() != null ? log.getMaPhieuDatBan() : "",
+                    "tenBan", log.getTenBan() != null ? log.getTenBan() : "",
+                    "tenKH", log.getTenKhachHang() != null ? log.getTenKhachHang() : "",
+                    "sdt", log.getSdtKhachHang() != null ? log.getSdtKhachHang() : "",
+                    "maNV", log.getMaNhanVien() != null ? log.getMaNhanVien() : "",
+                    "tenNV", log.getTenNhanVien() != null ? log.getTenNhanVien() : "",
+                    "thoiGian", log.getThoiGianHuy() != null ? log.getThoiGianHuy().getTime() : System.currentTimeMillis(),
+                    "lyDo", log.getLyDoHuy() != null ? log.getLyDoHuy() : ""
             ));
             return true;
         } catch (Exception e) {
@@ -39,20 +43,36 @@ public class LichSuHuyDatBan_DAO {
             Result result = session.run(cypher);
             while (result.hasNext()) {
                 Record r = result.next();
-                var node = r.get("l");
+                Value node = r.get("l");
 
                 LichSuHuyDatBan log = new LichSuHuyDatBan();
-                log.setMaPhieuDatBan(node.get("maPhieuDatBan").asString());
-                log.setTenBan(node.get("tenBan").asString());
-                log.setTenKhachHang(node.get("tenKhachHang").asString());
-                log.setSdtKhachHang(node.get("sdtKhachHang").asString());
-                log.setMaNhanVien(node.get("maNhanVien").asString());
-                log.setTenNhanVien(node.get("tenNhanVien").asString());
-                log.setThoiGianHuy(new Timestamp(node.get("thoiGianHuy").asLong()));
-                log.setLyDoHuy(node.get("lyDoHuy").asString());
+
+                // KIỂM TRA BẢO MẬT NULL TRƯỚC KHI ÉP KIỂU TỪ NEO4J
+                log.setMaPhieuDatBan(node.get("maPhieuDatBan").isNull() ? "" : node.get("maPhieuDatBan").asString());
+                log.setTenBan(node.get("tenBan").isNull() ? "" : node.get("tenBan").asString());
+                log.setTenKhachHang(node.get("tenKhachHang").isNull() ? "Khách vãng lai" : node.get("tenKhachHang").asString());
+                log.setSdtKhachHang(node.get("sdtKhachHang").isNull() ? "" : node.get("sdtKhachHang").asString());
+                log.setMaNhanVien(node.get("maNhanVien").isNull() ? "" : node.get("maNhanVien").asString());
+                log.setTenNhanVien(node.get("tenNhanVien").isNull() ? "" : node.get("tenNhanVien").asString());
+
+                // Xử lý an toàn cho Thời gian (asLong)
+                long thoiGian = System.currentTimeMillis();
+                if (!node.get("thoiGianHuy").isNull()) {
+                    try {
+                        thoiGian = node.get("thoiGianHuy").asLong();
+                    } catch (Exception ex) {
+                        // Nếu do nhầm lẫn lưu string vào db thì cố ép ngược lại
+                        try { thoiGian = Long.parseLong(node.get("thoiGianHuy").asString()); } catch(Exception ignored){}
+                    }
+                }
+                log.setThoiGianHuy(new Timestamp(thoiGian));
+
+                log.setLyDoHuy(node.get("lyDoHuy").isNull() ? "Không có lý do" : node.get("lyDoHuy").asString());
 
                 dsLog.add(log);
             }
+        } catch(Exception e) {
+            e.printStackTrace();
         }
         return dsLog;
     }

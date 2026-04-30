@@ -9,6 +9,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.util.Date;
 import java.rmi.Naming;
+import java.rmi.RemoteException;
 
 import rmi_interfaces.IKhuyenMai_Service;
 import entity.KhuyenMai;
@@ -22,7 +23,7 @@ public class ThemKhuyenMai_UI extends JPanel {
     private JDateChooser dateNgayBatDau;
     private JDateChooser dateNgayKetThuc;
     private Image backgroundImage;
-    private IKhuyenMai_Service khuyenMaiDAO;
+    private IKhuyenMai_Service khuyenMaiService;
     private JButton btnThem;
 
     private final Color bgColor = new Color(48, 52, 56);
@@ -31,7 +32,7 @@ public class ThemKhuyenMai_UI extends JPanel {
 
     public ThemKhuyenMai_UI() {
         try {
-            khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMaiService");
+            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -234,11 +235,11 @@ public class ThemKhuyenMai_UI extends JPanel {
     }
 
     private void taoMaKhuyenMaiTuDong() {
-        if (khuyenMaiDAO == null) return;
+        if (khuyenMaiService == null) return;
         SwingWorker<String, Void> worker = new SwingWorker<String, Void>() {
             @Override
             protected String doInBackground() throws Exception {
-                return khuyenMaiDAO.taoMaKhuyenMaiTuDong();
+                return khuyenMaiService.taoMaKhuyenMaiTuDong();
             }
             @Override
             protected void done() {
@@ -315,9 +316,9 @@ public class ThemKhuyenMai_UI extends JPanel {
             SwingWorker<Object[], Void> worker = new SwingWorker<Object[], Void>() {
                 @Override
                 protected Object[] doInBackground() throws Exception {
-                    if (khuyenMaiDAO == null) return new Object[]{false, "error"};
-                    if (khuyenMaiDAO.kiemTraMaTonTai(maKM)) return new Object[]{false, "exists"};
-                    boolean result = khuyenMaiDAO.themKhuyenMai(km);
+                    if (khuyenMaiService == null) return new Object[]{false, "error"};
+                    if (khuyenMaiService.kiemTraMaTonTai(maKM)) return new Object[]{false, "exists"};
+                    boolean result = khuyenMaiService.themKhuyenMai(km);
                     return new Object[]{result, "success"};
                 }
                 @Override

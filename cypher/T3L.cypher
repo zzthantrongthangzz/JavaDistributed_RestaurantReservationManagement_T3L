@@ -12,7 +12,7 @@ CREATE CONSTRAINT IF NOT EXISTS FOR (l:LoaiMon) REQUIRE l.maLoai IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (m:Mon) REQUIRE m.maMon IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (t:Tang) REQUIRE t.maTang IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (k:Khu) REQUIRE k.maKhu IS UNIQUE;
-CREATE CONSTRAINT IF NOT EXISTS FOR (b:Ban) REQUIRE b.maBan IS UNIQUE;
+CREATE CONSTRAINT IF NOT EXISTS FOR (b:BanAn) REQUIRE b.maBan IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (p:PhieuDatBan) REQUIRE p.maPhieuDatBan IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (h:HoaDon) REQUIRE h.maHoaDon IS UNIQUE;
 
@@ -151,39 +151,39 @@ CREATE (:KhachHang {maKhachHang: 'KH000014', hoTen: 'Cao Thị Lan', soDienThoai
 CREATE (:KhachHang {maKhachHang: 'KH000015', hoTen: 'Nguyễn Văn Khôi', soDienThoai: '0921321987', gioiTinh: true, email: 'khoi.nguyen@gmail.com', diaChi: 'Bình Tân, TP.HCM', ngaySinh: date('1989-04-30'), tichDiem: 260, trangThai: 1});
 
 // 7. BÀN
-CREATE (:Ban {maBan: 'MB000001', tenBan: 'Phòng VIP 01', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000002', tenBan: 'Phòng VIP 02', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000003', tenBan: 'Phòng VIP 03', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000004', tenBan: 'Phòng VIP 04', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000005', tenBan: 'Bàn 005', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000006', tenBan: 'Bàn 006', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000007', tenBan: 'Bàn 007', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000008', tenBan: 'Bàn 008', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000009', tenBan: 'Bàn 009', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000010', tenBan: 'Bàn 010', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000011', tenBan: 'Bàn 011', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000012', tenBan: 'Bàn 012', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
-CREATE (:Ban {maBan: 'MB000013', tenBan: 'Bàn 013', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000014', tenBan: 'Bàn 014', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000015', tenBan: 'Bàn 015', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000016', tenBan: 'Bàn 016', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000017', tenBan: 'Bàn 017', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000018', tenBan: 'Bàn 018', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000019', tenBan: 'Bàn 019', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000020', tenBan: 'Bàn 020', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000021', tenBan: 'Bàn 021', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000022', tenBan: 'Bàn 022', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
-CREATE (:Ban {maBan: 'MB000023', tenBan: 'Bàn 023', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000024', tenBan: 'Bàn 024', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000025', tenBan: 'Bàn 025', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000026', tenBan: 'Bàn 026', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000027', tenBan: 'Bàn 027', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000028', tenBan: 'Bàn 028', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000029', tenBan: 'Bàn 029', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
-CREATE (:Ban {maBan: 'MB000030', tenBan: 'Bàn 030', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'});
+CREATE (:BanAn {maBan: 'MB000001', tenBan: 'Phòng VIP 01', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000002', tenBan: 'Phòng VIP 02', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000003', tenBan: 'Phòng VIP 03', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000004', tenBan: 'Phòng VIP 04', loaiBan: 'Phòng VIP', sucChua: 30, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000005', tenBan: 'Bàn 005', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000006', tenBan: 'Bàn 006', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000007', tenBan: 'Bàn 007', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000008', tenBan: 'Bàn 008', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000009', tenBan: 'Bàn 009', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000010', tenBan: 'Bàn 010', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000011', tenBan: 'Bàn 011', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000012', tenBan: 'Bàn 012', loaiBan: 'Bàn nhỏ', sucChua: 4, trangThai: 'Bàn đang trống', _maKhu: 'K01'})
+CREATE (:BanAn {maBan: 'MB000013', tenBan: 'Bàn 013', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000014', tenBan: 'Bàn 014', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000015', tenBan: 'Bàn 015', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000016', tenBan: 'Bàn 016', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000017', tenBan: 'Bàn 017', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000018', tenBan: 'Bàn 018', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000019', tenBan: 'Bàn 019', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000020', tenBan: 'Bàn 020', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000021', tenBan: 'Bàn 021', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000022', tenBan: 'Bàn 022', loaiBan: 'Bàn vừa', sucChua: 8, trangThai: 'Bàn đang trống', _maKhu: 'K02'})
+CREATE (:BanAn {maBan: 'MB000023', tenBan: 'Bàn 023', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000024', tenBan: 'Bàn 024', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000025', tenBan: 'Bàn 025', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000026', tenBan: 'Bàn 026', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000027', tenBan: 'Bàn 027', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000028', tenBan: 'Bàn 028', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000029', tenBan: 'Bàn 029', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
+CREATE (:BanAn {maBan: 'MB000030', tenBan: 'Bàn 030', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'});
 
 WITH 1 as dummy
-MATCH (b:Ban), (k:Khu) WHERE b._maKhu = k.maKhu MERGE (b)-[:THUOC_KHU]->(k);
+MATCH (b:BanAn), (k:Khu) WHERE b._maKhu = k.maKhu MERGE (b)-[:THUOC_KHU]->(k);
 
 
 // ===========================================================================
@@ -215,20 +215,20 @@ WITH 1 as dummy
 MATCH (hd:HoaDon), (km:KhuyenMai) WHERE hd._maKhuyenMai = km.maKhuyenMai MERGE (hd)-[:AP_DUNG]->(km);
 
 // Nối Hóa đơn với Bàn (HoaDon_Ban)
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (b:Ban {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000002'}), (b:Ban {maBan: 'MB000007'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000003'}), (b:Ban {maBan: 'MB000010'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000004'}), (b:Ban {maBan: 'MB000013'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000005'}), (b:Ban {maBan: 'MB000018'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000006'}), (b:Ban {maBan: 'MB000019'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000007'}), (b:Ban {maBan: 'MB000024'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000008'}), (b:Ban {maBan: 'MB000029'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000014'}), (b:Ban {maBan: 'MB000001'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000015'}), (b:Ban {maBan: 'MB000003'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000016'}), (b:Ban {maBan: 'MB000005'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000023'}), (b:Ban {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000024'}), (b:Ban {maBan: 'MB000018'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000025'}), (b:Ban {maBan: 'MB000007'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (b:BanAn {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000002'}), (b:BanAn {maBan: 'MB000007'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000003'}), (b:BanAn {maBan: 'MB000010'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000004'}), (b:BanAn {maBan: 'MB000013'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000005'}), (b:BanAn {maBan: 'MB000018'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000006'}), (b:BanAn {maBan: 'MB000019'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000007'}), (b:BanAn {maBan: 'MB000024'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000008'}), (b:BanAn {maBan: 'MB000029'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000014'}), (b:BanAn {maBan: 'MB000001'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000015'}), (b:BanAn {maBan: 'MB000003'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000016'}), (b:BanAn {maBan: 'MB000005'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000023'}), (b:BanAn {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000024'}), (b:BanAn {maBan: 'MB000018'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000025'}), (b:BanAn {maBan: 'MB000007'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 
 // Thêm Chi Tiết Hóa Đơn (Món)
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (m:Mon {maMon: 'MM000003'}) MERGE (hd)-[:GOM_MON {soLuong: 2, donGia: 299000.0}]->(m);
@@ -252,11 +252,11 @@ WITH 1 as dummy
 MATCH (p:PhieuDatBan), (kh:KhachHang) WHERE p._maKhachHang = kh.maKhachHang MERGE (p)-[:DAT_BOI]->(kh);
 
 // Nối Phiếu đặt bàn với Bàn
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00001'}), (b:Ban {maBan: 'MB000004'}) MERGE (p)-[:GOM_BAN]->(b);
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00006'}), (b:Ban {maBan: 'MB000004'}) MERGE (p)-[:GOM_BAN]->(b);
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00007'}), (b:Ban {maBan: 'MB000009'}) MERGE (p)-[:GOM_BAN]->(b);
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00008'}), (b:Ban {maBan: 'MB000015'}) MERGE (p)-[:GOM_BAN]->(b);
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00010'}), (b:Ban {maBan: 'MB000001'}) MERGE (p)-[:GOM_BAN]->(b);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00001'}), (b:BanAn {maBan: 'MB000004'}) MERGE (p)-[:GOM_BAN]->(b);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00006'}), (b:BanAn {maBan: 'MB000004'}) MERGE (p)-[:GOM_BAN]->(b);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00007'}), (b:BanAn {maBan: 'MB000009'}) MERGE (p)-[:GOM_BAN]->(b);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00008'}), (b:BanAn {maBan: 'MB000015'}) MERGE (p)-[:GOM_BAN]->(b);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00010'}), (b:BanAn {maBan: 'MB000001'}) MERGE (p)-[:GOM_BAN]->(b);
 
 // Chi tiết phiếu đặt bàn
 WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00001'}), (m:Mon {maMon: 'MM000007'}) MERGE (p)-[:GOM_MON {soLuong: 2, donGia: 189000.0}]->(m);
@@ -270,7 +270,7 @@ CREATE (:HoaDon {maHoaDon: 'HD000009', trangThai: 'Đã thanh toán', ngayLapHoa
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (nv:NhanVien {maNhanVien: 'NV000008'}) MERGE (hd)-[:LAP_BOI]->(nv);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (kh:KhachHang {maKhachHang: 'KH000002'}) MERGE (hd)-[:CUA_KHACH]->(kh);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (pdb:PhieuDatBan {maPhieuDatBan: 'PDB00001'}) MERGE (hd)-[:TU_PHIEU]->(pdb);
-WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (b:Ban {maBan: 'MB000004'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (b:BanAn {maBan: 'MB000004'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (m:Mon {maMon: 'MM000007'}) MERGE (hd)-[:GOM_MON {soLuong: 2, donGia: 189000.0}]->(m);
 
 
@@ -287,8 +287,8 @@ MATCH (l:LichSuHuyDatBan), (nv:NhanVien) WHERE l._maNhanVien = nv.maNhanVien MER
 // ===========================================================================
 
 // Cập nhật trạng thái Bàn theo nghiệp vụ
-MATCH (b:Ban) WHERE b.maBan IN ['MB000002', 'MB000018', 'MB000007'] SET b.trangThai = 'Bàn đang phục vụ';
-MATCH (b:Ban) WHERE b.maBan IN ['MB000004', 'MB000009', 'MB000015', 'MB000027', 'MB000001'] SET b.trangThai = 'Bàn đang chờ';
+MATCH (b:BanAn) WHERE b.maBan IN ['MB000002', 'MB000018', 'MB000007'] SET b.trangThai = 'Bàn đang phục vụ';
+MATCH (b:BanAn) WHERE b.maBan IN ['MB000004', 'MB000009', 'MB000015', 'MB000027', 'MB000001'] SET b.trangThai = 'Bàn đang chờ';
 
 // Xóa các thuộc tính tạm thời (_maKhu, _maLoai, v.v.)
 MATCH (n)

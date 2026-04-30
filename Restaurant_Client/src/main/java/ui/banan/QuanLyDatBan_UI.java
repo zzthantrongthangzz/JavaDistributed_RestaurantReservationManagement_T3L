@@ -98,15 +98,16 @@ public class QuanLyDatBan_UI extends JPanel {
 
 	public QuanLyDatBan_UI() {
 		try {
-			banAn_DAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-			hoaDon_DAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-			khachHang_DAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-			phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_DAO");
-			hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_DAO");
-			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_DAO");
-			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_DAO");
-			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_DAO");
+			banAn_DAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+			hoaDon_DAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+			khachHang_DAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+			phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+			hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
+			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_Service");
+			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_Service");
+
 
 			this.danhSachBan = banAn_DAO.docDanhSachBan();
 		} catch (Exception e) {
