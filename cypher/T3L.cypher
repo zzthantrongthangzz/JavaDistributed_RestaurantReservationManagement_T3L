@@ -22,13 +22,13 @@ CREATE CONSTRAINT IF NOT EXISTS FOR (h:HoaDon) REQUIRE h.maHoaDon IS UNIQUE;
 // ===========================================================================
 
 // 1. TẦNG & KHU
-CREATE (:Tang {maTang: 'T01', tenTang: 'Tầng 1'})
-CREATE (:Tang {maTang: 'T02', tenTang: 'Tầng 2'});
+MERGE (t1:Tang {maTang: 'T01', tenTang: 'Tầng 1'})
+MERGE (t2:Tang {maTang: 'T02', tenTang: 'Tầng 2'})
 
-MATCH (t1:Tang {maTang: 'T01'}), (t2:Tang {maTang: 'T02'})
-CREATE (:Khu {maKhu: 'K01', tenKhu: 'Khu A'})-[:THUOC_TANG]->(t1)
-CREATE (:Khu {maKhu: 'K02', tenKhu: 'Khu B'})-[:THUOC_TANG]->(t1)
-CREATE (:Khu {maKhu: 'K03', tenKhu: 'Khu C'})-[:THUOC_TANG]->(t2);
+WITH t1, t2
+MERGE (k1:Khu {maKhu: 'K01', tenKhu: 'Khu A'}) MERGE (k1)-[:THUOC_TANG]->(t1)
+MERGE (k2:Khu {maKhu: 'K02', tenKhu: 'Khu B'}) MERGE (k2)-[:THUOC_TANG]->(t1)
+MERGE (k3:Khu {maKhu: 'K03', tenKhu: 'Khu C'}) MERGE (k3)-[:THUOC_TANG]->(t2);
 
 // 2. LOẠI MÓN
 CREATE (:LoaiMon {maLoai: 'LM000001', tenLoai: 'Món chính'})

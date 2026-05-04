@@ -263,14 +263,15 @@ public class HoaDon_DAO {
     public BigDecimal getTongDoanhThu(Date tuNgay, Date denNgay) {
         BigDecimal tongDoanhThu = BigDecimal.ZERO;
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[ct:GOM_MON]->(m:Mon) " +
-                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
-                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
+                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
                 "RETURN sum(ct.soLuong * ct.donGia) AS tong";
         try (Session session = DBConnect.getSession()) {
+            LocalDateTime ldtTu = new java.sql.Timestamp(tuNgay.getTime()).toLocalDateTime();
+
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
             c.set(Calendar.HOUR_OF_DAY, 23); c.set(Calendar.MINUTE, 59); c.set(Calendar.SECOND, 59);
-
-            Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", c.getTimeInMillis()));
+            LocalDateTime ldtDen = new java.sql.Timestamp(c.getTimeInMillis()).toLocalDateTime();
+            Result result = session.run(cypher, Values.parameters("tu", ldtTu, "den", ldtDen));
             if (result.hasNext()) {
                 tongDoanhThu = BigDecimal.valueOf(result.next().get("tong").asDouble());
             }
@@ -281,14 +282,16 @@ public class HoaDon_DAO {
     public int getTongSoHoaDon(Date tuNgay, Date denNgay) {
         int tongSoHoaDon = 0;
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
-                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
+                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
                 "RETURN count(hd) AS tong";
         try (Session session = DBConnect.getSession()) {
+            LocalDateTime ldtTu = new java.sql.Timestamp(tuNgay.getTime()).toLocalDateTime();
+
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
             c.set(Calendar.HOUR_OF_DAY, 23); c.set(Calendar.MINUTE, 59); c.set(Calendar.SECOND, 59);
+            LocalDateTime ldtDen = new java.sql.Timestamp(c.getTimeInMillis()).toLocalDateTime();
 
-            Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", c.getTimeInMillis()));
+            Result result = session.run(cypher, Values.parameters("tu", ldtTu, "den", ldtDen));
             if (result.hasNext()) {
                 tongSoHoaDon = result.next().get("tong").asInt();
             }
@@ -299,15 +302,17 @@ public class HoaDon_DAO {
     public Map<Date, BigDecimal> getDoanhThuTheoNgay(Date tuNgay, Date denNgay) {
         Map<Date, BigDecimal> doanhThuTheoNgay = new TreeMap<>();
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[ct:GOM_MON]->(m:Mon) " +
-                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
-                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
+                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
                 "RETURN date(hd.ngayLapHoaDon) AS ngay, sum(ct.soLuong * ct.donGia) AS doanhThu " +
                 "ORDER BY ngay";
         try (Session session = DBConnect.getSession()) {
+            LocalDateTime ldtTu = new java.sql.Timestamp(tuNgay.getTime()).toLocalDateTime();
+
             Calendar c = Calendar.getInstance(); c.setTime(denNgay);
             c.set(Calendar.HOUR_OF_DAY, 23); c.set(Calendar.MINUTE, 59); c.set(Calendar.SECOND, 59);
+            LocalDateTime ldtDen = new java.sql.Timestamp(c.getTimeInMillis()).toLocalDateTime();
 
-            Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", c.getTimeInMillis()));
+            Result result = session.run(cypher, Values.parameters("tu", ldtTu, "den", ldtDen));
             while (result.hasNext()) {
                 Record r = result.next();
                 if (!r.get("ngay").isNull()) {
@@ -356,21 +361,24 @@ public class HoaDon_DAO {
     public List<HoaDon> getDanhSachHoaDon(Date tuNgay, Date denNgay) {
         List<HoaDon> list = new ArrayList<>();
         String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-                "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
-                "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
+                "WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
                 "RETURN " + RETURN_FIELDS + " ORDER BY hd.ngayLapHoaDon DESC";
         try (Session session = DBConnect.getSession()) {
-            long epochTu = 0;
-            long epochDen = System.currentTimeMillis();
+            LocalDateTime ldtTu;
+            LocalDateTime ldtDen;
 
             if (tuNgay != null && denNgay != null) {
-                epochTu = tuNgay.getTime();
+                ldtTu = new java.sql.Timestamp(tuNgay.getTime()).toLocalDateTime();
+
                 Calendar c = Calendar.getInstance(); c.setTime(denNgay);
                 c.set(Calendar.HOUR_OF_DAY, 23); c.set(Calendar.MINUTE, 59); c.set(Calendar.SECOND, 59);
-                epochDen = c.getTimeInMillis();
+                ldtDen = new java.sql.Timestamp(c.getTimeInMillis()).toLocalDateTime();
+            } else {
+                ldtTu = LocalDateTime.of(1970, 1, 1, 0, 0);
+                ldtDen = LocalDateTime.now();
             }
 
-            Result result = session.run(cypher, Values.parameters("tu", epochTu, "den", epochDen));
+            Result result = session.run(cypher, Values.parameters("tu", ldtTu, "den", ldtDen));
             while (result.hasNext()) {
                 list.add(mapHoaDon(result.next()));
             }

@@ -274,7 +274,9 @@ public class ThongKeHoaDon_UI extends JPanel {
                     lblTongSoHoaDon.setText(numberFormat.format((Integer) result[1]));
                     capNhatBieuDo((Map<Date, BigDecimal>) result[2]);
                     capNhatBang((List<HoaDon>) result[3], (Map<String, String>) result[4]);
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         };
         worker.execute();

@@ -79,12 +79,12 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		this.nhanVien = Auth.getCurrentNhanVien();
 
 		try {
-			hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_DAO");
-			khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_DAO");
-			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_DAO");
-			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_DAO");
-			banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_DAO");
-			khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_DAO");
+			hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+			khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
+			banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+			khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -689,6 +689,8 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 					hoaDon.setTrangThai("Đã thanh toán");
 					hoaDon.setThue(BigDecimal.valueOf(thue));
 					hoaDon.setSoTienKhachTra(BigDecimal.valueOf(finalTienNhan));
+					double tienThoiLai = finalTienNhan - tongThanhToan;
+					hoaDon.setSoTienThoi(BigDecimal.valueOf(tienThoiLai));
 
 					if (khuyenMaiApDung != null) {
 						hoaDon.setMaKhuyenMai(khuyenMaiApDung.getMaKhuyenMai());

@@ -77,9 +77,9 @@ public class DatBanNgay_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHangService");
-            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDonService");
-            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDonBanService");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
+            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
         }
