@@ -47,7 +47,9 @@ public class Khu_DAO {
     }
 
     public boolean themKhu(Khu khu) {
-        String cypher = "CREATE (k:Khu {maKhu: $ma, tenKhu: $ten, maTang: $tang})";
+        // Tự động tìm Tầng và nối relationship [:THUOC_TANG] vào Khu vực vừa tạo
+        String cypher = "MATCH (t:Tang) WHERE trim(t.maTang) = trim($tang) " +
+                "CREATE (k:Khu {maKhu: trim($ma), tenKhu: trim($ten), maTang: trim($tang)})-[:THUOC_TANG]->(t)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("ma", khu.getMaKhu(), "ten", khu.getTenKhu(), "tang", khu.getMaTang()));
             return true;

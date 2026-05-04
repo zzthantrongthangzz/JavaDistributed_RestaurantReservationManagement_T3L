@@ -12,7 +12,8 @@ import java.util.List;
 public class HoaDon_Ban_DAO {
 
     public boolean themHoaDon_Ban(String maHoaDon, String maBan) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD}), (b:BanAn {maBan: $maBan}) " +
+        String cypher = "MATCH (hd:HoaDon), (b:BanAn) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHD) AND trim(b.maBan) = trim($maBan) " +
                 "MERGE (hd)-[:SU_DUNG_BAN]->(b)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHD", maHoaDon, "maBan", maBan));
@@ -28,10 +29,11 @@ public class HoaDon_Ban_DAO {
     }
 
     public boolean chuyenBan(String maHoaDon, String maBanCu, String maBanMoi) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD})-[r:SU_DUNG_BAN]->(bCu:BanAn {maBan: $maBanCu}) " +
+        String cypher = "MATCH (hd:HoaDon)-[r:SU_DUNG_BAN]->(bCu:BanAn) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHD) AND trim(bCu.maBan) = trim($maBanCu) " +
                 "DELETE r " +
                 "WITH hd " +
-                "MATCH (bMoi:BanAn {maBan: $maBanMoi}) " +
+                "MATCH (bMoi:BanAn) WHERE trim(bMoi.maBan) = trim($maBanMoi) " +
                 "MERGE (hd)-[:SU_DUNG_BAN]->(bMoi)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHD", maHoaDon, "maBanCu", maBanCu, "maBanMoi", maBanMoi));
@@ -41,7 +43,8 @@ public class HoaDon_Ban_DAO {
 
     public List<String> layDanhSachMaBanTheoHoaDon(String maHoaDon) {
         List<String> ds = new ArrayList<>();
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD})-[:SU_DUNG_BAN]->(b:BanAn) RETURN b.maBan AS maBan";
+        String cypher = "MATCH (hd:HoaDon)-[:SU_DUNG_BAN]->(b:BanAn) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHD) RETURN b.maBan AS maBan";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maHD", maHoaDon));
             while (result.hasNext()) {
@@ -52,7 +55,8 @@ public class HoaDon_Ban_DAO {
     }
 
     public boolean xoaHoaDon_Ban(String maHoaDon, String maBan) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD})-[r:SU_DUNG_BAN]->(b:BanAn {maBan: $maBan}) DELETE r";
+        String cypher = "MATCH (hd:HoaDon)-[r:SU_DUNG_BAN]->(b:BanAn) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHD) AND trim(b.maBan) = trim($maBan) DELETE r";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHD", maHoaDon, "maBan", maBan));
             return true;
@@ -60,7 +64,8 @@ public class HoaDon_Ban_DAO {
     }
 
     public boolean xoaTatCaBanCuaHoaDon(String maHoaDon) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD})-[r:SU_DUNG_BAN]->(:BanAn) DELETE r";
+        String cypher = "MATCH (hd:HoaDon)-[r:SU_DUNG_BAN]->(:BanAn) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHD) DELETE r";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHD", maHoaDon));
             return true;

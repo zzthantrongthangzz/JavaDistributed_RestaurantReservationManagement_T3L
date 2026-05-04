@@ -41,7 +41,6 @@ public class DatBanNgay_UI extends JDialog {
     private IHoaDon_Ban_Service hoaDonBanDAO;
 
     private final List<BanAn> danhSachBanChon;
-
     private KhachHang khachHangHienTai;
     private final Frame parentFrame;
 
@@ -64,7 +63,6 @@ public class DatBanNgay_UI extends JDialog {
     private final Color MAU_ACCENT = new Color(79, 134, 247);
 
     private final Dimension KICH_THUOC_NUT = new Dimension(160, 44);
-
     private final Font FONT_TIEU_DE = new Font("Segoe UI", Font.BOLD, 28);
     private final Font FONT_TIEU_DE_PHU = new Font("Segoe UI", Font.PLAIN, 15);
     private final Font FONT_NHAN = new Font("Segoe UI", Font.BOLD, 14);
@@ -79,9 +77,9 @@ public class DatBanNgay_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHangService");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDonService");
+            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDonBanService");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -99,15 +97,11 @@ public class DatBanNgay_UI extends JDialog {
     private void khoiTaoGiaoDien() {
         getContentPane().setLayout(new BorderLayout());
         getContentPane().setBackground(MAU_NEN);
-
         JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
         mainPanel.setBackground(MAU_NEN);
-        mainPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-
         mainPanel.add(taoPanelTieuDe(), BorderLayout.NORTH);
         mainPanel.add(taoPanelForm(), BorderLayout.CENTER);
         mainPanel.add(taoPanelNut(), BorderLayout.SOUTH);
-
         getContentPane().add(mainPanel);
     }
 
@@ -124,17 +118,11 @@ public class DatBanNgay_UI extends JDialog {
 
         StringBuilder tenBanSb = new StringBuilder();
         for (BanAn b : danhSachBanChon) {
-            if (tenBanSb.length() > 0)
-                tenBanSb.append(", ");
-
-            String tenRutGon = b.getTenBan().replace("Bàn", "").trim();
-            tenBanSb.append(tenRutGon);
+            if (tenBanSb.length() > 0) tenBanSb.append(", ");
+            tenBanSb.append(b.getTenBan().replace("Bàn", "").trim());
         }
-
         String strHienThi = tenBanSb.toString();
-        if (strHienThi.length() > 45) {
-            strHienThi = strHienThi.substring(0, 42) + "...";
-        }
+        if (strHienThi.length() > 45) strHienThi = strHienThi.substring(0, 42) + "...";
 
         JLabel lblThongTinBan = new JLabel("Bàn: " + strHienThi);
         lblThongTinBan.setFont(FONT_TIEU_DE_PHU);
@@ -144,7 +132,6 @@ public class DatBanNgay_UI extends JDialog {
         panel.add(lblTieuDe);
         panel.add(Box.createVerticalStrut(8));
         panel.add(lblThongTinBan);
-
         return panel;
     }
 
@@ -154,8 +141,7 @@ public class DatBanNgay_UI extends JDialog {
         panel.setBackground(MAU_NEN_FORM);
         panel.setBorder(new EmptyBorder(30, 40, 30, 40));
 
-        JPanel pTimKiem = taoPanelTimKiem();
-        panel.add(pTimKiem);
+        panel.add(taoPanelTimKiem());
         panel.add(Box.createVerticalStrut(25));
 
         JSeparator separator = new JSeparator();
@@ -172,25 +158,10 @@ public class DatBanNgay_UI extends JDialog {
         panel.add(lblThongTin);
         panel.add(Box.createVerticalStrut(18));
 
-        txtMaKH = taoFieldCoNhan(panel, "Mã khách hàng", false);
-        txtMaKH.setEditable(false);
-        txtMaKH.setBackground(MAU_NEN_INPUT_DISABLED);
-        txtMaKH.setForeground(MAU_CHU_XAM);
-
-        txtHoTen = taoFieldCoNhan(panel, "Họ và tên", false);
-        txtHoTen.setEditable(false);
-        txtHoTen.setBackground(MAU_NEN_INPUT_DISABLED);
-        txtHoTen.setForeground(MAU_CHU_XAM);
-
-        txtGioiTinh = taoFieldCoNhan(panel, "Giới tính", false);
-        txtGioiTinh.setEditable(false);
-        txtGioiTinh.setBackground(MAU_NEN_INPUT_DISABLED);
-        txtGioiTinh.setForeground(MAU_CHU_XAM);
-
-        txtTichDiem = taoFieldCoNhan(panel, "Điểm tích lũy", false);
-        txtTichDiem.setEditable(false);
-        txtTichDiem.setBackground(MAU_NEN_INPUT_DISABLED);
-        txtTichDiem.setForeground(MAU_CHU_XAM);
+        txtMaKH = taoFieldCoNhan(panel, "Mã khách hàng");
+        txtHoTen = taoFieldCoNhan(panel, "Họ và tên");
+        txtGioiTinh = taoFieldCoNhan(panel, "Giới tính");
+        txtTichDiem = taoFieldCoNhan(panel, "Điểm tích lũy");
 
         return panel;
     }
@@ -212,16 +183,10 @@ public class DatBanNgay_UI extends JDialog {
         inputPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         txtSoDienThoai = taoTextField("Nhập số điện thoại (10 chữ số)");
-
         btnKiemTra = taoNut("Kiểm tra", MAU_NUT_KIEM_TRA, MAU_NUT_KIEM_TRA_HOVER);
         btnKiemTra.setPreferredSize(new Dimension(130, 42));
         btnKiemTra.addActionListener(e -> xuLyKiemTraKhachHang());
-        txtSoDienThoai.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                btnKiemTra.doClick();
-            }
-        });
+        txtSoDienThoai.addActionListener(e -> btnKiemTra.doClick());
 
         inputPanel.add(txtSoDienThoai, BorderLayout.CENTER);
         inputPanel.add(btnKiemTra, BorderLayout.EAST);
@@ -230,11 +195,10 @@ public class DatBanNgay_UI extends JDialog {
         panel.add(Box.createVerticalStrut(8));
         panel.add(inputPanel);
         panel.add(Box.createVerticalStrut(12));
-
         return panel;
     }
 
-    private JTextField taoFieldCoNhan(JPanel panel, String nhan, boolean batBuoc) {
+    private JTextField taoFieldCoNhan(JPanel panel, String nhan) {
         JPanel fieldPanel = new JPanel();
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
         fieldPanel.setBackground(MAU_NEN_FORM);
@@ -249,12 +213,14 @@ public class DatBanNgay_UI extends JDialog {
         JTextField textField = taoTextField("");
         textField.setAlignmentX(Component.LEFT_ALIGNMENT);
         textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        textField.setEditable(false);
+        textField.setBackground(MAU_NEN_INPUT_DISABLED);
+        textField.setForeground(MAU_CHU_XAM);
 
         fieldPanel.add(label);
         fieldPanel.add(Box.createVerticalStrut(7));
         fieldPanel.add(textField);
         fieldPanel.add(Box.createVerticalStrut(12));
-
         panel.add(fieldPanel);
         return textField;
     }
@@ -269,21 +235,6 @@ public class DatBanNgay_UI extends JDialog {
         textField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1, true),
                 new EmptyBorder(8, 14, 8, 14)));
-
-        textField.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent evt) {
-                textField.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(MAU_VIEN_INPUT_FOCUS, 2, true),
-                        new EmptyBorder(7, 13, 7, 13)));
-            }
-
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                textField.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(MAU_VIEN_INPUT, 1, true),
-                        new EmptyBorder(8, 14, 8, 14)));
-            }
-        });
-
         return textField;
     }
 
@@ -301,7 +252,6 @@ public class DatBanNgay_UI extends JDialog {
 
         panel.add(btnDatBan);
         panel.add(btnHuy);
-
         return panel;
     }
 
@@ -314,26 +264,10 @@ public class DatBanNgay_UI extends JDialog {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(10, 20, 10, 20));
-
         button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                if (button.isEnabled()) {
-                    button.setBackground(mauHover);
-                }
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (button.isEnabled()) {
-                    button.setBackground(mauNen);
-                } else {
-                    button.setBackground(new Color(60, 65, 73));
-                }
-            }
+            public void mouseEntered(MouseEvent e) { if (button.isEnabled()) button.setBackground(mauHover); }
+            public void mouseExited(MouseEvent e) { if (button.isEnabled()) button.setBackground(mauNen); else button.setBackground(new Color(60, 65, 73)); }
         });
-
         button.addPropertyChangeListener("enabled", evt -> {
             if (!button.isEnabled()) {
                 button.setBackground(new Color(60, 65, 73));
@@ -343,32 +277,24 @@ public class DatBanNgay_UI extends JDialog {
                 button.setForeground(Color.WHITE);
             }
         });
-
         return button;
     }
 
     private void xuLyKiemTraKhachHang() {
         String soDienThoai = txtSoDienThoai.getText().trim();
-
-        if (soDienThoai.isEmpty()) {
-            hienThiLoi("Vui lòng nhập số điện thoại!");
-            return;
-        }
-
-        if (!soDienThoai.matches("^0\\d{9}$")) {
-            hienThiLoi("Số điện thoại không hợp lệ!\nPhải có 10 chữ số và bắt đầu bằng 0");
+        if (soDienThoai.isEmpty() || !soDienThoai.matches("^0\\d{9}$")) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         btnKiemTra.setEnabled(false);
         btnKiemTra.setText("Đang tìm...");
 
-        SwingWorker<KhachHang, Void> worker = new SwingWorker<KhachHang, Void>() {
+        SwingWorker<KhachHang, Void> worker = new SwingWorker<>() {
             @Override
             protected KhachHang doInBackground() throws Exception {
                 return khachHangDAO.timKhachHangTheoSDT(soDienThoai);
             }
-
             @Override
             protected void done() {
                 btnKiemTra.setEnabled(true);
@@ -377,148 +303,78 @@ public class DatBanNgay_UI extends JDialog {
                     KhachHang kh = get();
                     if (kh != null) {
                         khachHangHienTai = kh;
-                        hienThiThongTinKhachHang(kh);
+                        txtMaKH.setText(kh.getMaKhachHang());
+                        txtHoTen.setText(kh.getHoTen());
+                        txtGioiTinh.setText(kh.isGioiTinh() ? "Nam" : "Nữ");
+                        txtTichDiem.setText(String.valueOf(kh.getTichDiem()));
                         btnDatBan.setEnabled(true);
-                        hienThiThanhCong("Tìm thấy khách hàng!");
                     } else {
-                        xoaThongTinKhachHang();
+                        khachHangHienTai = null;
                         btnDatBan.setEnabled(false);
-                        hienThiCanhBao("Không tìm thấy SĐT. Vui lòng thêm khách hàng mới.");
-                        xuLyThemKhachHangMoi(soDienThoai);
+                        int res = JOptionPane.showConfirmDialog(DatBanNgay_UI.this, "Không tìm thấy SĐT. Đăng ký khách hàng mới?", "Thông báo", JOptionPane.YES_NO_OPTION);
+                        if(res == JOptionPane.YES_OPTION){
+                            new ThemKhachHang_UI(parentFrame, soDienThoai, () -> {
+                                txtSoDienThoai.setText(soDienThoai);
+                                xuLyKiemTraKhachHang();
+                            }).setVisible(true);
+                        }
                     }
                 } catch (Exception e) {
-                    hienThiLoi("Lỗi khi tìm kiếm khách hàng:\n" + e.getMessage());
+                    JOptionPane.showMessageDialog(DatBanNgay_UI.this, "Lỗi kết nối RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
         worker.execute();
     }
 
-    private void hienThiThongTinKhachHang(KhachHang kh) {
-        txtMaKH.setText(kh.getMaKhachHang());
-        txtHoTen.setText(kh.getHoTen());
-        txtGioiTinh.setText(kh.isGioiTinh() ? "Nam" : "Nữ");
-        txtTichDiem.setText(String.valueOf(kh.getTichDiem()));
-    }
-
-    private void xoaThongTinKhachHang() {
-        txtMaKH.setText("");
-        txtHoTen.setText("");
-        txtGioiTinh.setText("");
-        txtTichDiem.setText("");
-        khachHangHienTai = null;
-    }
-
-    // ĐÃ SỬA: Truyền đủ 3 tham số (Frame, String, Runnable) vào constructor của ThemKhachHang_UI
-    private void xuLyThemKhachHangMoi(String soDienThoai) {
-        ThemKhachHang_UI themKhachHangUI = new ThemKhachHang_UI(
-                this.parentFrame,
-                soDienThoai,
-                () -> {
-                    txtSoDienThoai.setText(soDienThoai);
-                    xuLyKiemTraKhachHang();
-                }
-        );
-        themKhachHangUI.setVisible(true);
-    }
-
     private void xuLyDatBan() {
-        if (khachHangHienTai == null) {
-            hienThiLoi("Vui lòng kiểm tra thông tin khách hàng trước!");
-            return;
-        }
+        if (khachHangHienTai == null) return;
 
-        StringBuilder tenBanSb = new StringBuilder();
-        for (BanAn b : danhSachBanChon) {
-            if (tenBanSb.length() > 0)
-                tenBanSb.append(", ");
-            tenBanSb.append(b.getTenBan());
-        }
+        int confirm = JOptionPane.showConfirmDialog(this, "Xác nhận mở bàn và tạo hóa đơn?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) return;
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                String.format("Xác nhận đặt %d bàn (%s) cho khách hàng %s?",
-                        danhSachBanChon.size(), tenBanSb.toString(), khachHangHienTai.getHoTen()),
-                "Xác nhận đặt bàn",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
+        NhanVien nhanVienHienTai = Auth.getCurrentNhanVien();
+        if (nhanVienHienTai == null) return;
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            NhanVien nhanVienHienTai = Auth.getCurrentNhanVien();
-            if (nhanVienHienTai == null) {
-                hienThiLoi("Lỗi: Không tìm thấy thông tin nhân viên đang đăng nhập.\nVui lòng đăng nhập lại.");
-                return;
+        btnDatBan.setEnabled(false);
+        btnDatBan.setText("Đang xử lý...");
+
+        SwingWorker<HoaDon, Void> worker = new SwingWorker<>() {
+            @Override
+            protected HoaDon doInBackground() throws Exception {
+                String maHoaDonMoi = hoaDonDAO.sinhMaHoaDonTuDong();
+                HoaDon hoaDonMoi = new HoaDon(maHoaDonMoi, "Chưa thanh toán", new Date(), BigDecimal.ZERO,
+                        nhanVienHienTai.getMaNhanVien(), null, khachHangHienTai.getMaKhachHang(), null, null,
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+
+                if (hoaDonDAO.themHoaDon(hoaDonMoi)) {
+                    for (BanAn ban : danhSachBanChon) {
+                        // Sẽ lỗi nếu Server chưa update Cypher, nhưng code RMI đã chuẩn
+                        hoaDonBanDAO.themHoaDon_Ban(maHoaDonMoi, ban.getMaBan());
+                    }
+                    return hoaDonMoi;
+                }
+                return null;
             }
 
-            btnDatBan.setEnabled(false);
-            btnDatBan.setText("Đang xử lý...");
-
-            SwingWorker<HoaDon, Void> worker = new SwingWorker<HoaDon, Void>() {
-                @Override
-                protected HoaDon doInBackground() throws Exception {
-                    String maHoaDonMoi = hoaDonDAO.sinhMaHoaDonTuDong();
-
-                    HoaDon hoaDonMoi = new HoaDon(
-                            maHoaDonMoi,
-                            "Chưa thanh toán",
-                            new Date(),
-                            BigDecimal.ZERO,
-                            nhanVienHienTai.getMaNhanVien(),
-                            null,
-                            khachHangHienTai.getMaKhachHang(),
-                            null,
-                            null,
-                            BigDecimal.ZERO,
-                            BigDecimal.ZERO,
-                            BigDecimal.ZERO);
-
-                    boolean themThanhCong = hoaDonDAO.themHoaDon(hoaDonMoi);
-
-                    if (themThanhCong) {
-                        for (BanAn ban : danhSachBanChon) {
-                            hoaDonBanDAO.themHoaDon_Ban(maHoaDonMoi, ban.getMaBan());
-                        }
-                        return hoaDonMoi;
+            @Override
+            protected void done() {
+                btnDatBan.setEnabled(true);
+                btnDatBan.setText("Đặt bàn");
+                try {
+                    HoaDon hd = get();
+                    if (hd != null) {
+                        JOptionPane.showMessageDialog(DatBanNgay_UI.this, "Mở bàn thành công!");
+                        dispose();
+                        new DatMonChoBan_UI(parentFrame, danhSachBanChon, hd).setVisible(true);
+                    } else {
+                        JOptionPane.showMessageDialog(DatBanNgay_UI.this, "Lỗi tạo hóa đơn!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                     }
-                    return null;
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                 }
-
-                @Override
-                protected void done() {
-                    btnDatBan.setEnabled(true);
-                    btnDatBan.setText("Đặt bàn");
-                    try {
-                        HoaDon hoaDonMoi = get();
-                        if (hoaDonMoi != null) {
-                            hienThiThanhCong("Đặt bàn thành công! Vui lòng thêm món.");
-                            DatBanNgay_UI.this.dispose();
-
-                            DatMonChoBan_UI themMonUI = new DatMonChoBan_UI(
-                                    parentFrame,
-                                    danhSachBanChon,
-                                    hoaDonMoi);
-                            themMonUI.setVisible(true);
-                        } else {
-                            hienThiLoi("Đã xảy ra lỗi khi tạo hóa đơn. Vui lòng thử lại.");
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        hienThiLoi("Lỗi kết nối máy chủ RMI khi đặt bàn!");
-                    }
-                }
-            };
-            worker.execute();
-        }
-    }
-
-    private void hienThiLoi(String message) {
-        JOptionPane.showMessageDialog(this, message, "Lỗi", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private void hienThiCanhBao(String message) {
-        JOptionPane.showMessageDialog(this, message, "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-    }
-
-    private void hienThiThanhCong(String message) {
-        JOptionPane.showMessageDialog(this, message, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            }
+        };
+        worker.execute();
     }
 }

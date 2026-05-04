@@ -14,7 +14,7 @@ public class ChiTietHoaDon_DAO {
 
     public List<ChiTietHoaDon> getAllChiTietHoaDon() {
         List<ChiTietHoaDon> list = new ArrayList<>();
-        String cypher = "MATCH (hd:HoaDon)-[c:BAO_GOM]->(m:MonAn) " +
+        String cypher = "MATCH (hd:HoaDon)-[c:GOM_MON]->(m:Mon) " +
                 "RETURN hd.maHoaDon AS maHoaDon, m.maMon AS maMon, c.soLuong AS soLuong, c.donGia AS donGia";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher);
@@ -33,7 +33,8 @@ public class ChiTietHoaDon_DAO {
 
     public List<ChiTietHoaDon> getChiTietTheoMaHoaDon(String maHoaDon) {
         List<ChiTietHoaDon> list = new ArrayList<>();
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHoaDon})-[c:BAO_GOM]->(m:MonAn) " +
+        String cypher = "MATCH (hd:HoaDon)-[c:GOM_MON]->(m:Mon) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHoaDon) " +
                 "RETURN hd.maHoaDon AS maHoaDon, m.maMon AS maMon, c.soLuong AS soLuong, c.donGia AS donGia";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maHoaDon", maHoaDon));
@@ -51,8 +52,9 @@ public class ChiTietHoaDon_DAO {
     }
 
     public boolean themChiTietHoaDon(ChiTietHoaDon cthd) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHoaDon}), (m:MonAn {maMon: $maMon}) " +
-                "MERGE (hd)-[c:BAO_GOM]->(m) " +
+        String cypher = "MATCH (hd:HoaDon), (m:Mon) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHoaDon) AND trim(m.maMon) = trim($maMon) " +
+                "MERGE (hd)-[c:GOM_MON]->(m) " +
                 "SET c.soLuong = $soLuong, c.donGia = $donGia";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters(
@@ -66,7 +68,8 @@ public class ChiTietHoaDon_DAO {
     }
 
     public boolean capNhatChiTietHoaDon(ChiTietHoaDon cthd) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHoaDon})-[c:BAO_GOM]->(m:MonAn {maMon: $maMon}) " +
+        String cypher = "MATCH (hd:HoaDon)-[c:GOM_MON]->(m:Mon) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHoaDon) AND trim(m.maMon) = trim($maMon) " +
                 "SET c.soLuong = $soLuong, c.donGia = $donGia";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters(
@@ -80,7 +83,8 @@ public class ChiTietHoaDon_DAO {
     }
 
     public boolean xoaChiTietHoaDon(String maHoaDon, String maMon) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHoaDon})-[c:BAO_GOM]->(m:MonAn {maMon: $maMon}) DELETE c";
+        String cypher = "MATCH (hd:HoaDon)-[c:GOM_MON]->(m:Mon) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHoaDon) AND trim(m.maMon) = trim($maMon) DELETE c";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHoaDon", maHoaDon, "maMon", maMon));
             return true;
@@ -88,7 +92,8 @@ public class ChiTietHoaDon_DAO {
     }
 
     public ChiTietHoaDon timChiTiet(String maHoaDon, String maMon) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD})-[c:BAO_GOM]->(m:MonAn {maMon: $maMon}) " +
+        String cypher = "MATCH (hd:HoaDon)-[c:GOM_MON]->(m:Mon) " +
+                "WHERE trim(hd.maHoaDon) = trim($maHD) AND trim(m.maMon) = trim($maMon) " +
                 "RETURN hd.maHoaDon AS maHoaDon, m.maMon AS maMon, c.soLuong AS soLuong, c.donGia AS donGia";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maHD", maHoaDon, "maMon", maMon));
@@ -106,7 +111,7 @@ public class ChiTietHoaDon_DAO {
     }
 
     public boolean xoaChiTietTheoMaHoaDon(String maHoaDon) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD})-[c:BAO_GOM]->(:MonAn) DELETE c";
+        String cypher = "MATCH (hd:HoaDon)-[c:GOM_MON]->(:Mon) WHERE trim(hd.maHoaDon) = trim($maHD) DELETE c";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHD", maHoaDon));
             return true;

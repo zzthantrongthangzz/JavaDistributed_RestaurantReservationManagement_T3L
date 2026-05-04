@@ -52,7 +52,7 @@ public class CapNhatBan_UI extends JPanel {
 
     public CapNhatBan_UI() {
         try {
-            banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+            banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAnService");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ RMI!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
@@ -354,6 +354,10 @@ public class CapNhatBan_UI extends JPanel {
     private void taiDuLieuVaoBang() {
         if (banAnService == null) return;
 
+        // Hiển thị trạng thái đang tải
+        tableModel.setRowCount(0);
+        tableModel.addRow(new Object[]{"Đang tải dữ liệu...", "", "", "", "", "", ""});
+
         SwingWorker<List<BanAn>, Void> worker = new SwingWorker<>() {
             @Override
             protected List<BanAn> doInBackground() throws Exception {
@@ -379,6 +383,7 @@ public class CapNhatBan_UI extends JPanel {
                         }
                     }
                 } catch (Exception e) {
+                    tableModel.setRowCount(0);
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(CapNhatBan_UI.this, "Lỗi khi tải dữ liệu bàn ăn: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }

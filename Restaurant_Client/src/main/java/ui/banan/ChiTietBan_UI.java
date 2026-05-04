@@ -44,7 +44,7 @@ public class ChiTietBan_UI extends JDialog {
     private KhachHang khachHangHienTai;
     private NhanVien nhanVienHienTai;
 
-    // ĐÃ CHUẨN HÓA SANG _SERVICE VÀ BỔ SUNG HOADON_SERVICE
+    // CHUẨN HÓA SANG _SERVICE
     private IMonAn_Service monAnService;
     private IChiTietHoaDon_Service chiTietHoaDonService;
     private IKhachHang_Service khachHangService;
@@ -105,14 +105,14 @@ public class ChiTietBan_UI extends JDialog {
 
     private void ketNoiRMI() {
         try {
-            this.monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
-            this.khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-            this.nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
-            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
-            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
-            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+            this.monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAnService");
+            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDonService");
+            this.khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHangService");
+            this.nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVienService");
+            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBanService");
+            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBanService");
+            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDonService");
+            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDonBanService");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -126,11 +126,15 @@ public class ChiTietBan_UI extends JDialog {
     }
 
     // ====================================================================
-    // SWING WORKER: THUẬT TOÁN BẤT TỬ - CHỐNG KHOẢNG TRẮNG, TÌM MỌI HÓA ĐƠN
+    // SWING WORKER: TẢI DỮ LIỆU ĐA LUỒNG & CHỐNG KHOẢNG TRẮNG
     // ====================================================================
 
     private void taiDuLieuBanDau() {
         if (monAnService == null) return;
+
+        valSDT.setText("Đang tải...");
+        valTenKhach.setText("Đang tải...");
+        valMaHD.setText("Đang tải...");
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override

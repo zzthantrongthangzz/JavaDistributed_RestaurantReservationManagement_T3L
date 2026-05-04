@@ -63,44 +63,64 @@ public class HoaDon_DAO {
     }
 
     public synchronized boolean themHoaDon(HoaDon hd) {
-        String cypher = "CREATE (hd:HoaDon {maHoaDon: $maHD, trangThai: $trangThai, ngayLapHoaDon: $ngayLap, " +
-                "thue: $thue, maNhanVien: $maNV, maPhieuDatBan: $maPhieu, maKhachHang: $maKH, " +
-                "maKhuyenMai: $maKM, diaChi: $diaChi, tienDatCoc: $coc, soTienKhachTra: $tra, soTienThoi: $thoi})";
+        // Tự động tạo node HoaDon và vẽ luôn 2 relationship tới Khách Hàng và Nhân Viên
+        String cypher = "CREATE (hd:HoaDon {maHoaDon: trim($maHD), trangThai: trim($trangThai), ngayLapHoaDon: $ngayLap, " +
+                "thue: $thue, maNhanVien: trim($maNV), maPhieuDatBan: trim($maPhieu), maKhachHang: trim($maKH), " +
+                "maKhuyenMai: trim($maKM), diaChi: trim($diaChi), tienDatCoc: $coc, soTienKhachTra: $tra, soTienThoi: $thoi}) " +
+                "WITH hd " +
+                "OPTIONAL MATCH (nv:NhanVien) WHERE trim(nv.maNhanVien) = trim($maNV) " +
+                "FOREACH (ignore IN CASE WHEN nv IS NOT NULL THEN [1] ELSE [] END | MERGE (hd)-[:LAP_BOI]->(nv)) " +
+                "WITH hd " +
+                "OPTIONAL MATCH (kh:KhachHang) WHERE trim(kh.maKhachHang) = trim($maKH) " +
+                "FOREACH (ignore IN CASE WHEN kh IS NOT NULL THEN [1] ELSE [] END | MERGE (hd)-[:CUA_KHACH]->(kh))";
         try (Session session = DBConnect.getSession()) {
             LocalDateTime ngayLapLDT = hd.getNgayLapHoaDon() != null ? new java.sql.Timestamp(hd.getNgayLapHoaDon().getTime()).toLocalDateTime() : LocalDateTime.now();
             session.run(cypher, Values.parameters(
-                    "maHD", hd.getMaHoaDon(), "trangThai", hd.getTrangThai(),
+                    "maHD", hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "",
+                    "trangThai", hd.getTrangThai() != null ? hd.getTrangThai() : "",
                     "ngayLap", ngayLapLDT,
                     "thue", hd.getThue().doubleValue(),
-                    "maNV", hd.getMaNhanVien(), "maPhieu", hd.getMaPhieuDatBan(), "maKH", hd.getMaKhachHang(),
-                    "maKM", hd.getMaKhuyenMai(), "diaChi", hd.getDiaChi(),
-                    "coc", hd.getTienDatCoc().doubleValue(), "tra", hd.getSoTienKhachTra().doubleValue(), "thoi", hd.getSoTienThoi().doubleValue()
+                    "maNV", hd.getMaNhanVien() != null ? hd.getMaNhanVien() : "",
+                    "maPhieu", hd.getMaPhieuDatBan() != null ? hd.getMaPhieuDatBan() : "",
+                    "maKH", hd.getMaKhachHang() != null ? hd.getMaKhachHang() : "",
+                    "maKM", hd.getMaKhuyenMai() != null ? hd.getMaKhuyenMai() : "",
+                    "diaChi", hd.getDiaChi() != null ? hd.getDiaChi() : "",
+                    "coc", hd.getTienDatCoc() != null ? hd.getTienDatCoc().doubleValue() : 0.0,
+                    "tra", hd.getSoTienKhachTra() != null ? hd.getSoTienKhachTra().doubleValue() : 0.0,
+                    "thoi", hd.getSoTienThoi() != null ? hd.getSoTienThoi().doubleValue() : 0.0
             ));
             return true;
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
     public synchronized boolean capNhatHoaDon(HoaDon hd) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD}) " +
-                "SET hd.trangThai = $trangThai, hd.ngayLapHoaDon = $ngayLap, hd.thue = $thue, " +
-                "hd.maNhanVien = $maNV, hd.maPhieuDatBan = $maPhieu, hd.maKhachHang = $maKH, " +
-                "hd.maKhuyenMai = $maKM, hd.diaChi = $diaChi, hd.tienDatCoc = $coc, " +
+        String cypher = "MATCH (hd:HoaDon) WHERE trim(hd.maHoaDon) = trim($maHD) " +
+                "SET hd.trangThai = trim($trangThai), hd.ngayLapHoaDon = $ngayLap, hd.thue = $thue, " +
+                "hd.maNhanVien = trim($maNV), hd.maPhieuDatBan = trim($maPhieu), hd.maKhachHang = trim($maKH), " +
+                "hd.maKhuyenMai = trim($maKM), hd.diaChi = trim($diaChi), hd.tienDatCoc = $coc, " +
                 "hd.soTienKhachTra = $tra, hd.soTienThoi = $thoi";
         try (Session session = DBConnect.getSession()) {
             LocalDateTime ngayLapLDT = hd.getNgayLapHoaDon() != null ? new java.sql.Timestamp(hd.getNgayLapHoaDon().getTime()).toLocalDateTime() : LocalDateTime.now();
             session.run(cypher, Values.parameters(
-                    "maHD", hd.getMaHoaDon(), "trangThai", hd.getTrangThai(),
+                    "maHD", hd.getMaHoaDon() != null ? hd.getMaHoaDon() : "",
+                    "trangThai", hd.getTrangThai() != null ? hd.getTrangThai() : "",
                     "ngayLap", ngayLapLDT,
-                    "thue", hd.getThue().doubleValue(), "maNV", hd.getMaNhanVien(), "maPhieu", hd.getMaPhieuDatBan(),
-                    "maKH", hd.getMaKhachHang(), "maKM", hd.getMaKhuyenMai(), "diaChi", hd.getDiaChi(),
-                    "coc", hd.getTienDatCoc().doubleValue(), "tra", hd.getSoTienKhachTra().doubleValue(), "thoi", hd.getSoTienThoi().doubleValue()
+                    "thue", hd.getThue().doubleValue(),
+                    "maNV", hd.getMaNhanVien() != null ? hd.getMaNhanVien() : "",
+                    "maPhieu", hd.getMaPhieuDatBan() != null ? hd.getMaPhieuDatBan() : "",
+                    "maKH", hd.getMaKhachHang() != null ? hd.getMaKhachHang() : "",
+                    "maKM", hd.getMaKhuyenMai() != null ? hd.getMaKhuyenMai() : "",
+                    "diaChi", hd.getDiaChi() != null ? hd.getDiaChi() : "",
+                    "coc", hd.getTienDatCoc() != null ? hd.getTienDatCoc().doubleValue() : 0.0,
+                    "tra", hd.getSoTienKhachTra() != null ? hd.getSoTienKhachTra().doubleValue() : 0.0,
+                    "thoi", hd.getSoTienThoi() != null ? hd.getSoTienThoi().doubleValue() : 0.0
             ));
             return true;
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
     public boolean xoaHoaDon(String maHoaDon) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD}) DETACH DELETE hd";
+        String cypher = "MATCH (hd:HoaDon) WHERE trim(hd.maHoaDon) = trim($maHD) DETACH DELETE hd";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maHD", maHoaDon));
             return true;
@@ -108,7 +128,7 @@ public class HoaDon_DAO {
     }
 
     public HoaDon timTheoMa(String maHoaDon) {
-        String cypher = "MATCH (hd:HoaDon {maHoaDon: $maHD}) RETURN " + RETURN_FIELDS;
+        String cypher = "MATCH (hd:HoaDon) WHERE trim(hd.maHoaDon) = trim($maHD) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maHD", maHoaDon));
             if (result.hasNext()) {
@@ -136,9 +156,10 @@ public class HoaDon_DAO {
         return list;
     }
 
+    // FIX LỖI KHÔNG TÌM THẤY HÓA ĐƠN
     public HoaDon timHoaDonChuaThanhToanTheoMaBan(String maBan) {
-        String cypher = "MATCH (hd:HoaDon), (hdb:HoaDon_Ban {maBan: $maBan}) " +
-                "WHERE hd.maHoaDon = hdb.maHoaDon AND hd.trangThai = 'Chưa thanh toán' " +
+        String cypher = "MATCH (hd:HoaDon {trangThai: 'Chưa thanh toán'})-[:SU_DUNG_BAN]->(b:BanAn) " +
+                "WHERE trim(b.maBan) = trim($maBan) " +
                 "RETURN " + RETURN_FIELDS + " LIMIT 1";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maBan", maBan));
@@ -165,7 +186,7 @@ public class HoaDon_DAO {
 
     public List<HoaDon> locTheoTrangThai(String trangThai) {
         List<HoaDon> list = new ArrayList<>();
-        String cypher = "MATCH (hd:HoaDon {trangThai: $trangThai}) RETURN " + RETURN_FIELDS;
+        String cypher = "MATCH (hd:HoaDon) WHERE trim(hd.trangThai) = trim($trangThai) RETURN " + RETURN_FIELDS;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("trangThai", trangThai));
             while (result.hasNext()) {
@@ -241,8 +262,7 @@ public class HoaDon_DAO {
 
     public BigDecimal getTongDoanhThu(Date tuNgay, Date denNgay) {
         BigDecimal tongDoanhThu = BigDecimal.ZERO;
-        String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-                "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) " +
+        String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[ct:GOM_MON]->(m:Mon) " +
                 "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
                 "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
                 "RETURN sum(ct.soLuong * ct.donGia) AS tong";
@@ -278,8 +298,7 @@ public class HoaDon_DAO {
 
     public Map<Date, BigDecimal> getDoanhThuTheoNgay(Date tuNgay, Date denNgay) {
         Map<Date, BigDecimal> doanhThuTheoNgay = new TreeMap<>();
-        String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-                "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) " +
+        String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[ct:GOM_MON]->(m:Mon) " +
                 "WHERE (hd.ngayLapHoaDon >= localdatetime({epochMillis: $tu}) AND hd.ngayLapHoaDon <= localdatetime({epochMillis: $den})) " +
                 "OR (hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den) " +
                 "RETURN date(hd.ngayLapHoaDon) AS ngay, sum(ct.soLuong * ct.donGia) AS doanhThu " +
@@ -302,12 +321,14 @@ public class HoaDon_DAO {
         return doanhThuTheoNgay;
     }
 
+    // FIX LỖI "KHÁCH LẺ" KHI ĐẶT BÀN NGAY
     public String getTenKhachHangTheoBan(String maBan) {
         String tenKhach = null;
-        String cypher = "MATCH (hd:HoaDon), (hdb:HoaDon_Ban {maBan: $maBan}) " +
-                "WHERE hd.maHoaDon = hdb.maHoaDon AND hd.trangThai CONTAINS 'Chưa thanh toán' " +
-                "OPTIONAL MATCH (kh:KhachHang {maKhachHang: hd.maKhachHang}) " +
-                "RETURN kh.hoTen AS hoTen LIMIT 1";
+        String cypher = "MATCH (hd:HoaDon {trangThai: 'Chưa thanh toán'})-[:SU_DUNG_BAN]->(b:BanAn) " +
+                "WHERE trim(b.maBan) = trim($maBan) " +
+                "OPTIONAL MATCH (hd)-[:CUA_KHACH]->(kh1:KhachHang) " +
+                "OPTIONAL MATCH (kh2:KhachHang) WHERE trim(kh2.maKhachHang) = trim(hd.maKhachHang) " +
+                "RETURN coalesce(kh1.hoTen, kh2.hoTen) AS hoTen LIMIT 1";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maBan", maBan));
             if (result.hasNext()) {
@@ -322,7 +343,7 @@ public class HoaDon_DAO {
 
     public BigDecimal tinhTongTienCuaHoaDon(String maHoaDon) {
         BigDecimal tongTien = BigDecimal.ZERO;
-        String cypher = "MATCH (ct:ChiTietHoaDon {maHoaDon: $maHD}) RETURN sum(ct.soLuong * ct.donGia) AS tong";
+        String cypher = "MATCH (hd:HoaDon)-[ct:GOM_MON]->(m:Mon) WHERE trim(hd.maHoaDon) = trim($maHD) RETURN sum(ct.soLuong * ct.donGia) AS tong";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maHD", maHoaDon));
             if (result.hasNext()) {
