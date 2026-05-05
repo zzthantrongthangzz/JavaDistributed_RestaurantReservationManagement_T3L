@@ -511,12 +511,13 @@ public class TraCuuHoaDon_UI extends JPanel {
 				Map<String, String> khMap = new HashMap<>();
 				if (list != null) {
 					for (HoaDon hd : list) {
-						if (hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty() && !khMap.containsKey(hd.getMaKhachHang())) {
-							List<KhachHang> khs = khachHangService.timKiemTheoMa(hd.getMaKhachHang());
+						String maKH = hd.getMaKhachHang();
+						if (maKH != null && !maKH.trim().isEmpty() && !maKH.equalsIgnoreCase("null") && !khMap.containsKey(maKH)) {
+							List<KhachHang> khs = khachHangService.timKiemTheoMa(maKH);
 							if (khs != null && !khs.isEmpty()) {
-								khMap.put(hd.getMaKhachHang(), khs.get(0).getHoTen());
+								khMap.put(maKH, khs.get(0).getHoTen());
 							} else {
-								khMap.put(hd.getMaKhachHang(), hd.getMaKhachHang());
+								khMap.put(maKH, "Khách lẻ");
 							}
 						}
 					}
@@ -542,8 +543,16 @@ public class TraCuuHoaDon_UI extends JPanel {
 		if (danhSach == null) return;
 		for (HoaDon hd : danhSach) {
 			String tenKhachHang = "Khách lẻ";
-			if (hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty()) {
-				tenKhachHang = khMap.getOrDefault(hd.getMaKhachHang(), hd.getMaKhachHang());
+			String maKH = hd.getMaKhachHang();
+			// Kiểm tra lấy tên khách hàng từ Map đã được query
+			if (maKH != null && !maKH.trim().isEmpty() && !maKH.equalsIgnoreCase("null")) {
+				tenKhachHang = khMap.getOrDefault(maKH, "Khách lẻ");
+			}
+
+			// Giữ nguyên hiển thị mã Nhân Viên
+			String maNV = hd.getMaNhanVien();
+			if (maNV == null || maNV.trim().isEmpty() || maNV.equalsIgnoreCase("null")) {
+				maNV = "";
 			}
 
 			double tienDatCoc = hd.getTienDatCoc() != null ? hd.getTienDatCoc().doubleValue() : 0;
@@ -555,7 +564,7 @@ public class TraCuuHoaDon_UI extends JPanel {
 					hd.getNgayLapHoaDon() != null ? dateFormat.format(hd.getNgayLapHoaDon()) : "",
 					hd.getTrangThai(),
 					tenKhachHang,
-					hd.getMaNhanVien(),
+					maNV,
 					currencyFormat.format(tienDatCoc),
 					currencyFormat.format(khachTra),
 					currencyFormat.format(tienThoi)
@@ -595,12 +604,13 @@ public class TraCuuHoaDon_UI extends JPanel {
 				Map<String, String> khMap = new HashMap<>();
 				if (ketQua != null) {
 					for (HoaDon hd : ketQua) {
-						if (hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty() && !khMap.containsKey(hd.getMaKhachHang())) {
-							List<KhachHang> khs = khachHangService.timKiemTheoMa(hd.getMaKhachHang());
+						String maKHTemp = hd.getMaKhachHang();
+						if (maKHTemp != null && !maKHTemp.trim().isEmpty() && !maKHTemp.equalsIgnoreCase("null") && !khMap.containsKey(maKHTemp)) {
+							List<KhachHang> khs = khachHangService.timKiemTheoMa(maKHTemp);
 							if (khs != null && !khs.isEmpty()) {
-								khMap.put(hd.getMaKhachHang(), khs.get(0).getHoTen());
+								khMap.put(maKHTemp, khs.get(0).getHoTen());
 							} else {
-								khMap.put(hd.getMaKhachHang(), hd.getMaKhachHang());
+								khMap.put(maKHTemp, "Khách lẻ");
 							}
 						}
 					}
@@ -644,12 +654,13 @@ public class TraCuuHoaDon_UI extends JPanel {
 				Map<String, String> khMap = new HashMap<>();
 				if (ketQua != null) {
 					for (HoaDon hd : ketQua) {
-						if (hd.getMaKhachHang() != null && !hd.getMaKhachHang().isEmpty() && !khMap.containsKey(hd.getMaKhachHang())) {
-							List<KhachHang> khs = khachHangService.timKiemTheoMa(hd.getMaKhachHang());
+						String maKHTemp = hd.getMaKhachHang();
+						if (maKHTemp != null && !maKHTemp.trim().isEmpty() && !maKHTemp.equalsIgnoreCase("null") && !khMap.containsKey(maKHTemp)) {
+							List<KhachHang> khs = khachHangService.timKiemTheoMa(maKHTemp);
 							if (khs != null && !khs.isEmpty()) {
-								khMap.put(hd.getMaKhachHang(), khs.get(0).getHoTen());
+								khMap.put(maKHTemp, khs.get(0).getHoTen());
 							} else {
-								khMap.put(hd.getMaKhachHang(), hd.getMaKhachHang());
+								khMap.put(maKHTemp, "Khách lẻ");
 							}
 						}
 					}

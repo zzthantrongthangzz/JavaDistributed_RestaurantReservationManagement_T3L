@@ -184,25 +184,26 @@ WITH 1 as dummy MATCH (b:BanAn), (k:Khu) WHERE b._maKhu = k.maKhu MERGE (b)-[:TH
 // ===========================================================================
 
 // 1. TẠO HÓA ĐƠN (Giữ đủ 14 hóa đơn của kịch bản gốc)
-CREATE (:HoaDon {maHoaDon: 'HD000001', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT2H'), thue: 0.0, soTienKhachTra: 1000000.0, soTienThoi: 250000.0, _maNhanVien: 'NV000006', _maKhachHang: 'KH000001'})
-CREATE (:HoaDon {maHoaDon: 'HD000002', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT45M'), thue: 0.0, soTienKhachTra: 200000.0, soTienThoi: 35000.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000003'})
-CREATE (:HoaDon {maHoaDon: 'HD000003', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT90M'), thue: 0.0, soTienKhachTra: 120000.0, soTienThoi: 1000.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000005'})
-CREATE (:HoaDon {maHoaDon: 'HD000004', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT1H'), thue: 0.0, soTienKhachTra: 350000.0, soTienThoi: 25000.0, _maNhanVien: 'NV000006', _maKhachHang: 'KH000007'})
-CREATE (:HoaDon {maHoaDon: 'HD000005', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT20M'), thue: 0.0, soTienKhachTra: 350000.0, soTienThoi: 40000.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000009'})
-CREATE (:HoaDon {maHoaDon: 'HD000006', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT75M'), thue: 0.0, soTienKhachTra: 200000.0, soTienThoi: 33000.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000011'})
-CREATE (:HoaDon {maHoaDon: 'HD000007', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT3H'), thue: 0.0, soTienKhachTra: 700000.0, soTienThoi: 47000.0, _maNhanVien: 'NV000006', _maKhachHang: 'KH000013'})
-CREATE (:HoaDon {maHoaDon: 'HD000008', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT50M'), thue: 0.0, soTienKhachTra: 150000.0, soTienThoi: 1000.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000015'})
-CREATE (:HoaDon {maHoaDon: 'HD000014', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('P1D'), thue: 0.1, soTienKhachTra: 300000.0, soTienThoi: 6300.0, _maNhanVien: 'NV000006', _maKhachHang: 'KH000005', _maKhuyenMai: 'KM000002'})
-CREATE (:HoaDon {maHoaDon: 'HD000015', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('P3D'), thue: 0.1, soTienKhachTra: 350000.0, soTienThoi: 21100.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000007'})
-CREATE (:HoaDon {maHoaDon: 'HD000016', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('P5D'), thue: 0.1, soTienKhachTra: 450000.0, soTienThoi: 18360.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000010', _maKhuyenMai: 'KM000001'})
-CREATE (:HoaDon {maHoaDon: 'HD000023', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT1H'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, _maNhanVien: 'NV000006', _maKhachHang: 'KH000001'})
-CREATE (:HoaDon {maHoaDon: 'HD000024', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT20M'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000009'})
-CREATE (:HoaDon {maHoaDon: 'HD000025', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT45M'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000003'});
+// 1. TẠO HÓA ĐƠN (Giữ đủ 14 hóa đơn của kịch bản gốc)
+CREATE (:HoaDon {maHoaDon: 'HD000001', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT2H'), thue: 0.0, soTienKhachTra: 1000000.0, soTienThoi: 250000.0, maNhanVien: 'NV000006', maKhachHang: 'KH000001'})
+CREATE (:HoaDon {maHoaDon: 'HD000002', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT45M'), thue: 0.0, soTienKhachTra: 200000.0, soTienThoi: 35000.0, maNhanVien: 'NV000007', maKhachHang: 'KH000003'})
+CREATE (:HoaDon {maHoaDon: 'HD000003', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT90M'), thue: 0.0, soTienKhachTra: 120000.0, soTienThoi: 1000.0, maNhanVien: 'NV000008', maKhachHang: 'KH000005'})
+CREATE (:HoaDon {maHoaDon: 'HD000004', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT1H'), thue: 0.0, soTienKhachTra: 350000.0, soTienThoi: 25000.0, maNhanVien: 'NV000006', maKhachHang: 'KH000007'})
+CREATE (:HoaDon {maHoaDon: 'HD000005', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT20M'), thue: 0.0, soTienKhachTra: 350000.0, soTienThoi: 40000.0, maNhanVien: 'NV000007', maKhachHang: 'KH000009'})
+CREATE (:HoaDon {maHoaDon: 'HD000006', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT75M'), thue: 0.0, soTienKhachTra: 200000.0, soTienThoi: 33000.0, maNhanVien: 'NV000008', maKhachHang: 'KH000011'})
+CREATE (:HoaDon {maHoaDon: 'HD000007', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT3H'), thue: 0.0, soTienKhachTra: 700000.0, soTienThoi: 47000.0, maNhanVien: 'NV000006', maKhachHang: 'KH000013'})
+CREATE (:HoaDon {maHoaDon: 'HD000008', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT50M'), thue: 0.0, soTienKhachTra: 150000.0, soTienThoi: 1000.0, maNhanVien: 'NV000007', maKhachHang: 'KH000015'})
+CREATE (:HoaDon {maHoaDon: 'HD000014', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('P1D'), thue: 0.1, soTienKhachTra: 300000.0, soTienThoi: 6300.0, maNhanVien: 'NV000006', maKhachHang: 'KH000005', maKhuyenMai: 'KM000002'})
+CREATE (:HoaDon {maHoaDon: 'HD000015', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('P3D'), thue: 0.1, soTienKhachTra: 350000.0, soTienThoi: 21100.0, maNhanVien: 'NV000007', maKhachHang: 'KH000007'})
+CREATE (:HoaDon {maHoaDon: 'HD000016', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('P5D'), thue: 0.1, soTienKhachTra: 450000.0, soTienThoi: 18360.0, maNhanVien: 'NV000008', maKhachHang: 'KH000010', maKhuyenMai: 'KM000001'})
+CREATE (:HoaDon {maHoaDon: 'HD000023', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT1H'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, maNhanVien: 'NV000006', maKhachHang: 'KH000001'})
+CREATE (:HoaDon {maHoaDon: 'HD000024', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT20M'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, maNhanVien: 'NV000007', maKhachHang: 'KH000009'})
+CREATE (:HoaDon {maHoaDon: 'HD000025', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT45M'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, maNhanVien: 'NV000008', maKhachHang: 'KH000003'});
 
 // Nối Hóa đơn với Nhân viên, Khách hàng & Khuyến mãi (nếu có)
-WITH 1 as dummy MATCH (hd:HoaDon), (nv:NhanVien) WHERE hd._maNhanVien = nv.maNhanVien MERGE (hd)-[:LAP_BOI]->(nv);
-WITH 1 as dummy MATCH (hd:HoaDon), (kh:KhachHang) WHERE hd._maKhachHang = kh.maKhachHang MERGE (hd)-[:CUA_KHACH]->(kh);
-WITH 1 as dummy MATCH (hd:HoaDon), (km:KhuyenMai) WHERE hd._maKhuyenMai = km.maKhuyenMai MERGE (hd)-[:AP_DUNG]->(km);
+WITH 1 as dummy MATCH (hd:HoaDon), (nv:NhanVien) WHERE hd.maNhanVien = nv.maNhanVien MERGE (hd)-[:LAP_BOI]->(nv);
+WITH 1 as dummy MATCH (hd:HoaDon), (kh:KhachHang) WHERE hd.maKhachHang = kh.maKhachHang MERGE (hd)-[:CUA_KHACH]->(kh);
+WITH 1 as dummy MATCH (hd:HoaDon), (km:KhuyenMai) WHERE hd.maKhuyenMai = km.maKhuyenMai MERGE (hd)-[:AP_DUNG]->(km);
 
 // Nối Hóa đơn với Bàn (HoaDon_Ban)
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (b:BanAn {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
@@ -261,7 +262,7 @@ WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00008'}), (m:Mon {maMon
 WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00010'}), (m:Mon {maMon: 'MM000003'}) MERGE (p)-[:GOM_MON {soLuong: 2, donGia: 299000.0}]->(m);
 
 // TẠO HÓA ĐƠN TỪ PHIẾU ĐẶT BÀN HOÀN THÀNH (PDB00001 -> HD000009)
-CREATE (:HoaDon {maHoaDon: 'HD000009', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime(), thue: 0.0, soTienKhachTra: 400000.0, soTienThoi: 22000.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000002', _maPhieuDatBan: 'PDB00001'});
+CREATE (:HoaDon {maHoaDon: 'HD000009', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime(), thue: 0.0, soTienKhachTra: 400000.0, soTienThoi: 22000.0, maNhanVien: 'NV000008', maKhachHang: 'KH000002', maPhieuDatBan: 'PDB00001'});
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (nv:NhanVien {maNhanVien: 'NV000008'}) MERGE (hd)-[:LAP_BOI]->(nv);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (kh:KhachHang {maKhachHang: 'KH000002'}) MERGE (hd)-[:CUA_KHACH]->(kh);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (pdb:PhieuDatBan {maPhieuDatBan: 'PDB00001'}) MERGE (hd)-[:TU_PHIEU]->(pdb);
