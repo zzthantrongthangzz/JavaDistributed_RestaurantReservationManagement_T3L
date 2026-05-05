@@ -8,8 +8,11 @@ import org.neo4j.driver.Values;
 
 public class Khu_DAO {
 
+    // ĐÃ FIX: Truy vấn qua Mối quan hệ [:THUOC_TANG] để lấy mã Tầng
     public Khu timKhuTheoTen(String tenKhu) {
-        String cypher = "MATCH (k:Khu {tenKhu: $ten}) RETURN k.maKhu AS maKhu, k.tenKhu AS tenKhu, k.maTang AS maTang";
+        String cypher = "MATCH (k:Khu)-[:THUOC_TANG]->(t:Tang) " +
+                "WHERE trim(k.tenKhu) = trim($ten) " +
+                "RETURN k.maKhu AS maKhu, k.tenKhu AS tenKhu, t.maTang AS maTang LIMIT 1";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("ten", tenKhu));
             if (result.hasNext()) {
@@ -21,7 +24,7 @@ public class Khu_DAO {
     }
 
     public String layMaKhuTheoTen(String tenKhu) {
-        String cypher = "MATCH (k:Khu {tenKhu: $ten}) RETURN k.maKhu AS maKhu";
+        String cypher = "MATCH (k:Khu) WHERE trim(k.tenKhu) = trim($ten) RETURN k.maKhu AS maKhu LIMIT 1";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("ten", tenKhu));
             if (result.hasNext()) {
@@ -47,9 +50,9 @@ public class Khu_DAO {
     }
 
     public boolean themKhu(Khu khu) {
-        // Tự động tìm Tầng và nối relationship [:THUOC_TANG] vào Khu vực vừa tạo
+        // ĐÃ FIX: Chống khoảng trắng và tạo đường nối Tầng
         String cypher = "MATCH (t:Tang) WHERE trim(t.maTang) = trim($tang) " +
-                "CREATE (k:Khu {maKhu: trim($ma), tenKhu: trim($ten), maTang: trim($tang)})-[:THUOC_TANG]->(t)";
+                "CREATE (k:Khu {maKhu: trim($ma), tenKhu: trim($ten)})-[:THUOC_TANG]->(t)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("ma", khu.getMaKhu(), "ten", khu.getTenKhu(), "tang", khu.getMaTang()));
             return true;

@@ -11,15 +11,13 @@ import java.util.*;
 
 public class BanAn_DAO {
 
-    // Hàm mapping CHỐNG LỖI ÉP KIỂU và DỮ LIỆU RỖNG
     private BanAn mapBanAn(Record record) {
-        int sucChua = 4; // Mặc định nếu DB bị null
+        int sucChua = 4;
         if (!record.get("sucChua").isNull()) {
             try {
                 sucChua = record.get("sucChua").asInt();
             } catch (Exception e) {
                 try {
-                    // Cứu cánh nếu lỡ lưu thành chuỗi ("4") trong DB
                     sucChua = Integer.parseInt(record.get("sucChua").asString());
                 } catch (Exception ex) {
                     sucChua = 4;
@@ -43,20 +41,15 @@ public class BanAn_DAO {
         return banAn;
     }
 
-    // SỬ DỤNG ĐÚNG NHÃN :BanAn THEO DATABASE CỦA BẠN
+    // ĐÃ FIX: Thay OPTIONAL MATCH thành MATCH cứng. Mọi bàn ăn trên hệ thống ĐỀU PHẢI có Khu và Tầng.
     private final String CYPHER_BASE_MATCH =
-            "MATCH (b:BanAn) " +
-                    "OPTIONAL MATCH (b)-[:THUOC_KHU]->(k:Khu) " +
-                    "OPTIONAL MATCH (k)-[:THUOC_TANG]->(t:Tang) ";
+            "MATCH (b:BanAn)-[:THUOC_KHU]->(k:Khu)-[:THUOC_TANG]->(t:Tang) ";
 
     private final String CYPHER_RETURN =
             "RETURN b.maBan AS maBan, b.tenBan AS tenBan, b.loaiBan AS loaiBan, " +
                     "b.sucChua AS sucChua, b.trangThai AS trangThai, k.maKhu AS maKhu, " +
                     "k.tenKhu AS tenKhu, t.tenTang AS tenTang, null AS tenKhachHang ";
 
-    // =========================================================================
-    // 1. ĐỌC DANH SÁCH BÀN
-    // =========================================================================
     public List<BanAn> docDanhSachBan() {
         List<BanAn> list = new ArrayList<>();
         String cypher = CYPHER_BASE_MATCH + CYPHER_RETURN + " ORDER BY b.tenBan ASC";
@@ -73,9 +66,6 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 2. THÊM BÀN MỚI
-    // =========================================================================
     public boolean themBanMoi(BanAn banAn) {
         String cypher = "MATCH (k:Khu {maKhu: $maKhu}) " +
                 "CREATE (b:BanAn {maBan: $maBan, tenBan: $tenBan, loaiBan: $loaiBan, sucChua: $sucChua, trangThai: $trangThai}) " +
@@ -93,9 +83,6 @@ public class BanAn_DAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // =========================================================================
-    // 3. CẬP NHẬT TRẠNG THÁI BÀN
-    // =========================================================================
     public boolean capNhatTrangThaiBan(String maBan, String trangThaiMoi) {
         String cypher = "MATCH (b:BanAn {maBan: $maBan}) SET b.trangThai = $trangThaiMoi";
         try (Session session = DBConnect.getSession()) {
@@ -104,9 +91,6 @@ public class BanAn_DAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // =========================================================================
-    // 4. CẬP NHẬT THÔNG TIN BÀN
-    // =========================================================================
     public boolean capNhatBan(BanAn banAn) {
         String cypher = "MATCH (b:BanAn {maBan: $maBan}) " +
                 "OPTIONAL MATCH (b)-[r:THUOC_KHU]->() " +
@@ -128,9 +112,6 @@ public class BanAn_DAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // =========================================================================
-    // 5. XÓA BÀN
-    // =========================================================================
     public boolean xoaBan(String maBan) {
         String cypher = "MATCH (b:BanAn {maBan: $maBan}) DETACH DELETE b";
         try (Session session = DBConnect.getSession()) {
@@ -139,15 +120,12 @@ public class BanAn_DAO {
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
 
-    // =========================================================================
-    // 6. TÌM BÀN THEO TÊN HOẶC SĐT KHÁCH HÀNG (Dành cho Phiếu Đặt / Hóa Đơn)
-    // =========================================================================
     public BanAn timBanAnTheoTenHoacSDTKhachHang(String tuKhoa) {
         String cypher = CYPHER_BASE_MATCH +
-                "OPTIONAL MATCH (kh:KhachHang)<-[:CUA_KHACH_HANG]-(p:PhieuDatBan)-[:DAT_BAN]->(b) " +
+                "OPTIONAL MATCH (kh:KhachHang)<-[:DAT_BOI]-(p:PhieuDatBan)-[:GOM_BAN]->(b) " +
                 "WHERE p.trangThai = 'Đang chờ' AND (toUpper(kh.hoTen) CONTAINS toUpper($tuKhoa) OR kh.soDienThoai CONTAINS $tuKhoa) " +
                 "WITH b, k, t, kh.hoTen AS tenKH1 " +
-                "OPTIONAL MATCH (kh2:KhachHang)<-[:CUA_KHACH_HANG]-(hd:HoaDon)-[:SU_DUNG]->(b) " +
+                "OPTIONAL MATCH (kh2:KhachHang)<-[:CUA_KHACH]-(hd:HoaDon)-[:SU_DUNG_BAN]->(b) " +
                 "WHERE hd.trangThai = 'Chưa thanh toán' AND (toUpper(kh2.hoTen) CONTAINS toUpper($tuKhoa) OR kh2.soDienThoai CONTAINS $tuKhoa) " +
                 "WITH b, k, t, coalesce(tenKH1, kh2.hoTen) AS tenKhachHang " +
                 "WHERE tenKhachHang IS NOT NULL " +
@@ -161,9 +139,6 @@ public class BanAn_DAO {
         return null;
     }
 
-    // =========================================================================
-    // 7. LẤY DANH SÁCH BÀN TRỐNG TRONG NGÀY
-    // =========================================================================
     public List<BanAn> layDanhSachBanTrongTheoNgay(Date ngayCanXem) {
         List<BanAn> list = new ArrayList<>();
         Calendar c = Calendar.getInstance(); c.setTime(ngayCanXem);
@@ -173,8 +148,10 @@ public class BanAn_DAO {
         long end = c.getTimeInMillis();
 
         String cypher = CYPHER_BASE_MATCH +
-                "WHERE NOT EXISTS { MATCH (p:PhieuDatBan)-[:DAT_BAN]->(b) WHERE p.ngayNhanBan >= $start AND p.ngayNhanBan <= $end AND p.trangThai <> 'Đã hủy' } " +
-                CYPHER_RETURN;
+                "WHERE NOT EXISTS { MATCH (p:PhieuDatBan)-[:GOM_BAN]->(b) " +
+                "WHERE ((p.thoiGianDat >= localdatetime({epochMillis: $start}) AND p.thoiGianDat <= localdatetime({epochMillis: $end})) " +
+                "OR (p.thoiGianDat >= $start AND p.thoiGianDat <= $end)) AND p.trangThai <> 'Đã hủy' } " +
+                CYPHER_RETURN + " ORDER BY b.tenBan ASC";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("start", start, "end", end));
             while (result.hasNext()) list.add(mapBanAn(result.next()));
@@ -182,22 +159,19 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 8. TÌM KIẾM BÀN THEO KHÁCH HÀNG (Trả về list)
-    // =========================================================================
     public List<BanAn> timKiemBanTheoKhachHang(String tuKhoa) {
         List<BanAn> list = new ArrayList<>();
         String cypher = CYPHER_BASE_MATCH +
-                "OPTIONAL MATCH (kh:KhachHang)<-[:CUA_KHACH_HANG]-(p:PhieuDatBan)-[:DAT_BAN]->(b) " +
+                "OPTIONAL MATCH (kh:KhachHang)<-[:DAT_BOI]-(p:PhieuDatBan)-[:GOM_BAN]->(b) " +
                 "WHERE p.trangThai = 'Đang chờ' AND (toUpper(kh.hoTen) CONTAINS toUpper($tuKhoa) OR kh.soDienThoai CONTAINS $tuKhoa) " +
                 "WITH b, k, t, kh.hoTen AS tenKH1 " +
-                "OPTIONAL MATCH (kh2:KhachHang)<-[:CUA_KHACH_HANG]-(hd:HoaDon)-[:SU_DUNG]->(b) " +
+                "OPTIONAL MATCH (kh2:KhachHang)<-[:CUA_KHACH]-(hd:HoaDon)-[:SU_DUNG_BAN]->(b) " +
                 "WHERE hd.trangThai = 'Chưa thanh toán' AND (toUpper(kh2.hoTen) CONTAINS toUpper($tuKhoa) OR kh2.soDienThoai CONTAINS $tuKhoa) " +
                 "WITH b, k, t, coalesce(tenKH1, kh2.hoTen) AS tenKhachHang " +
                 "WHERE tenKhachHang IS NOT NULL " +
                 "RETURN b.maBan AS maBan, b.tenBan AS tenBan, b.loaiBan AS loaiBan, " +
                 "b.sucChua AS sucChua, b.trangThai AS trangThai, k.maKhu AS maKhu, " +
-                "k.tenKhu AS tenKhu, t.tenTang AS tenTang, tenKhachHang";
+                "k.tenKhu AS tenKhu, t.tenTang AS tenTang, tenKhachHang ORDER BY b.tenBan ASC";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("tuKhoa", tuKhoa));
             while (result.hasNext()) list.add(mapBanAn(result.next()));
@@ -205,11 +179,8 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 9. TÌM BÀN THEO MÃ
-    // =========================================================================
     public BanAn timBanAnTheoMa(String maBan) {
-        String cypher = CYPHER_BASE_MATCH + "WHERE toUpper(b.maBan) = toUpper($maBan) " + CYPHER_RETURN;
+        String cypher = CYPHER_BASE_MATCH + "WHERE toUpper(trim(b.maBan)) = toUpper(trim($maBan)) " + CYPHER_RETURN;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maBan", maBan));
             if (result.hasNext()) return mapBanAn(result.next());
@@ -217,12 +188,9 @@ public class BanAn_DAO {
         return null;
     }
 
-    // =========================================================================
-    // 10. LỌC THEO LOẠI BÀN
-    // =========================================================================
     public List<BanAn> locTheoLoaiBan(String loaiBan) {
         List<BanAn> list = new ArrayList<>();
-        String cypher = CYPHER_BASE_MATCH + "WHERE b.loaiBan = $loaiBan " + CYPHER_RETURN;
+        String cypher = CYPHER_BASE_MATCH + "WHERE trim(b.loaiBan) = trim($loaiBan) " + CYPHER_RETURN + " ORDER BY b.tenBan ASC";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("loaiBan", loaiBan));
             while (result.hasNext()) list.add(mapBanAn(result.next()));
@@ -230,12 +198,9 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 11. TÌM KIẾM BÀN (Theo Mã hoặc Tên)
-    // =========================================================================
     public List<BanAn> timKiemBan(String tuKhoa) {
         List<BanAn> list = new ArrayList<>();
-        String cypher = CYPHER_BASE_MATCH + "WHERE toUpper(b.tenBan) CONTAINS toUpper($tuKhoa) OR toUpper(b.maBan) CONTAINS toUpper($tuKhoa) " + CYPHER_RETURN;
+        String cypher = CYPHER_BASE_MATCH + "WHERE toUpper(b.tenBan) CONTAINS toUpper(trim($tuKhoa)) OR toUpper(b.maBan) CONTAINS toUpper(trim($tuKhoa)) " + CYPHER_RETURN + " ORDER BY b.tenBan ASC";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("tuKhoa", tuKhoa));
             while (result.hasNext()) list.add(mapBanAn(result.next()));
@@ -243,12 +208,9 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 12. LỌC THEO TRẠNG THÁI
-    // =========================================================================
     public List<BanAn> locTheoTrangThai(String trangThai) {
         List<BanAn> list = new ArrayList<>();
-        String cypher = CYPHER_BASE_MATCH + "WHERE b.trangThai = $trangThai " + CYPHER_RETURN;
+        String cypher = CYPHER_BASE_MATCH + "WHERE trim(b.trangThai) = trim($trangThai) " + CYPHER_RETURN + " ORDER BY b.tenBan ASC";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("trangThai", trangThai));
             while (result.hasNext()) list.add(mapBanAn(result.next()));
@@ -256,12 +218,10 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 13. ĐỌC DANH SÁCH TÊN TẦNG
-    // =========================================================================
     public List<String> docDanhSachTenTang() {
         List<String> list = new ArrayList<>();
-        String cypher = "MATCH (t:Tang) RETURN t.tenTang AS tenTang";
+        list.add("Tất cả");
+        String cypher = "MATCH (t:Tang) RETURN DISTINCT t.tenTang AS tenTang ORDER BY tenTang";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher);
             while (result.hasNext()) list.add(result.next().get("tenTang").asString());
@@ -269,12 +229,15 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 14. ĐỌC DANH SÁCH TÊN KHU THEO TẦNG
-    // =========================================================================
     public List<String> docDanhSachTenKhuTheoTang(String tenTang) {
         List<String> list = new ArrayList<>();
-        String cypher = "MATCH (t:Tang {tenTang: $tenTang})<-[:THUOC_TANG]-(k:Khu) RETURN k.tenKhu AS tenKhu";
+        list.add("Tất cả");
+        String cypher;
+        if (tenTang == null || tenTang.trim().equals("Tất cả")) {
+            cypher = "MATCH (k:Khu) RETURN DISTINCT k.tenKhu AS tenKhu ORDER BY k.tenKhu";
+        } else {
+            cypher = "MATCH (t:Tang)<-[:THUOC_TANG]-(k:Khu) WHERE trim(t.tenTang) = trim($tenTang) RETURN DISTINCT k.tenKhu AS tenKhu ORDER BY k.tenKhu";
+        }
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("tenTang", tenTang));
             while (result.hasNext()) list.add(result.next().get("tenKhu").asString());
@@ -282,27 +245,24 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // 15. LỌC BÀN ĂN NÂNG CAO (Tầng, Khu, Loại)
-    // =========================================================================
     public List<BanAn> locBanAn(String tenTang, String tenKhu, String loaiBan) {
         List<BanAn> list = new ArrayList<>();
         StringBuilder cypher = new StringBuilder(CYPHER_BASE_MATCH + "WHERE 1=1 ");
         Map<String, Object> params = new HashMap<>();
 
-        if (tenTang != null && !tenTang.isEmpty() && !tenTang.equals("Tất cả")) {
-            cypher.append("AND t.tenTang = $tenTang ");
+        if (tenTang != null && !tenTang.trim().isEmpty() && !tenTang.trim().equals("Tất cả")) {
+            cypher.append("AND trim(t.tenTang) = trim($tenTang) ");
             params.put("tenTang", tenTang);
         }
-        if (tenKhu != null && !tenKhu.isEmpty() && !tenKhu.equals("Tất cả")) {
-            cypher.append("AND k.tenKhu = $tenKhu ");
+        if (tenKhu != null && !tenKhu.trim().isEmpty() && !tenKhu.trim().equals("Tất cả")) {
+            cypher.append("AND trim(k.tenKhu) = trim($tenKhu) ");
             params.put("tenKhu", tenKhu);
         }
-        if (loaiBan != null && !loaiBan.isEmpty() && !loaiBan.equals("Tất cả")) {
-            cypher.append("AND b.loaiBan = $loaiBan ");
+        if (loaiBan != null && !loaiBan.trim().isEmpty() && !loaiBan.trim().equals("Tất cả")) {
+            cypher.append("AND trim(b.loaiBan) = trim($loaiBan) ");
             params.put("loaiBan", loaiBan);
         }
-        cypher.append(CYPHER_RETURN);
+        cypher.append(CYPHER_RETURN).append(" ORDER BY b.tenBan ASC");
 
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher.toString(), params);
@@ -311,12 +271,9 @@ public class BanAn_DAO {
         return list;
     }
 
-    // =========================================================================
-    // CÁC HÀM TIỆN ÍCH KHÁC TỪ FILE CŨ
-    // =========================================================================
     public List<BanAn> layDanhSachBanTheoKhuVuc(String tenKhu) {
         List<BanAn> list = new ArrayList<>();
-        String cypher = CYPHER_BASE_MATCH + "WHERE k.tenKhu = $tenKhu " + CYPHER_RETURN;
+        String cypher = CYPHER_BASE_MATCH + "WHERE trim(k.tenKhu) = trim($tenKhu) " + CYPHER_RETURN;
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("tenKhu", tenKhu));
             while (result.hasNext()) {
@@ -338,7 +295,7 @@ public class BanAn_DAO {
     }
 
     public int laySoThuTuBanTiepTheo(String loaiBan) {
-        String cypher = "MATCH (b:BanAn {loaiBan: $loaiBan}) RETURN count(b) + 1 AS soThuTu";
+        String cypher = "MATCH (b:BanAn) WHERE trim(b.loaiBan) = trim($loaiBan) RETURN count(b) + 1 AS soThuTu";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("loaiBan", loaiBan));
             if (result.hasNext()) return result.next().get("soThuTu").asInt();
