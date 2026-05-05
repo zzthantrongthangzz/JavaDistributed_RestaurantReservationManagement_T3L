@@ -120,13 +120,16 @@ WITH 1 as dummy MATCH (nv:NhanVien), (cv:ChucVu) WHERE nv._maChucVu = cv.maChucV
 WITH 1 as dummy MATCH (tk:TaiKhoan), (nv:NhanVien) WHERE tk._maNhanVien = nv.maNhanVien MERGE (nv)-[:CO_TAI_KHOAN]->(tk);
 
 // 5. KHUYẾN MÃI (Giữ đủ 7 khuyến mãi như kịch bản gốc)
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000001', tenKhuyenMai: 'Giảm giá khai trương', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-10-10'), ngayKetThuc: date('2025-10-15'), giaTriGiam: 10.0, hienThi: 1})
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000002', tenKhuyenMai: 'Giảm sốc cuối tuần', loaiKhuyenMai: 'Giảm tiền', ngayBatDau: date('2025-10-18'), ngayKetThuc: date('2025-10-20'), giaTriGiam: 50000.0, hienThi: 1})
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000003', tenKhuyenMai: 'Ưu đãi khách hàng mới', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-10-15'), ngayKetThuc: date('2025-10-25'), giaTriGiam: 15.0, hienThi: 1})
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000004', tenKhuyenMai: 'Black Friday', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-11-25'), ngayKetThuc: date('2025-11-30'), giaTriGiam: 50.0, hienThi: 1})
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000005', tenKhuyenMai: 'Mua nhiều giảm nhiều', loaiKhuyenMai: 'Giảm tiền', ngayBatDau: date('2025-10-20'), ngayKetThuc: date('2025-10-31'), giaTriGiam: 30000.0, hienThi: 1})
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000010', tenKhuyenMai: 'Giảm giá HSSV', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-09-01'), ngayKetThuc: date('2025-12-31'), giaTriGiam: 10.0, hienThi: 1})
-CREATE (:KhuyenMai {maKhuyenMai: 'KM000019', tenKhuyenMai: 'Ưu đãi VIP Member', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-10-01'), ngayKetThuc: date('2026-03-31'), giaTriGiam: 25.0, hienThi: 1});
+// === CÁC KHUYẾN MÃI ĐÃ HẾT HẠN (Kết thúc trước tháng 5/2026) ===
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000001', tenKhuyenMai: 'Giảm giá khai trương', loaiKhuyenMai: 'Giảm %', ngayBatDau: datetime('2026-01-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2026-01-15T23:59:59+07:00').epochMillis, giaTriGiam: 10.0, hienThi: 1})
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000002', tenKhuyenMai: 'Giảm sốc cuối tuần', loaiKhuyenMai: 'Giảm tiền', ngayBatDau: datetime('2026-02-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2026-02-28T23:59:59+07:00').epochMillis, giaTriGiam: 50000.0, hienThi: 1})
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000003', tenKhuyenMai: 'Ưu đãi khách hàng mới', loaiKhuyenMai: 'Giảm %', ngayBatDau: datetime('2026-03-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2026-03-31T23:59:59+07:00').epochMillis, giaTriGiam: 15.0, hienThi: 1})
+
+// === CÁC KHUYẾN MÃI CÒN HẠN (Đang diễn ra trong thời điểm hiện tại hoặc tới cuối năm) ===
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000004', tenKhuyenMai: 'Đón hè sôi động', loaiKhuyenMai: 'Giảm %', ngayBatDau: datetime('2026-05-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2026-08-31T23:59:59+07:00').epochMillis, giaTriGiam: 20.0, hienThi: 1})
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000005', tenKhuyenMai: 'Mua nhiều giảm nhiều', loaiKhuyenMai: 'Giảm tiền', ngayBatDau: datetime('2026-04-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2026-06-30T23:59:59+07:00').epochMillis, giaTriGiam: 30000.0, hienThi: 1})
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000010', tenKhuyenMai: 'Giảm giá HSSV', loaiKhuyenMai: 'Giảm %', ngayBatDau: datetime('2026-01-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2026-12-31T23:59:59+07:00').epochMillis, giaTriGiam: 10.0, hienThi: 1})
+CREATE (:KhuyenMai {maKhuyenMai: 'KM000019', tenKhuyenMai: 'Ưu đãi VIP Member', loaiKhuyenMai: 'Giảm %', ngayBatDau: datetime('2026-05-01T00:00:00+07:00').epochMillis, ngayKetThuc: datetime('2027-05-01T23:59:59+07:00').epochMillis, giaTriGiam: 25.0, hienThi: 1});
 
 // 6. KHÁCH HÀNG (Giữ đủ 15 khách hàng như kịch bản gốc)
 CREATE (:KhachHang {maKhachHang: 'KH000001', hoTen: 'Nguyễn Văn An', soDienThoai: '0905123456', gioiTinh: true, email: 'nvan.an@gmail.com', diaChi: 'Quận 1, TP.HCM', ngaySinh: date('1990-05-15'), tichDiem: 120, trangThai: 1})

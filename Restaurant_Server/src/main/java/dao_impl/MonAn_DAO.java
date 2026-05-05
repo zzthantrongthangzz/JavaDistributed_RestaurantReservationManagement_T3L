@@ -210,23 +210,25 @@ public class MonAn_DAO {
     public List<dto.ThongKeMonAnDTO> getThongKeMonAn(java.util.Date tuNgay, java.util.Date denNgay) {
         List<dto.ThongKeMonAnDTO> ketQua = new ArrayList<>();
 
-        // ĐÃ SỬA LỖI: Đổi (m:MonAn) thành (m:Mon)
         StringBuilder cypher = new StringBuilder(
-                "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[c:BAO_GOM]->(m:Mon) WHERE 1=1 "
+                "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'})-[c:GOM_MON]->(m:Mon) WHERE 1=1 "
         );
         Map<String, Object> params = new HashMap<>();
 
         if (tuNgay != null && denNgay != null) {
+            // SỬA LỖI: So sánh trực tiếp bằng LocalDateTime của Java thay vì hàm chuyển đổi của Neo4j để tránh lệch Timezone
             cypher.append("AND hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
-            params.put("tu", tuNgay.getTime());
 
-            // Lấy đến cuối ngày của mốc 'đến ngày'
+            java.time.LocalDateTime ldtTu = new java.sql.Timestamp(tuNgay.getTime()).toLocalDateTime();
+            params.put("tu", ldtTu);
+
             Calendar cal = Calendar.getInstance();
             cal.setTime(denNgay);
             cal.set(Calendar.HOUR_OF_DAY, 23);
             cal.set(Calendar.MINUTE, 59);
             cal.set(Calendar.SECOND, 59);
-            params.put("den", cal.getTimeInMillis());
+            java.time.LocalDateTime ldtDen = new java.sql.Timestamp(cal.getTimeInMillis()).toLocalDateTime();
+            params.put("den", ldtDen);
         }
 
         cypher.append("RETURN m.maMon AS maMon, m.tenMon AS tenMon, m.gia AS gia, SUM(c.soLuong) AS TongSoLuong ORDER BY TongSoLuong DESC");
@@ -236,17 +238,24 @@ public class MonAn_DAO {
             while (result.hasNext()) {
                 try {
                     Record r = result.next();
-                    // Đọc an toàn chống lỗi ép kiểu dữ liệu từ Neo4j
                     double gia = 0.0;
                     try { gia = r.get("gia").asDouble(); } catch (Exception e) {
                         try { gia = Double.parseDouble(r.get("gia").asString()); } catch (Exception ex) {}
+                    }
+
+                    // SỬA LỖI: Ép kiểu an toàn (Neo4j SUM() thường trả về LongValue)
+                    int soLuong = 0;
+                    try {
+                        soLuong = r.get("TongSoLuong").asInt();
+                    } catch(Exception e) {
+                        soLuong = r.get("TongSoLuong").asNumber().intValue();
                     }
 
                     ketQua.add(new dto.ThongKeMonAnDTO(
                             r.get("maMon").asString(),
                             r.get("tenMon").asString(),
                             gia,
-                            r.get("TongSoLuong").asInt()
+                            soLuong
                     ));
                 } catch (Exception e) {
                     System.err.println("Lỗi đọc dữ liệu thống kê: " + e.getMessage());
