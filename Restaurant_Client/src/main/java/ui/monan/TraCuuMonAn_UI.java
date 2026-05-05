@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
 
+import connect.ConfigManager;
 import entity.MonAn;
 import entity.LoaiMon;
 import rmi_interfaces.IMonAn_Service;
@@ -43,8 +44,10 @@ public class TraCuuMonAn_UI extends JPanel {
 
         try {
             // SỬA LẠI ĐƯỜNG DẪN RMI CHO KHỚP VỚI SERVERMAIN
-            monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-            loaiMonService = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
+            String url = ConfigManager.getRmiUrl();
+
+            monAnService = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
+            loaiMonService = (ILoaiMon_Service) Naming.lookup(url +"LoaiMon_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

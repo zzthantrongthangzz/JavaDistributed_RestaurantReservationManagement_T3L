@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.*;
 import entity.*;
 import ui.HoaDonPDF;
@@ -79,12 +80,13 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		this.nhanVien = Auth.getCurrentNhanVien();
 
 		try {
-			hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-			khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
-			banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
-			khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
+			String url = ConfigManager.getRmiUrl();
+			hoaDonDAO = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+			khachHangDAO = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
+			monAnDAO = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup(url +"ChiTietHoaDon_Service");
+			banAnDAO = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
+			khuyenMaiDAO = (IKhuyenMai_Service) Naming.lookup(url +"KhuyenMai_Service");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

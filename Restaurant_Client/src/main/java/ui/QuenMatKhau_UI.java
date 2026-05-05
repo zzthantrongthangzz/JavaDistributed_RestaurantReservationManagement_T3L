@@ -28,6 +28,7 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 // ✅ Import Interface từ Shared thay vì DAO_Impl
+import connect.ConfigManager;
 import rmi_interfaces.ITaiKhoan_Service;
 
 public class QuenMatKhau_UI extends JDialog {
@@ -84,7 +85,8 @@ public class QuenMatKhau_UI extends JDialog {
 
 		// ✅ Khởi tạo qua RMI Lookup thay vì new Object
 		try {
-			taiKhoanDAO = (ITaiKhoan_Service) Naming.lookup("rmi://localhost:1099/TaiKhoan_Service");
+			String url = ConfigManager.getRmiUrl();
+			taiKhoanDAO = (ITaiKhoan_Service) Naming.lookup(url +"TaiKhoan_Service");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

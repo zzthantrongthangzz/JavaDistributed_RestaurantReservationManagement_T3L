@@ -9,6 +9,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.io.File;
+
+import connect.ConfigManager;
 import rmi_interfaces.IMonAn_Service;
 import rmi_interfaces.ILoaiMon_Service;
 import entity.MonAn;
@@ -48,8 +50,9 @@ public class ThemMonAn_UI extends JPanel {
 
 	public ThemMonAn_UI() {
 		try {
-			monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-			loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
+			String url = ConfigManager.getRmiUrl();
+			monAnDAO = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
+			loaiMonDAO = (ILoaiMon_Service) Naming.lookup(url +"LoaiMon_Service");
 		} catch (Exception e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

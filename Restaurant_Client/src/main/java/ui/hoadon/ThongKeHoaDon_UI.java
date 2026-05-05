@@ -8,6 +8,7 @@ import javax.swing.table.DefaultTableModel;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
+import connect.ConfigManager;
 import rmi_interfaces.IHoaDon_Service;
 import rmi_interfaces.IKhachHang_Service;
 import entity.HoaDon;
@@ -66,8 +67,10 @@ public class ThongKeHoaDon_UI extends JPanel {
 
     public ThongKeHoaDon_UI() {
         try {
-            hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            String url = ConfigManager.getRmiUrl();
+
+            hoaDonService = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+            khachHangService = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi", JOptionPane.ERROR_MESSAGE);

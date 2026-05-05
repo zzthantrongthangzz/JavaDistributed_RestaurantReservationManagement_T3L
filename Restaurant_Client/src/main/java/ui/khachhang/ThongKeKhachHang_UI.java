@@ -9,6 +9,7 @@ import javax.swing.table.TableColumnModel;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
+import connect.ConfigManager;
 import rmi_interfaces.IKhachHang_Service;
 import dto.ThongKeKhachHangDTO;
 
@@ -71,7 +72,8 @@ public class ThongKeKhachHang_UI extends JPanel {
 
     public ThongKeKhachHang_UI() {
         try {
-            khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            String url = ConfigManager.getRmiUrl();
+            khachHangService = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

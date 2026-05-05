@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import entity.*;
 import rmi_interfaces.IBanAn_Service;
 import rmi_interfaces.IKhachHang_Service;
@@ -87,9 +88,10 @@ public class DatBanCho_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.banAnDAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+            String url = ConfigManager.getRmiUrl();
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+            this.banAnDAO = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -496,7 +498,8 @@ public class DatBanCho_UI extends JDialog {
         SwingWorker<java.util.Map<String, String>, Void> checkWorker = new SwingWorker<>() {
             @Override
             protected java.util.Map<String, String> doInBackground() throws Exception {
-                IPhieuDatBan_Service phieuDAO_Check = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+                String url = ConfigManager.getRmiUrl();
+                IPhieuDatBan_Service phieuDAO_Check = (IPhieuDatBan_Service) Naming.lookup(url +"PhieuDatBan_Service");
                 return phieuDAO_Check.layThongTinBanDatVaTenKhach(selectedDate);
             }
 
@@ -569,8 +572,9 @@ public class DatBanCho_UI extends JDialog {
         SwingWorker<PhieuDatBan, Void> saveWorker = new SwingWorker<>() {
             @Override
             protected PhieuDatBan doInBackground() throws Exception {
-                IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
-                IPhieuDatBan_Ban_Service phieuBanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_Service");
+                String url = ConfigManager.getRmiUrl();
+                IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup(url +"PhieuDatBan_Service");
+                IPhieuDatBan_Ban_Service phieuBanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup(url +"PhieuDatBan_Ban_Service");
 
                 String maPhieuDat = phieuDAO.sinhMaPhieuDatTuDong();
                 String ghiChu = txtGhiChu.getText().trim();
@@ -624,12 +628,13 @@ public class DatBanCho_UI extends JDialog {
 
             @Override
             protected Double doInBackground() throws Exception {
-                IChiTietPhieuDatBan_Service ctPhieuDao = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
+                String url = ConfigManager.getRmiUrl();
+                IChiTietPhieuDatBan_Service ctPhieuDao = (IChiTietPhieuDatBan_Service) Naming.lookup(url +"ChiTietPhieuDatBan_Service");
                 danhSachChiTietThucTe = ctPhieuDao.getChiTietTheoPhieu(phieuMoi.getMaPhieuDatBan());
 
                 double tienDatCocSauCung = tinhTienDatCoc(danhSachBanChon, danhSachChiTietThucTe);
                 if (tienDatCocSauCung > 0) {
-                    IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
+                    IPhieuDatBan_Service phieuDAO = (IPhieuDatBan_Service) Naming.lookup(url +"PhieuDatBan_Service");
                     phieuMoi.setTienDatCoc(tienDatCocSauCung);
                     phieuDAO.capNhatTienCoc(phieuMoi.getMaPhieuDatBan(), tienDatCocSauCung);
                 }

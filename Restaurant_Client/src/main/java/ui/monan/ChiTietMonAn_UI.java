@@ -1,5 +1,6 @@
 package ui.monan;
 
+import connect.ConfigManager;
 import rmi_interfaces.IMonAn_Service;
 import entity.LichSuGia;
 import entity.MonAn;
@@ -47,7 +48,9 @@ public class ChiTietMonAn_UI extends JDialog {
         this.monAnDuocChon = monAn;
 
         try {
-            this.monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            String url = ConfigManager.getRmiUrl();
+
+            this.monAnDAO = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

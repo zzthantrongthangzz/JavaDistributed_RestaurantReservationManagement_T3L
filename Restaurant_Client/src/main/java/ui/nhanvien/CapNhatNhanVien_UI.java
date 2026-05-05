@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
+
+import connect.ConfigManager;
 import rmi_interfaces.INhanVien_Service;
 import rmi_interfaces.IChucVu_Service;
 import entity.NhanVien;
@@ -75,8 +77,9 @@ public class CapNhatNhanVien_UI extends JPanel {
 
     public CapNhatNhanVien_UI() {
         try {
-            nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
-            chucVuService = (IChucVu_Service) Naming.lookup("rmi://localhost:1099/ChucVu_Service");
+            String url = ConfigManager.getRmiUrl();
+            nhanVienService = (INhanVien_Service) Naming.lookup(url +"NhanVien_Service");
+            chucVuService = (IChucVu_Service) Naming.lookup(url +"ChucVu_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

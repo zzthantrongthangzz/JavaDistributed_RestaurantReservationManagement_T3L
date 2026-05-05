@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.IBanAn_Service;
 import rmi_interfaces.IHoaDon_Service;
 import rmi_interfaces.IHoaDon_Ban_Service;
@@ -64,11 +65,12 @@ public class ChuyenBan_UI extends JDialog {
 
         try {
             // Nâng cấp kết nối RMI: Khai báo toàn bộ các Service cần thiết
-            this.banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
-            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
-            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
-            this.phieuDatBanBanService = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_Service");
+            String url = ConfigManager.getRmiUrl();
+            this.banAnService = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
+            this.hoaDonService = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup(url +"HoaDon_Ban_Service");
+            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup(url +"PhieuDatBan_Service");
+            this.phieuDatBanBanService = (IPhieuDatBan_Ban_Service) Naming.lookup(url +"PhieuDatBan_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
             hienThiLoi("Lỗi kết nối đến máy chủ RMI!");

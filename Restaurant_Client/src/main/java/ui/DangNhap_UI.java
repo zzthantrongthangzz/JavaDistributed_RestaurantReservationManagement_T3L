@@ -17,6 +17,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.rmi.Naming;
+
+import connect.ConfigManager;
 import rmi_interfaces.INhanVien_Service;
 import entity.NhanVien;
 
@@ -47,7 +49,8 @@ public class DangNhap_UI extends JFrame {
 
 	public DangNhap_UI() {
 		try {
-			nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
+			String url = ConfigManager.getRmiUrl();
+			nhanVienService = (INhanVien_Service) Naming.lookup(url +"NhanVien_Service");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -1,5 +1,6 @@
 package ui.nhanvien;
 
+import connect.ConfigManager;
 import rmi_interfaces.ITaiKhoan_Service;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -51,7 +52,8 @@ public class ThemTaiKhoan_UI extends JDialog {
         this.tenChucVuTruyen = tenChucVu;
 
         try {
-            taiKhoanService = (ITaiKhoan_Service) Naming.lookup("rmi://localhost:1099/TaiKhoan_Service");
+            String url = ConfigManager.getRmiUrl();
+            taiKhoanService = (ITaiKhoan_Service) Naming.lookup(url +"TaiKhoan_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

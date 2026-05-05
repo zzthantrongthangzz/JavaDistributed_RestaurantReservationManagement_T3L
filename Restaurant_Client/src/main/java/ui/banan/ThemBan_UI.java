@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.IBanAn_Service;
 import rmi_interfaces.IKhu_Service;
 import rmi_interfaces.ITang_Service;
@@ -60,9 +61,11 @@ public class ThemBan_UI extends JDialog {
 
         try {
             // SỬA ĐƯỜNG DẪN RMI CHO KHỚP VỚI SERVER
-            banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
-            khuService = (IKhu_Service) Naming.lookup("rmi://localhost:1099/Khu_Service");
-            tangService = (ITang_Service) Naming.lookup("rmi://localhost:1099/Tang_Service");
+            String url = ConfigManager.getRmiUrl();
+
+            banAnService = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
+            khuService = (IKhu_Service) Naming.lookup(url +"Khu_Service");
+            tangService = (ITang_Service) Naming.lookup(url +"Tang_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);

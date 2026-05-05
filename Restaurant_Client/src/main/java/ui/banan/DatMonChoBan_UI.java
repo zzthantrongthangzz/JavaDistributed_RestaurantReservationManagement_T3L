@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.IBanAn_Service;
 import rmi_interfaces.IHoaDon_Service;
 import rmi_interfaces.IHoaDon_Ban_Service;
@@ -131,14 +132,15 @@ public class DatMonChoBan_UI extends JDialog {
 
     private void ketNoiRMI() {
         try {
-            this.monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-            this.banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
-            this.loaiMonService = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
-            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
-            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
+            String url = ConfigManager.getRmiUrl();
+            this.monAnService = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
+            this.banAnService = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
+            this.loaiMonService = (ILoaiMon_Service) Naming.lookup(url +"LoaiMon_Service");
+            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup(url +"ChiTietHoaDon_Service");
+            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup(url +"ChiTietPhieuDatBan_Service");
             // KẾT NỐI THÊM ĐỂ TỰ ĐỘNG TÌM HÓA ĐƠN
-            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+            this.hoaDonService = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup(url +"HoaDon_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);

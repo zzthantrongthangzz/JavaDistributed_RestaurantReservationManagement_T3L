@@ -11,6 +11,7 @@ import java.util.Date;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 
+import connect.ConfigManager;
 import rmi_interfaces.IKhuyenMai_Service;
 import entity.KhuyenMai;
 
@@ -32,7 +33,8 @@ public class ThemKhuyenMai_UI extends JPanel {
 
     public ThemKhuyenMai_UI() {
         try {
-            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
+            String url = ConfigManager.getRmiUrl();
+            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup(url +"KhuyenMai_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

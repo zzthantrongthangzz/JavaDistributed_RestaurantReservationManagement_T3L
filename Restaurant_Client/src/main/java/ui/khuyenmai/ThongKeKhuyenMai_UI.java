@@ -8,6 +8,7 @@ import javax.swing.table.JTableHeader;
 
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
+import connect.ConfigManager;
 import rmi_interfaces.IKhuyenMai_Service;
 import dto.ThongKeKhuyenMaiDTO;
 
@@ -67,7 +68,8 @@ public class ThongKeKhuyenMai_UI extends JPanel {
 
     public ThongKeKhuyenMai_UI() {
         try {
-            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup("rmi://localhost:1099/KhuyenMai_Service");
+            String url = ConfigManager.getRmiUrl();
+            khuyenMaiService = (IKhuyenMai_Service) Naming.lookup(url +"KhuyenMai_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

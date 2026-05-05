@@ -10,6 +10,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
+import connect.ConfigManager;
 import rmi_interfaces.IMonAn_Service;
 import rmi_interfaces.ILoaiMon_Service;
 import entity.MonAn;
@@ -84,8 +85,9 @@ public class CapNhatMon_UI extends JPanel {
 
     public CapNhatMon_UI() {
         try {
-            monAnDAO = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-            loaiMonDAO = (ILoaiMon_Service) Naming.lookup("rmi://localhost:1099/LoaiMon_Service");
+            String url = ConfigManager.getRmiUrl();
+            monAnDAO = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
+            loaiMonDAO = (ILoaiMon_Service) Naming.lookup(url +"LoaiMon_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

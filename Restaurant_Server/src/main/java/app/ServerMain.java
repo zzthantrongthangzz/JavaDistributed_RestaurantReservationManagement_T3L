@@ -3,12 +3,25 @@ package app;
 import service.*;
 import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
+import java.io.FileInputStream;
+import java.util.Properties;
 
 public class ServerMain {
     public static void main(String[] args) {
         try {
+            Properties props = new Properties();
+            try (FileInputStream in = new FileInputStream("config.properties")) {
+                props.load(in);
+            } catch (Exception e) {
+                System.err.println("Cảnh báo: Không tìm thấy file config.properties, hệ thống sẽ dùng IP mặc định.");
+            }
 
-            LocateRegistry.createRegistry(1099);
+            String serverIp = props.getProperty("server.ip", "192.168.10.73");
+            String serverPort = props.getProperty("server.port", "1099");
+
+            System.setProperty("java.rmi.server.hostname", serverIp);
+
+            LocateRegistry.createRegistry(Integer.parseInt(serverPort));
 
             BanAn_Service_Impl banAnService = new BanAn_Service_Impl();
             ChiTietHoaDon_Service_Impl chiTietHoaDonService = new ChiTietHoaDon_Service_Impl();
@@ -28,27 +41,31 @@ public class ServerMain {
             TaiKhoan_Service_Impl taiKhoanService = new TaiKhoan_Service_Impl();
             Tang_Service_Impl tangService = new Tang_Service_Impl();
 
-            Naming.rebind("rmi://localhost:1099/BanAn_Service", banAnService);
-            Naming.rebind("rmi://localhost:1099/ChiTietHoaDon_Service", chiTietHoaDonService);
-            Naming.rebind("rmi://localhost:1099/ChiTietPhieuDatBan_Service", chiTietPhieuDatBanService);
-            Naming.rebind("rmi://localhost:1099/ChucVu_Service", chucVuService);
-            Naming.rebind("rmi://localhost:1099/HoaDon_Ban_Service", hoaDonBanService);
-            Naming.rebind("rmi://localhost:1099/HoaDon_Service", hoaDonService);
-            Naming.rebind("rmi://localhost:1099/KhachHang_Service", khachHangService);
-            Naming.rebind("rmi://localhost:1099/Khu_Service", khuService);
-            Naming.rebind("rmi://localhost:1099/KhuyenMai_Service", khuyenMaiService);
-            Naming.rebind("rmi://localhost:1099/LichSuHuyDatBan_Service", lichSuHuyDatBanService);
-            Naming.rebind("rmi://localhost:1099/LoaiMon_Service", loaiMonService);
-            Naming.rebind("rmi://localhost:1099/MonAn_Service", monAnService);
-            Naming.rebind("rmi://localhost:1099/NhanVien_Service", nhanVienService);
-            Naming.rebind("rmi://localhost:1099/PhieuDatBan_Ban_Service", phieuDatBanBanService);
-            Naming.rebind("rmi://localhost:1099/PhieuDatBan_Service", phieuDatBanService);
-            Naming.rebind("rmi://localhost:1099/TaiKhoan_Service", taiKhoanService);
-            Naming.rebind("rmi://localhost:1099/Tang_Service", tangService);
-            System.out.println("RMI Server is running on port 1099...");
+            String rmiURL = "rmi://" + serverIp + ":" + serverPort + "/";
+
+            Naming.rebind(rmiURL + "BanAn_Service", banAnService);
+            Naming.rebind(rmiURL + "ChiTietHoaDon_Service", chiTietHoaDonService);
+            Naming.rebind(rmiURL + "ChiTietPhieuDatBan_Service", chiTietPhieuDatBanService);
+            Naming.rebind(rmiURL + "ChucVu_Service", chucVuService);
+            Naming.rebind(rmiURL + "HoaDon_Ban_Service", hoaDonBanService);
+            Naming.rebind(rmiURL + "HoaDon_Service", hoaDonService);
+            Naming.rebind(rmiURL + "KhachHang_Service", khachHangService);
+            Naming.rebind(rmiURL + "Khu_Service", khuService);
+            Naming.rebind(rmiURL + "KhuyenMai_Service", khuyenMaiService);
+            Naming.rebind(rmiURL + "LichSuHuyDatBan_Service", lichSuHuyDatBanService);
+            Naming.rebind(rmiURL + "LoaiMon_Service", loaiMonService);
+            Naming.rebind(rmiURL + "MonAn_Service", monAnService);
+            Naming.rebind(rmiURL + "NhanVien_Service", nhanVienService);
+            Naming.rebind(rmiURL + "PhieuDatBan_Ban_Service", phieuDatBanBanService);
+            Naming.rebind(rmiURL + "PhieuDatBan_Service", phieuDatBanService);
+            Naming.rebind(rmiURL + "TaiKhoan_Service", taiKhoanService);
+            Naming.rebind(rmiURL + "Tang_Service", tangService);
+
+            System.out.println("✅ RMI Server is running successfully at: " + rmiURL);
 
         } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("Lỗi khi khởi động Server RMI!");
         }
     }
 }

@@ -1,5 +1,6 @@
 package ui;
 
+import connect.ConfigManager;
 import entity.*;
 import rmi_interfaces.IMonAn_Service;
 
@@ -76,7 +77,8 @@ public class PhieuDatBanPDF {
             // Kết nối RMI để dịch mã món thành tên món
             IMonAn_Service monAnService = null;
             try {
-                monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+                String url = ConfigManager.getRmiUrl();
+                monAnService = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
             } catch (Exception e) {
                 System.err.println("Không thể kết nối Server để lấy tên món: " + e.getMessage());
             }

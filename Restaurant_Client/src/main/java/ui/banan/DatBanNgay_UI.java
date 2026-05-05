@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.IHoaDon_Service;
 import rmi_interfaces.IHoaDon_Ban_Service;
 import rmi_interfaces.IKhachHang_Service;
@@ -77,9 +78,10 @@ public class DatBanNgay_UI extends JDialog {
         this.khachHangHienTai = null;
 
         try {
-            this.khachHangDAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+            String url = ConfigManager.getRmiUrl();
+            this.khachHangDAO = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
+            this.hoaDonDAO = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+            this.hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup(url +"HoaDon_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
         }

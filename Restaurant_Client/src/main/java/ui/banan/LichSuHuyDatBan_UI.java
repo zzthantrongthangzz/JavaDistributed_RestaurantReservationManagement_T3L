@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.ILichSuHuyDatBan_Service;
 import entity.LichSuHuyDatBan;
 
@@ -146,7 +147,8 @@ public class LichSuHuyDatBan_UI extends JPanel {
 
     private void ketNoiRMI() {
         try {
-            lichSuHuyService = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_Service");
+            String url = ConfigManager.getRmiUrl();
+            lichSuHuyService = (ILichSuHuyDatBan_Service) Naming.lookup(url +"LichSuHuyDatBan_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);

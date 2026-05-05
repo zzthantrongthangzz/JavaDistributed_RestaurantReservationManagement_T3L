@@ -22,6 +22,7 @@ import com.toedter.calendar.JTextFieldDateEditor;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+import connect.ConfigManager;
 import entity.KhachHang;
 import rmi_interfaces.IKhachHang_Service;
 
@@ -78,7 +79,8 @@ public class CapNhatKhachHang_UI extends JPanel {
 
     public CapNhatKhachHang_UI() {
         try {
-            khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
+            String url = ConfigManager.getRmiUrl();
+            khachHangService = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

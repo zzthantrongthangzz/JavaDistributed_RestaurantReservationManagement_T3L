@@ -9,6 +9,7 @@ import javax.swing.table.TableColumnModel;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
+import connect.ConfigManager;
 import rmi_interfaces.IMonAn_Service;
 import dto.ThongKeMonAnDTO;
 
@@ -84,7 +85,8 @@ public class ThongKeMonAn_UI extends JPanel {
 
     public ThongKeMonAn_UI() {
         try {
-            monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            String url = ConfigManager.getRmiUrl();
+            monAnService = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

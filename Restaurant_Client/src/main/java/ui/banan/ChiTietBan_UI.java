@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.*;
 import entity.*;
 
@@ -105,14 +106,15 @@ public class ChiTietBan_UI extends JDialog {
 
     private void ketNoiRMI() {
         try {
-            this.monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
-            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
-            this.khachHangService = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-            this.nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
-            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
-            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
-            this.hoaDonService = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
+            String url = ConfigManager.getRmiUrl();
+            this.monAnService = (IMonAn_Service) Naming.lookup(url +"MonAn_Service");
+            this.chiTietHoaDonService = (IChiTietHoaDon_Service) Naming.lookup(url +"ChiTietHoaDon_Service");
+            this.khachHangService = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
+            this.nhanVienService = (INhanVien_Service) Naming.lookup(url +"NhanVien_Service");
+            this.phieuDatBanService = (IPhieuDatBan_Service) Naming.lookup(url +"PhieuDatBan_Service");
+            this.chiTietPhieuService = (IChiTietPhieuDatBan_Service) Naming.lookup(url +"ChiTietPhieuDatBan_Service");
+            this.hoaDonService = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+            this.hoaDonBanService = (IHoaDon_Ban_Service) Naming.lookup(url +"HoaDon_Ban_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi kết nối Máy chủ RMI!", "Lỗi", JOptionPane.ERROR_MESSAGE);

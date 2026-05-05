@@ -1,5 +1,6 @@
 package ui.banan;
 
+import connect.ConfigManager;
 import rmi_interfaces.IBanAn_Service;
 import entity.BanAn;
 
@@ -52,7 +53,8 @@ public class CapNhatBan_UI extends JPanel {
 
     public CapNhatBan_UI() {
         try {
-            banAnService = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
+            String url = ConfigManager.getRmiUrl();
+            banAnService = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ RMI!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

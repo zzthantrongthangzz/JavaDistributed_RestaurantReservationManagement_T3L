@@ -17,6 +17,7 @@ import java.rmi.RemoteException;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 
+import connect.ConfigManager;
 import rmi_interfaces.INhanVien_Service;
 import rmi_interfaces.IChucVu_Service;
 import entity.NhanVien;
@@ -44,8 +45,9 @@ public class ThemNhanVien_UI extends JPanel {
 
     public ThemNhanVien_UI() {
         try {
-            nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
-            chucVuService = (IChucVu_Service) Naming.lookup("rmi://localhost:1099/ChucVu_Service");
+            String url = ConfigManager.getRmiUrl();
+            nhanVienService = (INhanVien_Service) Naming.lookup(url +"NhanVien_Service");
+            chucVuService = (IChucVu_Service) Naming.lookup(url +"ChucVu_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);

@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.rmi.Naming;
 
+import connect.ConfigManager;
 import rmi_interfaces.IBanAn_Service;
 import rmi_interfaces.IChiTietHoaDon_Service;
 import rmi_interfaces.IChiTietPhieuDatBan_Service;
@@ -98,15 +99,17 @@ public class QuanLyDatBan_UI extends JPanel {
 
 	public QuanLyDatBan_UI() {
 		try {
-			banAn_DAO = (IBanAn_Service) Naming.lookup("rmi://localhost:1099/BanAn_Service");
-			hoaDon_DAO = (IHoaDon_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Service");
-			khachHang_DAO = (IKhachHang_Service) Naming.lookup("rmi://localhost:1099/KhachHang_Service");
-			phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Service");
-			hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup("rmi://localhost:1099/HoaDon_Ban_Service");
-			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_Service) Naming.lookup("rmi://localhost:1099/ChiTietPhieuDatBan_Service");
-			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup("rmi://localhost:1099/ChiTietHoaDon_Service");
-			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_Service) Naming.lookup("rmi://localhost:1099/LichSuHuyDatBan_Service");
-			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup("rmi://localhost:1099/PhieuDatBan_Ban_Service");
+			String url = ConfigManager.getRmiUrl();
+
+			banAn_DAO = (IBanAn_Service) Naming.lookup(url +"BanAn_Service");
+			hoaDon_DAO = (IHoaDon_Service) Naming.lookup(url +"HoaDon_Service");
+			khachHang_DAO = (IKhachHang_Service) Naming.lookup(url +"KhachHang_Service");
+			phieuDatBanDAO = (IPhieuDatBan_Service) Naming.lookup(url +"PhieuDatBan_Service");
+			hoaDonBanDAO = (IHoaDon_Ban_Service) Naming.lookup(url +"HoaDon_Ban_Service");
+			chiTietPhieuDatBanDAO = (IChiTietPhieuDatBan_Service) Naming.lookup(url +"ChiTietPhieuDatBan_Service");
+			chiTietHoaDonDAO = (IChiTietHoaDon_Service) Naming.lookup(url +"ChiTietHoaDon_Service");
+			lichSuHuyDatBanDAO = (ILichSuHuyDatBan_Service) Naming.lookup(url +"LichSuHuyDatBan_Service");
+			phieuDatBan_BanDAO = (IPhieuDatBan_Ban_Service) Naming.lookup(url +"PhieuDatBan_Ban_Service");
 
 
 			this.danhSachBan = banAn_DAO.docDanhSachBan();

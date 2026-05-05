@@ -15,6 +15,7 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.text.SimpleDateFormat;
 
+import connect.ConfigManager;
 import entity.NhanVien;
 import rmi_interfaces.INhanVien_Service;
 
@@ -56,7 +57,8 @@ public class TraCuuNhanVien_UI extends JPanel {
 
     public TraCuuNhanVien_UI() {
         try {
-            nhanVienService = (INhanVien_Service) Naming.lookup("rmi://localhost:1099/NhanVien_Service");
+            String url = ConfigManager.getRmiUrl();
+            nhanVienService = (INhanVien_Service) Naming.lookup(url +"NhanVien_Service");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Không thể kết nối đến Máy chủ!", "Lỗi Kết Nối", JOptionPane.ERROR_MESSAGE);
