@@ -1,11 +1,14 @@
 package ui;
+
 import entity.*;
+import rmi_interfaces.IMonAn_Service;
+
 import javax.swing.JOptionPane;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.rmi.Naming;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -70,9 +73,29 @@ public class PhieuDatBanPDF {
             addTableHeader(table, "Đơn giá");
             addTableHeader(table, "Thành tiền");
 
+            // Kết nối RMI để dịch mã món thành tên món
+            IMonAn_Service monAnService = null;
+            try {
+                monAnService = (IMonAn_Service) Naming.lookup("rmi://localhost:1099/MonAn_Service");
+            } catch (Exception e) {
+                System.err.println("Không thể kết nối Server để lấy tên món: " + e.getMessage());
+            }
+
             BigDecimal tongTien = BigDecimal.ZERO;
             for (ChiTietPhieuDatBan ct : dsCT) {
-                addTableCell(table, ct.getMaMon(), Element.ALIGN_LEFT);
+                String tenMonHienThi = ct.getMaMon(); // Mặc định là mã món nếu không tìm thấy
+                if (monAnService != null) {
+                    try {
+                        MonAn mon = monAnService.timMotMonTheoMa(ct.getMaMon());
+                        if (mon != null && mon.getTenMon() != null) {
+                            tenMonHienThi = mon.getTenMon();
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                addTableCell(table, tenMonHienThi, Element.ALIGN_LEFT);
                 addTableCell(table, String.valueOf(ct.getSoLuong()), Element.ALIGN_CENTER);
                 addTableCell(table, currencyFormatter.format(ct.getDonGia()), Element.ALIGN_RIGHT);
                 BigDecimal thanhTien = ct.getDonGia().multiply(new BigDecimal(ct.getSoLuong()));
@@ -96,6 +119,7 @@ public class PhieuDatBanPDF {
             Desktop.getDesktop().open(new File(fileName));
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Không thể tạo file PDF! Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

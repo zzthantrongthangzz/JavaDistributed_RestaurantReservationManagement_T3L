@@ -14,53 +14,48 @@ public class PhieuDatBan_Ban_DAO {
 
     public List<BanAn> getDanhSachBanTheoPhieu(String maPhieu) {
         List<BanAn> list = new ArrayList<>();
-        // SỬA LỖI: Thêm OPTIONAL MATCH để truy xuất đến node Khu lấy maKhu
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[:GOM_BAN]->(b:BanAn) " +
+        String cypher = "MATCH (p:PhieuDatBan)-[:GOM_BAN]->(b:BanAn) " +
+                "WHERE trim(p.maPhieuDatBan) = trim($maPhieu) " +
                 "OPTIONAL MATCH (b)-[:THUOC_KHU]->(k:Khu) " +
+                "OPTIONAL MATCH (k)-[:THUOC_TANG]->(t:Tang) " +
                 "RETURN b.maBan AS maBan, b.tenBan AS tenBan, b.loaiBan AS loaiBan, " +
-                "b.sucChua AS sucChua, b.trangThai AS trangThai, k.maKhu AS maKhu";
+                "b.sucChua AS sucChua, b.trangThai AS trangThai, k.maKhu AS maKhu, " +
+                "k.tenKhu AS tenKhu, t.tenTang AS tenTang";
 
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maPhieu", maPhieu));
             while (result.hasNext()) {
                 Record r = result.next();
 
-                // 1. Xử lý an toàn chống lỗi ép kiểu Sức chứa
                 int sucChua = 4;
                 if (!r.get("sucChua").isNull()) {
-                    try {
-                        sucChua = r.get("sucChua").asInt();
-                    } catch (Exception e) {
-                        try { sucChua = Integer.parseInt(r.get("sucChua").asString()); } catch (Exception ex) {}
-                    }
+                    try { sucChua = r.get("sucChua").asInt(); }
+                    catch (Exception e) { try { sucChua = Integer.parseInt(r.get("sucChua").asString()); } catch (Exception ex) {} }
                 }
 
-                // 2. Xử lý an toàn chống lỗi Mã khu Null làm sập Entity
-                String maKhu = "K01"; // Mặc định nếu DB bị lủng dữ liệu
-                if (!r.get("maKhu").isNull()) {
-                    maKhu = r.get("maKhu").asString();
-                }
-                if (maKhu == null || maKhu.trim().isEmpty()) {
-                    maKhu = "K01";
-                }
+                String maKhu = (!r.get("maKhu").isNull()) ? r.get("maKhu").asString() : "K01";
 
-                list.add(new BanAn(
+                BanAn ban = new BanAn(
                         r.get("maBan").isNull() ? "" : r.get("maBan").asString(),
                         r.get("tenBan").isNull() ? "Chưa có tên" : r.get("tenBan").asString(),
                         r.get("loaiBan").isNull() ? "Bàn thường" : r.get("loaiBan").asString(),
                         sucChua,
                         r.get("trangThai").isNull() ? "Bàn đang trống" : r.get("trangThai").asString(),
                         maKhu
-                ));
+                );
+
+                ban.setTenKhu(r.get("tenKhu").isNull() ? "Chưa phân khu" : r.get("tenKhu").asString());
+                ban.setTenTang(r.get("tenTang").isNull() ? "Chưa phân tầng" : r.get("tenTang").asString());
+
+                list.add(ban);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
         return list;
     }
 
     public boolean themPhieuDatBan_Ban(String maPhieu, String maBan) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu}), (b:BanAn {maBan: $maBan}) " +
+        String cypher = "MATCH (p:PhieuDatBan), (b:BanAn) " +
+                "WHERE trim(p.maPhieuDatBan) = trim($maPhieu) AND trim(b.maBan) = trim($maBan) " +
                 "MERGE (p)-[:GOM_BAN]->(b)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maPhieu", maPhieu, "maBan", maBan));
@@ -69,7 +64,7 @@ public class PhieuDatBan_Ban_DAO {
     }
 
     public int demSoBanCuaPhieu(String maPhieu) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[:GOM_BAN]->(b:BanAn) RETURN count(b) AS soLuong";
+        String cypher = "MATCH (p:PhieuDatBan)-[:GOM_BAN]->(b:BanAn) WHERE trim(p.maPhieuDatBan) = trim($maPhieu) RETURN count(b) AS soLuong";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maPhieu", maPhieu));
             if (result.hasNext()) return result.next().get("soLuong").asInt();
@@ -78,7 +73,8 @@ public class PhieuDatBan_Ban_DAO {
     }
 
     public boolean xoaBanKhoiPhieu(String maPhieu, String maBan) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[r:GOM_BAN]->(b:BanAn {maBan: $maBan}) DELETE r";
+        String cypher = "MATCH (p:PhieuDatBan)-[r:GOM_BAN]->(b:BanAn) " +
+                "WHERE trim(p.maPhieuDatBan) = trim($maPhieu) AND trim(b.maBan) = trim($maBan) DELETE r";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maPhieu", maPhieu, "maBan", maBan));
             return true;

@@ -13,7 +13,9 @@ import java.util.List;
 public class ChiTietPhieuDatBan_DAO {
 
     public boolean themChiTietPhieuDat(ChiTietPhieuDatBan ct) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu}), (m:Mon {maMon: $maMon}) MERGE (p)-[c:GOM_MON]->(m) " +
+        String cypher = "MATCH (p:PhieuDatBan), (m:Mon) " +
+                "WHERE trim(p.maPhieuDatBan) = trim($maPhieu) AND trim(m.maMon) = trim($maMon) " +
+                "MERGE (p)-[c:GOM_MON]->(m) " +
                 "SET c.soLuong = $soLuong, c.donGia = $donGia";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters(
@@ -28,7 +30,8 @@ public class ChiTietPhieuDatBan_DAO {
 
     public List<ChiTietPhieuDatBan> getChiTietTheoPhieu(String maPhieuDatBan) {
         List<ChiTietPhieuDatBan> list = new ArrayList<>();
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[c:GOM_MON]->(m:Mon) " +
+        String cypher = "MATCH (p:PhieuDatBan)-[c:GOM_MON]->(m:Mon) " +
+                "WHERE trim(p.maPhieuDatBan) = trim($maPhieu) " +
                 "RETURN p.maPhieuDatBan AS maPhieu, m.maMon AS maMon, c.soLuong AS soLuong, c.donGia AS donGia";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maPhieu", maPhieuDatBan));
@@ -46,7 +49,7 @@ public class ChiTietPhieuDatBan_DAO {
     }
 
     public boolean xoaChiTietTheoPhieu(String maPhieuDatBan) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[c:GOM_MON]->(:Mon) DELETE c";
+        String cypher = "MATCH (p:PhieuDatBan)-[c:GOM_MON]->(:Mon) WHERE trim(p.maPhieuDatBan) = trim($maPhieu) DELETE c";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maPhieu", maPhieuDatBan));
             return true;
@@ -54,7 +57,8 @@ public class ChiTietPhieuDatBan_DAO {
     }
 
     public boolean capNhatChiTiet(ChiTietPhieuDatBan ct) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[c:GOM_MON]->(m:Mon {maMon: $maMon}) " +
+        String cypher = "MATCH (p:PhieuDatBan)-[c:GOM_MON]->(m:Mon) " +
+                "WHERE trim(p.maPhieuDatBan) = trim($maPhieu) AND trim(m.maMon) = trim($maMon) " +
                 "SET c.soLuong = $soLuong, c.donGia = $donGia";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters(

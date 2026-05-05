@@ -16,19 +16,20 @@ CREATE CONSTRAINT IF NOT EXISTS FOR (b:BanAn) REQUIRE b.maBan IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (p:PhieuDatBan) REQUIRE p.maPhieuDatBan IS UNIQUE;
 CREATE CONSTRAINT IF NOT EXISTS FOR (h:HoaDon) REQUIRE h.maHoaDon IS UNIQUE;
 
-
 // ===========================================================================
 // PHẦN 2: TẠO DỮ LIỆU GỐC (MASTER DATA)
 // ===========================================================================
 
-// 1. TẦNG & KHU
-MERGE (t1:Tang {maTang: 'T01', tenTang: 'Tầng 1'})
-MERGE (t2:Tang {maTang: 'T02', tenTang: 'Tầng 2'})
-
-WITH t1, t2
-MERGE (k1:Khu {maKhu: 'K01', tenKhu: 'Khu A'}) MERGE (k1)-[:THUOC_TANG]->(t1)
-MERGE (k2:Khu {maKhu: 'K02', tenKhu: 'Khu B'}) MERGE (k2)-[:THUOC_TANG]->(t1)
-MERGE (k3:Khu {maKhu: 'K03', tenKhu: 'Khu C'}) MERGE (k3)-[:THUOC_TANG]->(t2);
+// 1. TẦNG & KHU (Đã fix lỗi Chưa phân tầng)
+CREATE (t1:Tang {maTang: 'T01', tenTang: 'Tầng 1'})
+CREATE (t2:Tang {maTang: 'T02', tenTang: 'Tầng 2'})
+CREATE (k1:Khu {maKhu: 'K01', tenKhu: 'Khu A'})
+CREATE (k2:Khu {maKhu: 'K02', tenKhu: 'Khu B'})
+CREATE (k3:Khu {maKhu: 'K03', tenKhu: 'Khu C'})
+WITH t1, t2, k1, k2, k3
+CREATE (k1)-[:THUOC_TANG]->(t1)
+CREATE (k2)-[:THUOC_TANG]->(t1)
+CREATE (k3)-[:THUOC_TANG]->(t2);
 
 // 2. LOẠI MÓN
 CREATE (:LoaiMon {maLoai: 'LM000001', tenLoai: 'Món chính'})
@@ -36,7 +37,7 @@ CREATE (:LoaiMon {maLoai: 'LM000002', tenLoai: 'Món khai vị'})
 CREATE (:LoaiMon {maLoai: 'LM000003', tenLoai: 'Món tráng miệng'})
 CREATE (:LoaiMon {maLoai: 'LM000004', tenLoai: 'Đồ uống'});
 
-// 3. MÓN ĂN (Đã sửa đường dẫn thành /img/)
+// 3. MÓN ĂN
 CREATE (:Mon {maMon: 'MM000001', tenMon: 'Bánh cuốn tôm thịt', gia: 99000.0, tinhTrang: 'Đang kinh doanh', duongDanAnh: '/img/mon_banhcuontomthit.png', moTa: 'Bánh cuốn tôm thịt truyền thống mềm mịn...', donVi: 'Phần', _maLoai: 'LM000001'})
 CREATE (:Mon {maMon: 'MM000002', tenMon: 'Cơm chiên', gia: 69000.0, tinhTrang: 'Đang kinh doanh', duongDanAnh: '/img/mon_comchien.png', moTa: 'Cơm chiên hải sản thơm ngon...', donVi: 'Đĩa', _maLoai: 'LM000001'})
 CREATE (:Mon {maMon: 'MM000003', tenMon: 'Bò bít tết', gia: 299000.0, tinhTrang: 'Đang kinh doanh', duongDanAnh: '/img/mon_bobittet.png', moTa: 'Thịt bò thăn ngoại áp chảo...', donVi: 'Phần', _maLoai: 'LM000001'})
@@ -91,9 +92,7 @@ CREATE (:Mon {maMon: 'MM000051', tenMon: 'Bia tiger bạc', gia: 39000.0, tinhTr
 CREATE (:Mon {maMon: 'MM000052', tenMon: 'Bia tiger nâu', gia: 39000.0, tinhTrang: 'Đang kinh doanh', duongDanAnh: '/img/nuoc_biatigernau.png', moTa: 'Bia Tiger nâu...', donVi: 'Lon', _maLoai: 'LM000004'})
 CREATE (:Mon {maMon: 'MM000053', tenMon: 'Bia heneken', gia: 42000.0, tinhTrang: 'Đang kinh doanh', duongDanAnh: '/img/nuoc_biaheneken.png', moTa: 'Bia Heineken...', donVi: 'Lon', _maLoai: 'LM000004'});
 
-// Nối Món vào Loại Món
-WITH 1 as dummy
-MATCH (m:Mon), (l:LoaiMon) WHERE m._maLoai = l.maLoai MERGE (m)-[:THUOC_LOAI]->(l);
+WITH 1 as dummy MATCH (m:Mon), (l:LoaiMon) WHERE m._maLoai = l.maLoai MERGE (m)-[:THUOC_LOAI]->(l);
 
 // 4. CHỨC VỤ & NHÂN VIÊN & TÀI KHOẢN
 CREATE (:ChucVu {maChucVu: 'CV000001', tenChucVu: 'Quản lý'})
@@ -117,13 +116,10 @@ CREATE (:TaiKhoan {taiKhoan: 'nanh', matKhau: 'ULgWDX3gfdVOyT1j7GkpEpjk4gLyXbv5o
 CREATE (:TaiKhoan {taiKhoan: 'vbinh', matKhau: 'vgtlLBfJ+BCiB8fB7QB4ZqBdptY7XwPwMjEJxaVT59ohlbIT3RPWhvO7E6BtjzVj', ngayTaoTK: date(), _maNhanVien: 'NV000007'})
 CREATE (:TaiKhoan {taiKhoan: 'tlan', matKhau: 'yz4Oa/tg0bGbVIyZ9LIdTLtMsqi8wGjmcDHkP0RIBNbg/Jp2z5kf43jK2xj3VdFK', ngayTaoTK: date(), _maNhanVien: 'NV000008'});
 
-WITH 1 as dummy
-MATCH (nv:NhanVien), (cv:ChucVu) WHERE nv._maChucVu = cv.maChucVu MERGE (nv)-[:GIU_CHUC_VU]->(cv);
-WITH 1 as dummy
-MATCH (tk:TaiKhoan), (nv:NhanVien) WHERE tk._maNhanVien = nv.maNhanVien MERGE (nv)-[:CO_TAI_KHOAN]->(tk);
+WITH 1 as dummy MATCH (nv:NhanVien), (cv:ChucVu) WHERE nv._maChucVu = cv.maChucVu MERGE (nv)-[:GIU_CHUC_VU]->(cv);
+WITH 1 as dummy MATCH (tk:TaiKhoan), (nv:NhanVien) WHERE tk._maNhanVien = nv.maNhanVien MERGE (nv)-[:CO_TAI_KHOAN]->(tk);
 
-
-// 5. KHUYẾN MÃI
+// 5. KHUYẾN MÃI (Giữ đủ 7 khuyến mãi như kịch bản gốc)
 CREATE (:KhuyenMai {maKhuyenMai: 'KM000001', tenKhuyenMai: 'Giảm giá khai trương', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-10-10'), ngayKetThuc: date('2025-10-15'), giaTriGiam: 10.0, hienThi: 1})
 CREATE (:KhuyenMai {maKhuyenMai: 'KM000002', tenKhuyenMai: 'Giảm sốc cuối tuần', loaiKhuyenMai: 'Giảm tiền', ngayBatDau: date('2025-10-18'), ngayKetThuc: date('2025-10-20'), giaTriGiam: 50000.0, hienThi: 1})
 CREATE (:KhuyenMai {maKhuyenMai: 'KM000003', tenKhuyenMai: 'Ưu đãi khách hàng mới', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-10-15'), ngayKetThuc: date('2025-10-25'), giaTriGiam: 15.0, hienThi: 1})
@@ -132,8 +128,7 @@ CREATE (:KhuyenMai {maKhuyenMai: 'KM000005', tenKhuyenMai: 'Mua nhiều giảm n
 CREATE (:KhuyenMai {maKhuyenMai: 'KM000010', tenKhuyenMai: 'Giảm giá HSSV', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-09-01'), ngayKetThuc: date('2025-12-31'), giaTriGiam: 10.0, hienThi: 1})
 CREATE (:KhuyenMai {maKhuyenMai: 'KM000019', tenKhuyenMai: 'Ưu đãi VIP Member', loaiKhuyenMai: 'Giảm %', ngayBatDau: date('2025-10-01'), ngayKetThuc: date('2026-03-31'), giaTriGiam: 25.0, hienThi: 1});
 
-
-// 6. KHÁCH HÀNG (Bỏ qua các trường NULL)
+// 6. KHÁCH HÀNG (Giữ đủ 15 khách hàng như kịch bản gốc)
 CREATE (:KhachHang {maKhachHang: 'KH000001', hoTen: 'Nguyễn Văn An', soDienThoai: '0905123456', gioiTinh: true, email: 'nvan.an@gmail.com', diaChi: 'Quận 1, TP.HCM', ngaySinh: date('1990-05-15'), tichDiem: 120, trangThai: 1})
 CREATE (:KhachHang {maKhachHang: 'KH000002', hoTen: 'Trần Thị Bình', soDienThoai: '0912345678', gioiTinh: false, email: 'binh.tran@yahoo.com', diaChi: 'Gò Vấp, TP.HCM', ngaySinh: date('1995-10-20'), tichDiem: 80, trangThai: 1})
 CREATE (:KhachHang {maKhachHang: 'KH000003', hoTen: 'Lê Quốc Cường', soDienThoai: '0987654321', gioiTinh: true, diaChi: 'Tân Bình, TP.HCM', ngaySinh: date('1988-12-12'), tichDiem: 200, trangThai: 1})
@@ -182,15 +177,13 @@ CREATE (:BanAn {maBan: 'MB000028', tenBan: 'Bàn 028', loaiBan: 'Bàn lớn', su
 CREATE (:BanAn {maBan: 'MB000029', tenBan: 'Bàn 029', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'})
 CREATE (:BanAn {maBan: 'MB000030', tenBan: 'Bàn 030', loaiBan: 'Bàn lớn', sucChua: 15, trangThai: 'Bàn đang trống', _maKhu: 'K03'});
 
-WITH 1 as dummy
-MATCH (b:BanAn), (k:Khu) WHERE b._maKhu = k.maKhu MERGE (b)-[:THUOC_KHU]->(k);
-
+WITH 1 as dummy MATCH (b:BanAn), (k:Khu) WHERE b._maKhu = k.maKhu MERGE (b)-[:THUOC_KHU]->(k);
 
 // ===========================================================================
-// PHẦN 3: GIAO DỊCH (HÓA ĐƠN VÀ PHIẾU ĐẶT BÀN)
+// PHẦN 3: GIAO DỊCH (HÓA ĐƠN HOÀN TẤT & ĐANG PHỤC VỤ)
 // ===========================================================================
 
-// 1. TẠO HÓA ĐƠN
+// 1. TẠO HÓA ĐƠN (Giữ đủ 14 hóa đơn của kịch bản gốc)
 CREATE (:HoaDon {maHoaDon: 'HD000001', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT2H'), thue: 0.0, soTienKhachTra: 1000000.0, soTienThoi: 250000.0, _maNhanVien: 'NV000006', _maKhachHang: 'KH000001'})
 CREATE (:HoaDon {maHoaDon: 'HD000002', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT45M'), thue: 0.0, soTienKhachTra: 200000.0, soTienThoi: 35000.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000003'})
 CREATE (:HoaDon {maHoaDon: 'HD000003', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime() - duration('PT90M'), thue: 0.0, soTienKhachTra: 120000.0, soTienThoi: 1000.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000005'})
@@ -206,13 +199,10 @@ CREATE (:HoaDon {maHoaDon: 'HD000023', trangThai: 'Chưa thanh toán', ngayLapHo
 CREATE (:HoaDon {maHoaDon: 'HD000024', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT20M'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, _maNhanVien: 'NV000007', _maKhachHang: 'KH000009'})
 CREATE (:HoaDon {maHoaDon: 'HD000025', trangThai: 'Chưa thanh toán', ngayLapHoaDon: localdatetime() - duration('PT45M'), thue: 0.0, soTienKhachTra: 0.0, soTienThoi: 0.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000003'});
 
-// Nối Hóa đơn với Khách & Nhân viên
-WITH 1 as dummy
-MATCH (hd:HoaDon), (nv:NhanVien) WHERE hd._maNhanVien = nv.maNhanVien MERGE (hd)-[:LAP_BOI]->(nv);
-WITH 1 as dummy
-MATCH (hd:HoaDon), (kh:KhachHang) WHERE hd._maKhachHang = kh.maKhachHang MERGE (hd)-[:CUA_KHACH]->(kh);
-WITH 1 as dummy
-MATCH (hd:HoaDon), (km:KhuyenMai) WHERE hd._maKhuyenMai = km.maKhuyenMai MERGE (hd)-[:AP_DUNG]->(km);
+// Nối Hóa đơn với Nhân viên, Khách hàng & Khuyến mãi (nếu có)
+WITH 1 as dummy MATCH (hd:HoaDon), (nv:NhanVien) WHERE hd._maNhanVien = nv.maNhanVien MERGE (hd)-[:LAP_BOI]->(nv);
+WITH 1 as dummy MATCH (hd:HoaDon), (kh:KhachHang) WHERE hd._maKhachHang = kh.maKhachHang MERGE (hd)-[:CUA_KHACH]->(kh);
+WITH 1 as dummy MATCH (hd:HoaDon), (km:KhuyenMai) WHERE hd._maKhuyenMai = km.maKhuyenMai MERGE (hd)-[:AP_DUNG]->(km);
 
 // Nối Hóa đơn với Bàn (HoaDon_Ban)
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (b:BanAn {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
@@ -226,6 +216,7 @@ WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000008'}), (b:BanAn {maBan: 'MB00
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000014'}), (b:BanAn {maBan: 'MB000001'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000015'}), (b:BanAn {maBan: 'MB000003'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000016'}), (b:BanAn {maBan: 'MB000005'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
+// 3 Hóa đơn chưa thanh toán (tương ứng với Bàn đang phục vụ)
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000023'}), (b:BanAn {maBan: 'MB000002'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000024'}), (b:BanAn {maBan: 'MB000018'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000025'}), (b:BanAn {maBan: 'MB000007'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
@@ -235,21 +226,26 @@ WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (m:Mon {maMon: 'MM0000
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (m:Mon {maMon: 'MM000007'}) MERGE (hd)-[:GOM_MON {soLuong: 1, donGia: 189000.0}]->(m);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000001'}), (m:Mon {maMon: 'MM000053'}) MERGE (hd)-[:GOM_MON {soLuong: 4, donGia: 42000.0}]->(m);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000014'}), (m:Mon {maMon: 'MM000001'}) MERGE (hd)-[:GOM_MON {soLuong: 2, donGia: 99000.0}]->(m);
+// Thêm món cho 3 hóa đơn đang phục vụ để không bị lỗi rỗng
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000023'}), (m:Mon {maMon: 'MM000003'}) MERGE (hd)-[:GOM_MON {soLuong: 2, donGia: 299000.0}]->(m);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000024'}), (m:Mon {maMon: 'MM000007'}) MERGE (hd)-[:GOM_MON {soLuong: 1, donGia: 189000.0}]->(m);
+WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000025'}), (m:Mon {maMon: 'MM000010'}) MERGE (hd)-[:GOM_MON {soLuong: 3, donGia: 159000.0}]->(m);
 
 
-// 2. TẠO PHIẾU ĐẶT BÀN (ĐÃ SỬA LỖI DATETIME BẰNG CÁCH CHỈ ĐỊNH RÕ NĂM-THÁNG-NGÀY-GIỜ)
-CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00001', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 22, minute: 0, second: 0}), trangThai: 'Đã hoàn thành', tienDatCoc: 0.0, ghiChu: 'Khách VIP, chuẩn bị rượu', _maKhachHang: 'KH000002', _maNhanVien: 'NV000008'})
-CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00006', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 22, minute: 0, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 500000.0, ghiChu: 'Khách VIP, chuẩn bị rượu', _maKhachHang: 'KH000002', _maNhanVien: 'NV000008'})
-CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00007', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 22, minute: 0, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 0.0, _maKhachHang: 'KH000004', _maNhanVien: 'NV000006'})
-CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00008', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 23, minute: 0, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 200000.0, _maKhachHang: 'KH000006', _maNhanVien: 'NV000007'})
-CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00010', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 18, minute: 0, second: 0}) + duration('P1D'), trangThai: 'Đang chờ', tienDatCoc: 500000.0, ghiChu: 'Tiệc sinh nhật sếp', _maKhachHang: 'KH000001', _maNhanVien: 'NV000002'});
+// ===========================================================================
+// PHẦN 4: GIAO DỊCH (PHIẾU ĐẶT BÀN & BÀN ĐANG CHỜ)
+// ===========================================================================
 
-// Nối Phiếu đặt bàn
-WITH 1 as dummy
-MATCH (p:PhieuDatBan), (nv:NhanVien) WHERE p._maNhanVien = nv.maNhanVien MERGE (p)-[:LAP_BOI]->(nv);
-WITH 1 as dummy
-MATCH (p:PhieuDatBan), (kh:KhachHang) WHERE p._maKhachHang = kh.maKhachHang MERGE (p)-[:DAT_BOI]->(kh);
+// TẠO PHIẾU ĐẶT BÀN (Fix thời gian về ngày hôm nay để hiển thị đúng trên app)
+CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00001', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 17, minute: 0, second: 0}), trangThai: 'Đã hoàn thành', tienDatCoc: 0.0, ghiChu: 'Khách VIP, chuẩn bị rượu', _maKhachHang: 'KH000002', _maNhanVien: 'NV000008'})
+CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00006', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 19, minute: 0, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 500000.0, ghiChu: 'Khách VIP, chuẩn bị rượu', _maKhachHang: 'KH000002', _maNhanVien: 'NV000008'})
+CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00007', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 20, minute: 0, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 0.0, _maKhachHang: 'KH000004', _maNhanVien: 'NV000006'})
+CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00008', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 21, minute: 0, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 200000.0, _maKhachHang: 'KH000006', _maNhanVien: 'NV000007'})
+CREATE (:PhieuDatBan {maPhieuDatBan: 'PDB00010', thoiGianDat: localdatetime({year: date().year, month: date().month, day: date().day, hour: 18, minute: 30, second: 0}), trangThai: 'Đang chờ', tienDatCoc: 500000.0, ghiChu: 'Tiệc sinh nhật sếp', _maKhachHang: 'KH000001', _maNhanVien: 'NV000002'});
+
+// Nối Phiếu đặt bàn với NV, KH
+WITH 1 as dummy MATCH (p:PhieuDatBan), (nv:NhanVien) WHERE p._maNhanVien = nv.maNhanVien MERGE (p)-[:LAP_BOI]->(nv);
+WITH 1 as dummy MATCH (p:PhieuDatBan), (kh:KhachHang) WHERE p._maKhachHang = kh.maKhachHang MERGE (p)-[:DAT_BOI]->(kh);
 
 // Nối Phiếu đặt bàn với Bàn
 WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00001'}), (b:BanAn {maBan: 'MB000004'}) MERGE (p)-[:GOM_BAN]->(b);
@@ -258,38 +254,38 @@ WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00007'}), (b:BanAn {maB
 WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00008'}), (b:BanAn {maBan: 'MB000015'}) MERGE (p)-[:GOM_BAN]->(b);
 WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00010'}), (b:BanAn {maBan: 'MB000001'}) MERGE (p)-[:GOM_BAN]->(b);
 
-// Chi tiết phiếu đặt bàn
+// Thêm món cho Phiếu đặt chờ (Để tiền bàn không bị âm do lớn hơn tiền cọc)
 WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00001'}), (m:Mon {maMon: 'MM000007'}) MERGE (p)-[:GOM_MON {soLuong: 2, donGia: 189000.0}]->(m);
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00006'}), (m:Mon {maMon: 'MM000007'}) MERGE (p)-[:GOM_MON {soLuong: 2, donGia: 189000.0}]->(m);
-WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00008'}), (m:Mon {maMon: 'MM000020'}) MERGE (p)-[:GOM_MON {soLuong: 2, donGia: 69000.0}]->(m);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00006'}), (m:Mon {maMon: 'MM000007'}) MERGE (p)-[:GOM_MON {soLuong: 3, donGia: 189000.0}]->(m);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00008'}), (m:Mon {maMon: 'MM000020'}) MERGE (p)-[:GOM_MON {soLuong: 4, donGia: 69000.0}]->(m);
+WITH 1 as dummy MATCH (p:PhieuDatBan {maPhieuDatBan: 'PDB00010'}), (m:Mon {maMon: 'MM000003'}) MERGE (p)-[:GOM_MON {soLuong: 2, donGia: 299000.0}]->(m);
 
-
-// 3. TẠO HÓA ĐƠN TỪ PHIẾU ĐẶT BÀN (HD000009)
+// TẠO HÓA ĐƠN TỪ PHIẾU ĐẶT BÀN HOÀN THÀNH (PDB00001 -> HD000009)
 CREATE (:HoaDon {maHoaDon: 'HD000009', trangThai: 'Đã thanh toán', ngayLapHoaDon: localdatetime(), thue: 0.0, soTienKhachTra: 400000.0, soTienThoi: 22000.0, _maNhanVien: 'NV000008', _maKhachHang: 'KH000002', _maPhieuDatBan: 'PDB00001'});
-
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (nv:NhanVien {maNhanVien: 'NV000008'}) MERGE (hd)-[:LAP_BOI]->(nv);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (kh:KhachHang {maKhachHang: 'KH000002'}) MERGE (hd)-[:CUA_KHACH]->(kh);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (pdb:PhieuDatBan {maPhieuDatBan: 'PDB00001'}) MERGE (hd)-[:TU_PHIEU]->(pdb);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (b:BanAn {maBan: 'MB000004'}) MERGE (hd)-[:SU_DUNG_BAN]->(b);
 WITH 1 as dummy MATCH (hd:HoaDon {maHoaDon: 'HD000009'}), (m:Mon {maMon: 'MM000007'}) MERGE (hd)-[:GOM_MON {soLuong: 2, donGia: 189000.0}]->(m);
 
-
-// 4. LỊCH SỬ HỦY ĐẶT BÀN
+// ===========================================================================
+// PHẦN 5: LỊCH SỬ HỦY ĐẶT BÀN
+// ===========================================================================
 CREATE (:LichSuHuyDatBan {maLog: 1, maPhieuDatBan: 'PDB00012', tenBan: 'Bàn 005', tenKhachHang: 'Nguyễn Văn An', sdtKhachHang: '0905123456', tenNhanVien: 'Trần Ngọc Anh', thoiGianHuy: localdatetime() - duration('PT2H'), lyDoHuy: 'Khách bận đột xuất không đến được', _maNhanVien: 'NV000006'})
 CREATE (:LichSuHuyDatBan {maLog: 2, maPhieuDatBan: 'PDB00013', tenBan: 'Bàn 010', tenKhachHang: 'Trần Thị Bình', sdtKhachHang: '0912345678', tenNhanVien: 'Thân Trọng Thắng', thoiGianHuy: localdatetime() - duration('P1D'), lyDoHuy: 'Trời mưa to, khách hủy lịch', _maNhanVien: 'NV000002'})
 CREATE (:LichSuHuyDatBan {maLog: 3, maPhieuDatBan: 'PDB00014', tenBan: 'Bàn 013, Bàn 014', tenKhachHang: 'Lê Quốc Cường', sdtKhachHang: '0987654321', tenNhanVien: 'Nguyễn Văn Bình', thoiGianHuy: localdatetime() - duration('P2D'), lyDoHuy: 'Nhóm bạn dời lịch sang tuần sau', _maNhanVien: 'NV000007'});
 
-WITH 1 as dummy
-MATCH (l:LichSuHuyDatBan), (nv:NhanVien) WHERE l._maNhanVien = nv.maNhanVien MERGE (l)-[:HUY_BOI]->(nv);
+WITH 1 as dummy MATCH (l:LichSuHuyDatBan), (nv:NhanVien) WHERE l._maNhanVien = nv.maNhanVien MERGE (l)-[:HUY_BOI]->(nv);
 
 // ===========================================================================
-// PHẦN 4: CẬP NHẬT TRẠNG THÁI & DỌN DẸP TEMPORARY PROPERTIES
+// PHẦN 6: CẬP NHẬT TRẠNG THÁI BÀN & DỌN DẸP TEMPORARY PROPERTIES
 // ===========================================================================
 
-// Cập nhật trạng thái Bàn theo nghiệp vụ
+// Cập nhật trạng thái Bàn theo nghiệp vụ (HD23, HD24, HD25)
 MATCH (b:BanAn) WHERE b.maBan IN ['MB000002', 'MB000018', 'MB000007'] SET b.trangThai = 'Bàn đang phục vụ';
-MATCH (b:BanAn) WHERE b.maBan IN ['MB000004', 'MB000009', 'MB000015', 'MB000027', 'MB000001'] SET b.trangThai = 'Bàn đang chờ';
 
-// Xóa các thuộc tính tạm thời (_maKhu, _maLoai, v.v.)
-MATCH (n)
-REMOVE n._maTang, n._maKhu, n._maLoai, n._maChucVu, n._maNhanVien, n._maKhachHang, n._maKhuyenMai, n._maPhieuDatBan;
+// Cập nhật trạng thái Bàn theo nghiệp vụ (PDB06, PDB07, PDB08, PDB10)
+MATCH (b:BanAn) WHERE b.maBan IN ['MB000004', 'MB000009', 'MB000015', 'MB000001'] SET b.trangThai = 'Bàn đang chờ';
+
+// Xóa các thuộc tính tạm thời
+MATCH (n) REMOVE n._maTang, n._maKhu, n._maLoai, n._maChucVu, n._maNhanVien, n._maKhachHang, n._maKhuyenMai, n._maPhieuDatBan;
