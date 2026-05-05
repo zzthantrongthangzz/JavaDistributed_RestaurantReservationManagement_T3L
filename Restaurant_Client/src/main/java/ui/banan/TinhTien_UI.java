@@ -121,7 +121,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl1.setBounds(leftX, y, 120, fieldHeight);
 		mainPanel.add(lbl1);
 
-		lblMaHoaDon = new JLabel("HD000001");
+		lblMaHoaDon = new JLabel("Đang tải...");
 		lblMaHoaDon.setForeground(COLOR_TEXT_RED);
 		lblMaHoaDon.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblMaHoaDon.setBounds(leftX + 130, y, 150, fieldHeight);
@@ -147,7 +147,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl3.setBounds(leftX, y, 120, fieldHeight);
 		mainPanel.add(lbl3);
 
-		lblKhachHang = new JLabel("N/A");
+		lblKhachHang = new JLabel("Đang tải...");
 		lblKhachHang.setForeground(COLOR_TEXT_RED);
 		lblKhachHang.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblKhachHang.setBounds(leftX + 130, y, 150, fieldHeight);
@@ -161,7 +161,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl4.setBounds(rightX, y, 120, fieldHeight);
 		mainPanel.add(lbl4);
 
-		lblTenBan = new JLabel("Bàn 001");
+		lblTenBan = new JLabel("Đang tải...");
 		lblTenBan.setForeground(COLOR_TEXT_RED);
 		lblTenBan.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblTenBan.setBounds(rightX + 150, y, 550, fieldHeight);;
@@ -174,7 +174,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl5.setBounds(rightX, y, 140, fieldHeight);
 		mainPanel.add(lbl5);
 
-		lblGioNhanBan = new JLabel("16:45 - 21/10/2025");
+		lblGioNhanBan = new JLabel("Đang tải...");
 		lblGioNhanBan.setForeground(COLOR_TEXT_RED);
 		lblGioNhanBan.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblGioNhanBan.setBounds(rightX + 150, y, 200, fieldHeight);
@@ -187,7 +187,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl6.setBounds(rightX, y, 140, fieldHeight);
 		mainPanel.add(lbl6);
 
-		lblGioThanhToan = new JLabel("19:40 - 21/10/2025");
+		lblGioThanhToan = new JLabel("Đang tải...");
 		lblGioThanhToan.setForeground(COLOR_TEXT_RED);
 		lblGioThanhToan.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblGioThanhToan.setBounds(rightX + 150, y, 200, fieldHeight);
@@ -242,7 +242,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl7.setBounds(leftX, y, 120, fieldHeight);
 		mainPanel.add(lbl7);
 
-		lblDiemTichLuy = new JLabel("xxxx");
+		lblDiemTichLuy = new JLabel("0");
 		lblDiemTichLuy.setForeground(COLOR_TEXT_RED);
 		lblDiemTichLuy.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblDiemTichLuy.setBounds(leftX + 130, y, 100, fieldHeight);
@@ -277,7 +277,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl8.setBounds(leftX, y, 120, fieldHeight);
 		mainPanel.add(lbl8);
 
-		lblGiaTriGiam1 = new JLabel("xxxx");
+		lblGiaTriGiam1 = new JLabel("0 VND");
 		lblGiaTriGiam1.setForeground(COLOR_TEXT_RED);
 		lblGiaTriGiam1.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblGiaTriGiam1.setBounds(leftX + 130, y, 100, fieldHeight);
@@ -393,7 +393,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		lbl13.setBounds(rightX, y, 140, fieldHeight);
 		mainPanel.add(lbl13);
 
-		lblTongThanhToan = new JLabel("");
+		lblTongThanhToan = new JLabel("0 VND");
 		lblTongThanhToan.setForeground(COLOR_TEXT_RED);
 		lblTongThanhToan.setFont(new Font("Segoe UI", Font.BOLD, 16));
 		lblTongThanhToan.setBounds(rightX + 150, y, 150, fieldHeight);
@@ -500,21 +500,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 	}
 
 	private void loadData() {
-		loadMonAnTable();
-
-		try {
-			if (hoaDon != null) {
-				lblMaHoaDon.setText(hoaDon.getMaHoaDon());
-			} else {
-				if (hoaDonDAO != null) {
-					String maHD = hoaDonDAO.sinhMaHoaDonTuDong();
-					lblMaHoaDon.setText(maHD);
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
 		if (nhanVien != null) {
 			lblNhanVien.setText(nhanVien.getHoTen());
 		}
@@ -529,30 +514,8 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 			lblTenBan.setToolTipText(sb.toString());
 		}
 
-		try {
-			if (hoaDon != null && hoaDon.getMaKhachHang() != null && khachHangDAO != null) {
-				List<KhachHang> khList = khachHangDAO.timKiemTheoMa(hoaDon.getMaKhachHang());
-				if (khList != null && !khList.isEmpty()) {
-					khachHang = khList.get(0);
-					lblKhachHang.setText(khachHang.getHoTen());
-					lblDiemTichLuy.setText(String.valueOf(khachHang.getTichDiem()));
-				}
-			} else {
-				lblKhachHang.setText("Khách lẻ");
-				lblDiemTichLuy.setText("0");
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		if (hoaDon != null && hoaDon.getNgayLapHoaDon() != null) {
-			lblGioNhanBan.setText(dateTimeFormatter.format(hoaDon.getNgayLapHoaDon()));
-		} else {
-			lblGioNhanBan.setText(dateTimeFormatter.format(new Date()));
-		}
-		lblGioThanhToan.setText(dateTimeFormatter.format(new Date()));
-
-		calculateTotals();
+		// Gọi loadMonAnTable để thực hiện tải dữ liệu hóa đơn và khách hàng ngầm
+		loadMonAnTable();
 	}
 
 	private void loadMonAnTable() {
@@ -571,6 +534,15 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 
 				if (hoaDon != null) {
 					tienDaCoc = hoaDon.getTienDatCoc() != null ? hoaDon.getTienDatCoc().doubleValue() : 0;
+
+					// ĐÃ SỬA: Lấy Khách hàng ngay trong luồng ngầm sau khi lấy được Hóa đơn
+					if (hoaDon.getMaKhachHang() != null && !hoaDon.getMaKhachHang().trim().isEmpty() && khachHangDAO != null) {
+						List<KhachHang> khList = khachHangDAO.timKiemTheoMa(hoaDon.getMaKhachHang());
+						if (khList != null && !khList.isEmpty()) {
+							khachHang = khList.get(0);
+						}
+					}
+
 					if (chiTietHoaDonDAO != null && monAnDAO != null) {
 						List<ChiTietHoaDon> chiTietList = chiTietHoaDonDAO.getChiTietTheoMaHoaDon(hoaDon.getMaHoaDon());
 						danhSachChiTietThucTe.addAll(chiTietList);
@@ -595,8 +567,38 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 				}
 				return null;
 			}
+
 			@Override
 			protected void done() {
+				// Cập nhật giao diện sau khi luồng ngầm đã load xong dữ liệu
+				try {
+					if (hoaDon != null) {
+						lblMaHoaDon.setText(hoaDon.getMaHoaDon());
+						if (hoaDon.getNgayLapHoaDon() != null) {
+							lblGioNhanBan.setText(dateTimeFormatter.format(hoaDon.getNgayLapHoaDon()));
+						} else {
+							lblGioNhanBan.setText(dateTimeFormatter.format(new Date()));
+						}
+					} else {
+						if (hoaDonDAO != null) {
+							lblMaHoaDon.setText(hoaDonDAO.sinhMaHoaDonTuDong());
+						}
+						lblGioNhanBan.setText(dateTimeFormatter.format(new Date()));
+					}
+
+					if (khachHang != null) {
+						lblKhachHang.setText(khachHang.getHoTen());
+						lblDiemTichLuy.setText(String.valueOf(khachHang.getTichDiem()));
+					} else {
+						lblKhachHang.setText("Khách lẻ");
+						lblDiemTichLuy.setText("0");
+					}
+
+					lblGioThanhToan.setText(dateTimeFormatter.format(new Date()));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
 				calculateTotals();
 			}
 		};
@@ -611,9 +613,20 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		}
 
 		thue = tongCong * 0.1;
-		giamDiemTichLuy = (suDungDiemTichLuy && khachHang != null) ? khachHang.getTichDiem() : 0;
+		double tamTinhTruocDiem = tongCong + thue - giamKhuyenMai - tienDaCoc;
+
+		// ĐÃ SỬA: Khống chế số điểm trừ tối đa không được vượt quá số tiền cần thanh toán
+		if (suDungDiemTichLuy && khachHang != null) {
+			giamDiemTichLuy = khachHang.getTichDiem();
+			if (giamDiemTichLuy > tamTinhTruocDiem) {
+				giamDiemTichLuy = tamTinhTruocDiem;
+			}
+		} else {
+			giamDiemTichLuy = 0;
+		}
 
 		tongThanhToan = tongCong + thue - giamDiemTichLuy - giamKhuyenMai - tienDaCoc;
+		if (tongThanhToan < 0) tongThanhToan = 0; // Đảm bảo an toàn không bị âm
 
 		lblTongCong.setText(currencyFormatter.format(tongCong) + " VND");
 		lblThue.setText(currencyFormatter.format(thue) + " VND");
@@ -699,11 +712,14 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 					if (hoaDonDAO.capNhatHoaDon(hoaDon)) {
 						if (khachHang != null && khachHangDAO != null) {
 							int diemHienCo = khachHang.getTichDiem();
+							// Đã an toàn vì giamDiemTichLuy bị khống chế tối đa bằng tổng hóa đơn
 							int diemSauKhiTru = suDungDiemTichLuy ? Math.max(0, diemHienCo - (int) giamDiemTichLuy) : diemHienCo;
-							int diemThuong = (int) (tongCong * 0.01);
+							int diemThuong = (int) (tongCong * 0.01); // Thưởng 1% trên Tổng cộng
+
 							khachHang.setTichDiem(diemSauKhiTru + diemThuong);
 							khachHangDAO.capNhatKhachHang(khachHang);
 						}
+
 						if (dsBanThanhToan != null && banAnDAO != null) {
 							for (BanAn b : dsBanThanhToan) {
 								b.setTrangThai("Bàn đang trống");
@@ -753,12 +769,10 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		}
 	}
 
-	// ĐÃ SỬA: Hàm gọi xuất PDF truyền đúng 13 tham số chuẩn xác nhất
 	private void inPDFChayNgam(String qrURL) {
 		SwingWorker<Void, Void> printWorker = new SwingWorker<>() {
 			@Override
 			protected Void doInBackground() throws Exception {
-				// Xử lý java.util.Date an toàn
 				java.util.Date gioVaoBan = new java.util.Date();
 				if (hoaDon != null && hoaDon.getNgayLapHoaDon() != null) {
 					gioVaoBan = new java.util.Date(hoaDon.getNgayLapHoaDon().getTime());
@@ -768,7 +782,6 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 				double tongTienGiam = giamDiemTichLuy + giamKhuyenMai;
 				BigDecimal tienGiamBD = BigDecimal.valueOf(tongTienGiam);
 
-				// GỌI HÀM VỚI ĐỦ 13 THAM SỐ CHO TRÌNH BIÊN DỊCH
 				HoaDonPDF.xuatHoaDonPDF(
 						hoaDon,
 						khachHang,
@@ -807,9 +820,7 @@ public class TinhTien_UI extends JDialog implements ActionListener {
 		}
 		String qrURL = taoLinkVietQR(soTien);
 
-		// Chạy in PDF ngầm
 		inPDFChayNgam(qrURL);
-
 		hienThiDialogQR(qrURL);
 	}
 

@@ -177,11 +177,15 @@ public class KhuyenMai_DAO {
 	public int getTongLuotSuDung(java.util.Date tuNgay, java.util.Date denNgay) {
 		if (tuNgay == null || denNgay == null) return 0;
 		String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-				"WHERE hd.maKhuyenMai IS NOT NULL AND hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
+				"WHERE hd.maKhuyenMai IS NOT NULL " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den " +
 				"RETURN count(hd) AS tongSoLuot";
 		try (Session session = DBConnect.getSession()) {
 			Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", denNgay.getTime()));
 			if (result.hasNext()) return result.next().get("tongSoLuot").asInt();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return 0;
 	}
@@ -189,7 +193,9 @@ public class KhuyenMai_DAO {
 	public BigDecimal getTongTienGiam(java.util.Date tuNgay, java.util.Date denNgay) {
 		if (tuNgay == null || denNgay == null) return BigDecimal.ZERO;
 		String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-				"WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den AND hd.maKhuyenMai IS NOT NULL " +
+				"WHERE hd.maKhuyenMai IS NOT NULL " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den " +
 				"MATCH (km:KhuyenMai {maKhuyenMai: hd.maKhuyenMai}) " +
 				"OPTIONAL MATCH (hd)-[c:BAO_GOM]->(m:MonAn) " +
 				"WITH hd, km, sum(c.soLuong * c.donGia) AS tongTienHoaDon " +
@@ -200,6 +206,8 @@ public class KhuyenMai_DAO {
 		try (Session session = DBConnect.getSession()) {
 			Result result = session.run(cypher, Values.parameters("tu", tuNgay.getTime(), "den", denNgay.getTime()));
 			if (result.hasNext()) return BigDecimal.valueOf(result.next().get("TongTienGiam").asDouble());
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return BigDecimal.ZERO;
 	}
@@ -209,10 +217,12 @@ public class KhuyenMai_DAO {
 		if (tuNgay == null || denNgay == null) return map;
 
 		String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-				"WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den AND hd.maKhuyenMai IS NOT NULL " +
+				"WHERE hd.maKhuyenMai IS NOT NULL " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den " +
 				"MATCH (km:KhuyenMai {maKhuyenMai: hd.maKhuyenMai}) " +
 				"OPTIONAL MATCH (hd)-[c:BAO_GOM]->(m:MonAn) " +
-				"WITH date(datetime({epochMillis: hd.ngayLapHoaDon})) AS ngay, hd, km, sum(c.soLuong * c.donGia) AS tongTienHoaDon " +
+				"WITH date(datetime(hd.ngayLapHoaDon + '+07:00')) AS ngay, hd, km, sum(c.soLuong * c.donGia) AS tongTienHoaDon " +
 				"RETURN ngay, SUM(CASE " +
 				"   WHEN km.loaiKhuyenMai = 'Giảm tiền' THEN km.giaTriGiam " +
 				"   WHEN km.loaiKhuyenMai = 'Giảm %' THEN coalesce(tongTienHoaDon, 0) * (km.giaTriGiam / 100.0) " +
@@ -224,6 +234,8 @@ public class KhuyenMai_DAO {
 				java.time.LocalDate localDate = r.get("ngay").asLocalDate();
 				map.put(java.sql.Date.valueOf(localDate), BigDecimal.valueOf(r.get("TienGiamTrongNgay").asDouble()));
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return map;
 	}
@@ -247,7 +259,9 @@ public class KhuyenMai_DAO {
 			}
 		}
 
-		if (sapXep != null) {
+		cypher.append("RETURN km.maKhuyenMai AS maKhuyenMai, km.tenKhuyenMai AS tenKhuyenMai, km.loaiKhuyenMai AS loaiKhuyenMai, km.ngayBatDau AS ngayBatDau, km.ngayKetThuc AS ngayKetThuc, km.giaTriGiam AS giaTriGiam, km.hienThi AS hienThi ");
+
+		if (sapXep != null && !sapXep.isEmpty()) {
 			switch (sapXep) {
 				case "Tên A-Z": cypher.append("ORDER BY km.tenKhuyenMai ASC"); break;
 				case "Tên Z-A": cypher.append("ORDER BY km.tenKhuyenMai DESC"); break;
@@ -256,14 +270,11 @@ public class KhuyenMai_DAO {
 			}
 		}
 
-		String finalCypher = cypher.toString().replace("MATCH (km:KhuyenMai) WHERE km.hienThi = 1 ORDER", "MATCH (km:KhuyenMai) WHERE km.hienThi = 1 RETURN km.maKhuyenMai AS maKhuyenMai, km.tenKhuyenMai AS tenKhuyenMai, km.loaiKhuyenMai AS loaiKhuyenMai, km.ngayBatDau AS ngayBatDau, km.ngayKetThuc AS ngayKetThuc, km.giaTriGiam AS giaTriGiam, km.hienThi AS hienThi ORDER");
-		if(!finalCypher.contains("RETURN")) {
-			finalCypher += " RETURN km.maKhuyenMai AS maKhuyenMai, km.tenKhuyenMai AS tenKhuyenMai, km.loaiKhuyenMai AS loaiKhuyenMai, km.ngayBatDau AS ngayBatDau, km.ngayKetThuc AS ngayKetThuc, km.giaTriGiam AS giaTriGiam, km.hienThi AS hienThi";
-		}
-
 		try (Session session = DBConnect.getSession()) {
-			Result result = session.run(finalCypher);
+			Result result = session.run(cypher.toString());
 			while (result.hasNext()) list.add(mapKhuyenMai(result.next()));
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return list;
 	}
@@ -273,7 +284,9 @@ public class KhuyenMai_DAO {
 		if (tuNgay == null || denNgay == null) return list;
 
 		String cypher = "MATCH (hd:HoaDon {trangThai: 'Đã thanh toán'}) " +
-				"WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den AND hd.maKhuyenMai IS NOT NULL " +
+				"WHERE hd.maKhuyenMai IS NOT NULL " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu " +
+				"AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den " +
 				"MATCH (km:KhuyenMai {maKhuyenMai: hd.maKhuyenMai}) " +
 				"OPTIONAL MATCH (hd)-[c:BAO_GOM]->(m:MonAn) " +
 				"WITH km, count(hd) AS SoLuot, sum(c.soLuong * c.donGia) AS tongTienHoaDon " +
@@ -295,6 +308,8 @@ public class KhuyenMai_DAO {
 						new Date(r.get("ketThuc").asLong())
 				));
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return list;
 	}
