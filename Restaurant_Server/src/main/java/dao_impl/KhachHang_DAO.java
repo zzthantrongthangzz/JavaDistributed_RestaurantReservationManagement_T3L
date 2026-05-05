@@ -243,13 +243,14 @@ public class KhachHang_DAO {
         return 0;
     }
 
+    // Đã thay đổi cách tìm Khách Hàng thông qua Relationship [:CUA_KHACH]
     public int getTongSoKhachHang(Date tu, Date den) {
         if (tu == null || den == null) return getTongSoKhachHang();
 
-        String cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
-                "WITH DISTINCT hd.maKhachHang AS maKH " +
-                "MATCH (kh:KhachHang {maKhachHang: maKH, trangThai: 1}) " +
-                "RETURN count(kh) AS tong";
+        String cypher = "MATCH (hd:HoaDon) " +
+                "WHERE datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den " +
+                "MATCH (hd)-[:CUA_KHACH]->(kh:KhachHang {trangThai: 1}) " +
+                "RETURN count(DISTINCT kh) AS tong";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("tu", tu.getTime(), "den", den.getTime()));
             if (result.hasNext()) return result.next().get("tong").asInt();
@@ -257,6 +258,7 @@ public class KhachHang_DAO {
         return 0;
     }
 
+    // Đã thay đổi cách tìm Khách Hàng thông qua Relationship [:CUA_KHACH]
     public int getTongDiemTichLuy(Date tu, Date den) {
         String cypher;
         if (tu == null || den == null) {
@@ -266,9 +268,10 @@ public class KhachHang_DAO {
                 if (result.hasNext()) return result.next().get("tong").asInt();
             }
         } else {
-            cypher = "MATCH (hd:HoaDon) WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den " +
-                    "WITH DISTINCT hd.maKhachHang AS maKH " +
-                    "MATCH (kh:KhachHang {maKhachHang: maKH, trangThai: 1}) " +
+            cypher = "MATCH (hd:HoaDon) " +
+                    "WHERE datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den " +
+                    "MATCH (hd)-[:CUA_KHACH]->(kh:KhachHang {trangThai: 1}) " +
+                    "WITH DISTINCT kh " +
                     "RETURN sum(kh.tichDiem) AS tong";
             try (Session session = DBConnect.getSession()) {
                 Result result = session.run(cypher, Values.parameters("tu", tu.getTime(), "den", den.getTime()));
@@ -292,17 +295,19 @@ public class KhachHang_DAO {
         return data;
     }
 
+    // Đã ánh xạ đúng Node Mon và Relationship GOM_MON theo CSDL thực tế
     public BigDecimal getTongChiTieuTatCaKhachHang(Date tu, Date den) {
         BigDecimal tong = BigDecimal.ZERO;
         StringBuilder cypher = new StringBuilder(
-                "MATCH (kh:KhachHang {trangThai: 1}) " +
-                        "MATCH (hd:HoaDon {maKhachHang: kh.maKhachHang, trangThai: 'Đã thanh toán'}) " +
-                        "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) "
+                "MATCH (hd:HoaDon) " +
+                        "WHERE (toLower(hd.trangThai) CONTAINS 'thanh' OR hd.trangThai = 'Đã thanh toán') "
         );
         if (tu != null && den != null) {
-            cypher.append("WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
+            cypher.append("AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den ");
         }
-        cypher.append("RETURN sum(ct.soLuong * ct.donGia) AS tongChiTieu");
+        cypher.append("MATCH (hd)-[:CUA_KHACH]->(kh:KhachHang {trangThai: 1}) " +
+                "OPTIONAL MATCH (hd)-[rel:GOM_MON]->(m:Mon) " +
+                "RETURN sum(coalesce(rel.soLuong, 0) * coalesce(rel.donGia, 0)) AS tongChiTieu");
 
         try (Session session = DBConnect.getSession()) {
             Result result;
@@ -312,18 +317,26 @@ public class KhachHang_DAO {
                 result = session.run(cypher.toString());
             }
             if (result.hasNext()) {
-                tong = BigDecimal.valueOf(result.next().get("tongChiTieu").asDouble());
+                Object tongValue = result.next().get("tongChiTieu").asObject();
+                if (tongValue != null) {
+                    tong = BigDecimal.valueOf(Double.parseDouble(tongValue.toString()));
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return tong;
     }
 
+    // Đã ánh xạ đúng Node Mon và Relationship GOM_MON theo CSDL thực tế
     public Map<String, BigDecimal> getTopKhachHangTheoChiTieu(int topN) {
         Map<String, BigDecimal> data = new LinkedHashMap<>();
-        String cypher = "MATCH (kh:KhachHang {trangThai: 1}) " +
-                "MATCH (hd:HoaDon {maKhachHang: kh.maKhachHang, trangThai: 'Đã thanh toán'}) " +
-                "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) " +
-                "RETURN kh.hoTen AS hoTen, sum(ct.soLuong * ct.donGia) AS TongChiTieu " +
+        String cypher = "MATCH (hd:HoaDon) " +
+                "WHERE (toLower(hd.trangThai) CONTAINS 'thanh' OR hd.trangThai = 'Đã thanh toán') " +
+                "MATCH (hd)-[:CUA_KHACH]->(kh:KhachHang {trangThai: 1}) " +
+                "OPTIONAL MATCH (hd)-[rel:GOM_MON]->(m:Mon) " +
+                "WITH kh, sum(coalesce(rel.soLuong, 0) * coalesce(rel.donGia, 0)) AS TongChiTieu " +
+                "RETURN kh.hoTen AS hoTen, TongChiTieu " +
                 "ORDER BY TongChiTieu DESC LIMIT $top";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("top", topN));
@@ -331,40 +344,54 @@ public class KhachHang_DAO {
                 Record r = result.next();
                 data.put(r.get("hoTen").asString(), BigDecimal.valueOf(r.get("TongChiTieu").asDouble()));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return data;
     }
 
+    // Đã ánh xạ đúng Node Mon và Relationship GOM_MON theo CSDL thực tế
     public List<dto.ThongKeKhachHangDTO> getTopKhachHangDayDu(int topN, Date tu, Date den) {
         List<dto.ThongKeKhachHangDTO> list = new ArrayList<>();
         StringBuilder cypher = new StringBuilder(
-                "MATCH (kh:KhachHang {trangThai: 1}) " +
-                        "MATCH (hd:HoaDon {maKhachHang: kh.maKhachHang, trangThai: 'Đã thanh toán'}) " +
-                        "MATCH (ct:ChiTietHoaDon {maHoaDon: hd.maHoaDon}) "
+                "MATCH (hd:HoaDon) " +
+                        "WHERE (toLower(hd.trangThai) CONTAINS 'thanh' OR hd.trangThai = 'Đã thanh toán') "
         );
         if (tu != null && den != null) {
-            cypher.append("WHERE hd.ngayLapHoaDon >= $tu AND hd.ngayLapHoaDon <= $den ");
+            cypher.append("AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis >= $tu AND datetime(hd.ngayLapHoaDon + '+07:00').epochMillis <= $den ");
         }
-        cypher.append("RETURN kh.hoTen AS hoTen, sum(ct.soLuong * ct.donGia) AS TongChiTieu, kh.tichDiem AS tichDiem " +
+        cypher.append("MATCH (hd)-[:CUA_KHACH]->(kh:KhachHang {trangThai: 1}) " +
+                "OPTIONAL MATCH (hd)-[rel:GOM_MON]->(m:Mon) " +
+                "WITH kh, count(DISTINCT hd) AS soLuotMua, sum(coalesce(rel.soLuong, 0) * coalesce(rel.donGia, 0)) AS TongChiTieu " +
+                "RETURN kh.maKhachHang AS maKH, kh.hoTen AS hoTen, kh.soDienThoai AS sdt, TongChiTieu, soLuotMua, kh.tichDiem AS tichDiem " +
                 "ORDER BY TongChiTieu DESC LIMIT $top");
 
         try (Session session = DBConnect.getSession()) {
             Result result;
             if (tu != null && den != null) {
                 java.util.Calendar c = java.util.Calendar.getInstance();
-                c.setTime(den); c.set(java.util.Calendar.HOUR_OF_DAY, 23); c.set(java.util.Calendar.MINUTE, 59); c.set(java.util.Calendar.SECOND, 59);
+                c.setTime(den);
+                c.set(java.util.Calendar.HOUR_OF_DAY, 23);
+                c.set(java.util.Calendar.MINUTE, 59);
+                c.set(java.util.Calendar.SECOND, 59);
                 result = session.run(cypher.toString(), Values.parameters("tu", tu.getTime(), "den", c.getTimeInMillis(), "top", topN));
             } else {
                 result = session.run(cypher.toString(), Values.parameters("top", topN));
             }
             while (result.hasNext()) {
                 Record r = result.next();
+                double tongChiTieu = r.get("TongChiTieu").isNull() ? 0 : r.get("TongChiTieu").asDouble();
                 list.add(new dto.ThongKeKhachHangDTO(
+                        r.get("maKH").asString(),
                         r.get("hoTen").asString(),
-                        BigDecimal.valueOf(r.get("TongChiTieu").asDouble()),
+                        r.get("sdt").asString(),
+                        BigDecimal.valueOf(tongChiTieu),
+                        r.get("soLuotMua").asInt(), // Vẫn giữ biến này để DTO không bị báo lỗi thiếu biến (Bao Lưu)
                         r.get("tichDiem").asInt()
                 ));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return list;
     }

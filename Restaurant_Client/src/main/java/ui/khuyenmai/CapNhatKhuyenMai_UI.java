@@ -861,7 +861,7 @@ public class CapNhatKhuyenMai_UI extends JPanel {
             @Override
             protected void done() {
                 try {
-                    List<KhuyenMai> dsHetHan = get();
+                    List<KhuyenMai> dsHetHan = get(); // Nếu có lỗi ở Server, nó sẽ ném ra Exception ở dòng này
                     if (dsHetHan.isEmpty()) {
                         dialog.dispose();
                         JOptionPane.showMessageDialog(CapNhatKhuyenMai_UI.this, "Không có khuyến mãi nào hết hạn!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
@@ -877,7 +877,13 @@ public class CapNhatKhuyenMai_UI extends JPanel {
                                 dateFormat.format(km.getNgayKetThuc())
                         });
                     }
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    e.printStackTrace(); // In ra console để bạn dễ debug
+                    dialog.dispose();
+                    JOptionPane.showMessageDialog(CapNhatKhuyenMai_UI.this,
+                            "Có lỗi xảy ra khi lấy dữ liệu từ DB: " + e.getMessage(),
+                            "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
+                }
             }
         };
         worker.execute();

@@ -24,9 +24,6 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.BarRenderer;
-import org.jfree.chart.plot.PiePlot;
-import org.jfree.chart.labels.StandardPieSectionLabelGenerator;
-import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 
 import java.awt.*;
@@ -63,7 +60,7 @@ public class ThongKeKhachHang_UI extends JPanel {
     private JDateChooser dcTuNgay, dcDenNgay;
     private JTable tblThongKe;
     private DefaultTableModel modelThongKe;
-    private ChartPanel chartPanelTron, chartPanelCot;
+    private ChartPanel chartPanelCot;
     private JPanel panelBieuDoContainer;
     private JLabel lblTongSoKhach, lblTongChiTieu, lblTongDiemTichLuy;
     private JButton btnHomNay, btnTuanNay, btnThangNay, btnNamNay, btnXuatExcel;
@@ -152,14 +149,10 @@ public class ThongKeKhachHang_UI extends JPanel {
 
         wrapperTab1.add(panelKPI, BorderLayout.NORTH);
 
-        panelBieuDoContainer = new JPanel(new GridLayout(1, 2, 20, 0));
+        // Đã sửa lại Layout thành GridLayout(1, 1) để biểu đồ cột full màn hình
+        panelBieuDoContainer = new JPanel(new GridLayout(1, 1, 20, 0));
         panelBieuDoContainer.setBackground(MAU_NEN_TAB);
         panelBieuDoContainer.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        chartPanelTron = new ChartPanel(null);
-        chartPanelTron.setOpaque(false);
-        chartPanelTron.setBackground(MAU_NEN_TAB);
-        panelBieuDoContainer.add(chartPanelTron);
 
         chartPanelCot = new ChartPanel(null);
         chartPanelCot.setOpaque(false);
@@ -172,7 +165,8 @@ public class ThongKeKhachHang_UI extends JPanel {
         JPanel panelBang = new JPanel(new BorderLayout());
         panelBang.setOpaque(false);
 
-        String[] headers = {"STT", "Mã KH", "Họ Tên", "Số Điện Thoại", "Tổng chi tiêu", "Lượt mua", "Điểm tích lũy"};
+        // Đã bỏ cột "Lượt mua"
+        String[] headers = {"STT", "Mã KH", "Họ Tên Khách Hàng", "Số Điện Thoại", "Tổng chi tiêu", "Điểm tích lũy"};
         modelThongKe = new DefaultTableModel(headers, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -335,11 +329,10 @@ public class ThongKeKhachHang_UI extends JPanel {
         TableColumnModel columnModel = table.getColumnModel();
         columnModel.getColumn(0).setPreferredWidth(50);
         columnModel.getColumn(1).setPreferredWidth(100);
-        columnModel.getColumn(2).setPreferredWidth(200);
+        columnModel.getColumn(2).setPreferredWidth(250);
         columnModel.getColumn(3).setPreferredWidth(150);
         columnModel.getColumn(4).setPreferredWidth(150);
         columnModel.getColumn(5).setPreferredWidth(100);
-        columnModel.getColumn(6).setPreferredWidth(100);
     }
 
     private void tuyChinhScrollBar(JScrollPane scrollPane) {
@@ -365,12 +358,11 @@ public class ThongKeKhachHang_UI extends JPanel {
                 int tongKhach = khachHangService.getTongSoKhachHang(tuNgay, denNgay);
                 BigDecimal tongChi = khachHangService.getTongChiTieuTatCaKhachHang(tuNgay, denNgay);
                 int tongDiem = khachHangService.getTongDiemTichLuy(tuNgay, denNgay);
-                Map<String, Integer> gioiTinh = khachHangService.getSoLuongKhachHangTheoGioiTinh();
 
                 List<ThongKeKhachHangDTO> dsDayDu = khachHangService.getTopKhachHangDayDu(100, tuNgay, denNgay);
                 if (dsDayDu == null) dsDayDu = new ArrayList<>();
 
-                return new Object[]{tongKhach, tongChi, tongDiem, gioiTinh, dsDayDu};
+                return new Object[]{tongKhach, tongChi, tongDiem, dsDayDu};
             }
 
             @Override
@@ -381,14 +373,12 @@ public class ThongKeKhachHang_UI extends JPanel {
                     int tongKhach = (Integer) result[0];
                     BigDecimal tongChi = (BigDecimal) result[1];
                     int tongDiem = (Integer) result[2];
-                    Map<String, Integer> gioiTinh = (Map<String, Integer>) result[3];
-                    danhSachThongKeDayDu = (List<ThongKeKhachHangDTO>) result[4];
+                    danhSachThongKeDayDu = (List<ThongKeKhachHangDTO>) result[3];
 
                     lblTongSoKhach.setText(numberFormat.format(tongKhach));
-                    lblTongChiTieu.setText(currencyFormat.format(tongChi));
+                    lblTongChiTieu.setText(currencyFormat.format(tongChi != null ? tongChi.doubleValue() : 0));
                     lblTongDiemTichLuy.setText(numberFormat.format(tongDiem));
 
-                    capNhatBieuDoTron(gioiTinh);
                     capNhatBang(danhSachThongKeDayDu);
 
                     List<ThongKeKhachHangDTO> dsTop10 = danhSachThongKeDayDu.stream().limit(10).collect(Collectors.toList());
@@ -399,41 +389,14 @@ public class ThongKeKhachHang_UI extends JPanel {
         worker.execute();
     }
 
-    private void capNhatBieuDoTron(Map<String, Integer> data) {
-        DefaultPieDataset dataset = new DefaultPieDataset();
-        if (data != null && !data.isEmpty()) {
-            for (Map.Entry<String, Integer> entry : data.entrySet()) {
-                dataset.setValue(entry.getKey(), entry.getValue());
-            }
-        }
-
-        JFreeChart pieChart = ChartFactory.createPieChart(
-                "Tỷ Lệ Khách Hàng Theo Giới Tính",
-                dataset, true, true, false
-        );
-        pieChart.setBackgroundPaint(MAU_NEN_TAB);
-        pieChart.getTitle().setPaint(MAU_CHU_CHUNG);
-        pieChart.getLegend().setBackgroundPaint(MAU_NEN_TAB);
-        pieChart.getLegend().setItemPaint(MAU_CHU_CHUNG);
-
-        PiePlot plot = (PiePlot) pieChart.getPlot();
-        plot.setBackgroundPaint(MAU_NEN_INPUT);
-        plot.setOutlineVisible(false);
-        plot.setSectionPaint("Nam", MAU_XANH_LAM);
-        plot.setSectionPaint("Nữ", MAU_TIM);
-        plot.setLabelGenerator(new StandardPieSectionLabelGenerator("{0}: {1} ({2})"));
-        plot.setLabelBackgroundPaint(new Color(220, 220, 220));
-
-        chartPanelTron.setChart(pieChart);
-    }
-
     private void capNhatBieuDoCot(List<ThongKeKhachHangDTO> data) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         if (data != null && !data.isEmpty()) {
             for (ThongKeKhachHangDTO dto : data) {
                 String tenKH = dto.getHoTen();
                 BigDecimal chiTieu = dto.getTongChiTieu();
-                dataset.addValue(chiTieu, "Chi tiêu", tenKH);
+                double chiTieuDouble = (chiTieu != null) ? chiTieu.doubleValue() : 0;
+                dataset.addValue(chiTieuDouble, "Chi tiêu", tenKH);
             }
         }
 
@@ -474,8 +437,10 @@ public class ThongKeKhachHang_UI extends JPanel {
         for (ThongKeKhachHangDTO dto : list) {
             modelThongKe.addRow(new Object[]{
                     stt++,
+                    dto.getMaKhachHang(),
                     dto.getHoTen(),
-                    currencyFormat.format(dto.getTongChiTieu()),
+                    dto.getSoDienThoai(),
+                    currencyFormat.format(dto.getTongChiTieu() != null ? dto.getTongChiTieu().doubleValue() : 0),
                     numberFormat.format(dto.getTichDiem())
             });
         }
@@ -533,7 +498,7 @@ public class ThongKeKhachHang_UI extends JPanel {
                 Cell cellTitle = rowTitle.createCell(0);
                 cellTitle.setCellValue("BÁO CÁO THỐNG KÊ KHÁCH HÀNG");
                 cellTitle.setCellStyle(titleStyle);
-                sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 6));
+                sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 5));
 
                 Row rowTime = sheet.createRow(1);
                 Cell cellTime = rowTime.createCell(0);
@@ -545,7 +510,7 @@ public class ThongKeKhachHang_UI extends JPanel {
 
                 cellTime.setCellValue(timeString);
                 cellTime.setCellStyle(timeStyle);
-                sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 6));
+                sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 5));
 
                 int startRow = 3;
                 Row rowHeader = sheet.createRow(startRow);

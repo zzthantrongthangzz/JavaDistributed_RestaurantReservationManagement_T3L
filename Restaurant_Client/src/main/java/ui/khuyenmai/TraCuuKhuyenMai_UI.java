@@ -477,7 +477,11 @@ public class TraCuuKhuyenMai_UI extends JPanel {
                     if (ketQua.isEmpty()) {
                         JOptionPane.showMessageDialog(TraCuuKhuyenMai_UI.this, "Không tìm thấy khuyến mãi phù hợp.", "Kết quả tìm kiếm", JOptionPane.INFORMATION_MESSAGE);
                     }
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(TraCuuKhuyenMai_UI.this,
+                            "Đã xảy ra lỗi khi lấy dữ liệu: " + e.getMessage(),
+                            "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
+                }
                 panelChinh.requestFocusInWindow();
             }
         };
