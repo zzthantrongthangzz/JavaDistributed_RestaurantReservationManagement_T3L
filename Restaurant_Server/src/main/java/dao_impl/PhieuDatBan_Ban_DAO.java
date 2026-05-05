@@ -15,7 +15,7 @@ public class PhieuDatBan_Ban_DAO {
     public List<BanAn> getDanhSachBanTheoPhieu(String maPhieu) {
         List<BanAn> list = new ArrayList<>();
         // SỬA LỖI: Thêm OPTIONAL MATCH để truy xuất đến node Khu lấy maKhu
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[:DAT_BAN]->(b:BanAn) " +
+        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[:GOM_BAN]->(b:BanAn) " +
                 "OPTIONAL MATCH (b)-[:THUOC_KHU]->(k:Khu) " +
                 "RETURN b.maBan AS maBan, b.tenBan AS tenBan, b.loaiBan AS loaiBan, " +
                 "b.sucChua AS sucChua, b.trangThai AS trangThai, k.maKhu AS maKhu";
@@ -61,7 +61,7 @@ public class PhieuDatBan_Ban_DAO {
 
     public boolean themPhieuDatBan_Ban(String maPhieu, String maBan) {
         String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu}), (b:BanAn {maBan: $maBan}) " +
-                "MERGE (p)-[:DAT_BAN]->(b)";
+                "MERGE (p)-[:GOM_BAN]->(b)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maPhieu", maPhieu, "maBan", maBan));
             return true;
@@ -69,7 +69,7 @@ public class PhieuDatBan_Ban_DAO {
     }
 
     public int demSoBanCuaPhieu(String maPhieu) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[:DAT_BAN]->(b:BanAn) RETURN count(b) AS soLuong";
+        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[:GOM_BAN]->(b:BanAn) RETURN count(b) AS soLuong";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maPhieu", maPhieu));
             if (result.hasNext()) return result.next().get("soLuong").asInt();
@@ -78,7 +78,7 @@ public class PhieuDatBan_Ban_DAO {
     }
 
     public boolean xoaBanKhoiPhieu(String maPhieu, String maBan) {
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[r:DAT_BAN]->(b:BanAn {maBan: $maBan}) DELETE r";
+        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu})-[r:GOM_BAN]->(b:BanAn {maBan: $maBan}) DELETE r";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maPhieu", maPhieu, "maBan", maBan));
             return true;

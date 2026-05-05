@@ -52,7 +52,7 @@ public class PhieuDatBan_DAO {
         long start = atStartOfDay(ngayCanXem).getTime();
         long end = atEndOfDay(ngayCanXem).getTime();
 
-        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:DAT_BAN]->(b:BanAn), " +
+        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:GOM_BAN]->(b:BanAn), " +
                 "(k:KhachHang {maKhachHang: p.maKhachHang}) " +
                 "WHERE p.thoiGianDat >= $start AND p.thoiGianDat <= $end " +
                 "RETURN b.maBan AS maBan, k.hoTen AS hoTen";
@@ -95,7 +95,7 @@ public class PhieuDatBan_DAO {
 
     public boolean themPhieuDatBan_Ban(PhieuDatBan_Ban phieuBan) {
         String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $maPhieu}), (b:BanAn {maBan: $maBan}) " +
-                "MERGE (p)-[:DAT_BAN]->(b)";
+                "MERGE (p)-[:GOM_BAN]->(b)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maPhieu", phieuBan.getMaPhieuDatBan(), "maBan", phieuBan.getMaBan()));
             return true;
@@ -107,7 +107,7 @@ public class PhieuDatBan_DAO {
         long start = atStartOfDay(ngayCanXem).getTime();
         long end = atEndOfDay(ngayCanXem).getTime();
 
-        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:DAT_BAN]->(b:BanAn) " +
+        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:GOM_BAN]->(b:BanAn) " +
                 "WHERE p.thoiGianDat >= $start AND p.thoiGianDat <= $end RETURN b.maBan AS maBan";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("start", start, "end", end));
@@ -119,7 +119,7 @@ public class PhieuDatBan_DAO {
     public boolean huyDatBan(String maBan, java.util.Date ngayDat) {
         long start = atStartOfDay(ngayDat).getTime();
         long end = atEndOfDay(ngayDat).getTime();
-        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:DAT_BAN]->(b:BanAn {maBan: $maBan}) " +
+        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:GOM_BAN]->(b:BanAn {maBan: $maBan}) " +
                 "WHERE p.thoiGianDat >= $start AND p.thoiGianDat <= $end " +
                 "SET p.trangThai = 'Đã hủy'";
         try (Session session = DBConnect.getSession()) {
@@ -131,9 +131,9 @@ public class PhieuDatBan_DAO {
     public boolean chuyenBanDatTruoc(String maBanCu, String maBanMoi, java.util.Date ngayDat) {
         long start = atStartOfDay(ngayDat).getTime();
         long end = atEndOfDay(ngayDat).getTime();
-        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[r:DAT_BAN]->(bCu:BanAn {maBan: $maBanCu}) " +
+        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[r:GOM_BAN]->(bCu:BanAn {maBan: $maBanCu}) " +
                 "WHERE p.thoiGianDat >= $start AND p.thoiGianDat <= $end " +
-                "DELETE r WITH p MATCH (bMoi:BanAn {maBan: $maBanMoi}) MERGE (p)-[:DAT_BAN]->(bMoi)";
+                "DELETE r WITH p MATCH (bMoi:BanAn {maBan: $maBanMoi}) MERGE (p)-[:GOM_BAN]->(bMoi)";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("maBanCu", maBanCu, "maBanMoi", maBanMoi, "start", start, "end", end));
             return true;
@@ -159,7 +159,7 @@ public class PhieuDatBan_DAO {
     public String timMaPhieuDatDangChoTheoBan(String maBan, java.util.Date ngayDat) {
         long start = atStartOfDay(ngayDat).getTime();
         long end = atEndOfDay(ngayDat).getTime();
-        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:DAT_BAN]->(b:BanAn {maBan: $maBan}) " +
+        String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:GOM_BAN]->(b:BanAn {maBan: $maBan}) " +
                 "WHERE p.thoiGianDat >= $start AND p.thoiGianDat <= $end RETURN p.maPhieuDatBan AS maPhieu";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("maBan", maBan, "start", start, "end", end));
@@ -186,7 +186,7 @@ public class PhieuDatBan_DAO {
 
     public List<String> layDanhSachMaBanTheoPhieuDat(String maPhieu) {
         List<String> ds = new ArrayList<>();
-        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $ma})-[:DAT_BAN]->(b:BanAn) RETURN b.maBan AS maBan";
+        String cypher = "MATCH (p:PhieuDatBan {maPhieuDatBan: $ma})-[:GOM_BAN]->(b:BanAn) RETURN b.maBan AS maBan";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("ma", maPhieu));
             while (result.hasNext()) ds.add(result.next().get("maBan").asString());
@@ -198,7 +198,7 @@ public class PhieuDatBan_DAO {
         long timeThreshold = System.currentTimeMillis() - ((long) phutTreChoPhep * 60 * 1000);
         String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'}) " +
                 "WHERE p.thoiGianDat < $threshold " +
-                "OPTIONAL MATCH (p)-[:DAT_BAN]->(b:BanAn) " +
+                "OPTIONAL MATCH (p)-[:GOM_BAN]->(b:BanAn) " +
                 "SET p.trangThai = 'Đã hủy', b.trangThai = 'Bàn đang trống' " +
                 "RETURN count(DISTINCT p) AS soPhieuBiHuy";
         try (Session session = DBConnect.getSession()) {
