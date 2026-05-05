@@ -1022,67 +1022,100 @@ public class QuanLyDatBan_UI extends JPanel {
 		}
 	}
 
-	private void tuDongQuetTrangThai() {
-		try {
+//	private void tuDongQuetTrangThai() {
+//		try {
+//			phieuDatBanDAO.huyPhieuDatQuaGio(30);
+//
+//			List<BanAn> duLieuMoiDB = banAn_DAO.docDanhSachBan();
+//
+//			Date ngayChon = dateChooserLocNgay.getDate();
+//			if (ngayChon == null) ngayChon = new Date();
+//			java.util.Map<String, String> mapDatTruoc = phieuDatBanDAO.layThongTinBanDatVaTenKhach(ngayChon);
+//
+//			Date homNay = new Date();
+//			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+//			boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
+//			boolean isTuongLai = ngayChon.after(homNay) && !isHomNay;
+//			boolean isQuasKhu = ngayChon.before(homNay) && !isHomNay;
+//
+//			List<BanAn> listMoiToanBo = new ArrayList<>();
+//
+//			for (BanAn banMoi : duLieuMoiDB) {
+//				String trangThaiGoc = banMoi.getTrangThai();
+//				banMoi.setTenKhachHang("");
+//
+//				if (isTuongLai || isQuasKhu) {
+//					banMoi.setTrangThai("Bàn đang trống");
+//					if (mapDatTruoc.containsKey(banMoi.getMaBan())) {
+//						banMoi.setTrangThai("Bàn đang chờ");
+//						banMoi.setTenKhachHang(mapDatTruoc.get(banMoi.getMaBan()));
+//					}
+//				} else {
+//					if (trangThaiGoc.equals("Bàn đang phục vụ")) {
+//						String tenKhach = hoaDon_DAO.getTenKhachHangTheoBan(banMoi.getMaBan());
+//						banMoi.setTenKhachHang(tenKhach != null && !tenKhach.isEmpty() ? tenKhach : "Khách lẻ");
+//					} else if (trangThaiGoc.equals("Bàn đang chờ") || (trangThaiGoc.equals("Bàn đang trống") && mapDatTruoc.containsKey(banMoi.getMaBan()))) {
+//						banMoi.setTrangThai("Bàn đang chờ");
+//						banMoi.setTenKhachHang(mapDatTruoc.getOrDefault(banMoi.getMaBan(), "Khách đặt trước"));
+//					}
+//				}
+//
+//				listMoiToanBo.add(banMoi);
+//
+//				if (mapBanUI.containsKey(banMoi.getMaBan())) {
+//					JPanel panelUI = mapBanUI.get(banMoi.getMaBan());
+//					capNhatGiaoDienMotBan(panelUI, banMoi);
+//
+//					for(BanAn bCu : danhSachBan) {
+//						if(bCu.getMaBan().equals(banMoi.getMaBan())) {
+//							bCu.setTrangThai(banMoi.getTrangThai());
+//							bCu.setTenKhachHang(banMoi.getTenKhachHang());
+//							break;
+//						}
+//					}
+//				}
+//			}
+//
+//			this.danhSachBanTongCuaNgay = listMoiToanBo;
+//
+//			capNhatSoLuongBan();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+private void tuDongQuetTrangThai() {
+	SwingWorker<Void, Void> worker = new SwingWorker<>() {
+		@Override
+		protected Void doInBackground() throws Exception {
+			// 1. Tự động hủy phiếu đặt quá hạn 30 phút
 			phieuDatBanDAO.huyPhieuDatQuaGio(30);
 
-			List<BanAn> duLieuMoiDB = banAn_DAO.docDanhSachBan();
-
-			Date ngayChon = dateChooserLocNgay.getDate();
-			if (ngayChon == null) ngayChon = new Date();
-			java.util.Map<String, String> mapDatTruoc = phieuDatBanDAO.layThongTinBanDatVaTenKhach(ngayChon);
-
+			// 2. Tự động chuyển Bàn Trống thành Bàn Chờ nếu đến ngày khách đặt
+			// Lấy ngày hôm nay thực tế
 			Date homNay = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-			boolean isHomNay = sdf.format(ngayChon).equals(sdf.format(homNay));
-			boolean isTuongLai = ngayChon.after(homNay) && !isHomNay;
-			boolean isQuasKhu = ngayChon.before(homNay) && !isHomNay;
+			java.util.Map<String, String> mapDatTruocHomNay = phieuDatBanDAO.layThongTinBanDatVaTenKhach(homNay);
 
-			List<BanAn> listMoiToanBo = new ArrayList<>();
-
-			for (BanAn banMoi : duLieuMoiDB) {
-				String trangThaiGoc = banMoi.getTrangThai();
-				banMoi.setTenKhachHang("");
-
-				if (isTuongLai || isQuasKhu) {
-					banMoi.setTrangThai("Bàn đang trống");
-					if (mapDatTruoc.containsKey(banMoi.getMaBan())) {
-						banMoi.setTrangThai("Bàn đang chờ");
-						banMoi.setTenKhachHang(mapDatTruoc.get(banMoi.getMaBan()));
-					}
-				} else {
-					if (trangThaiGoc.equals("Bàn đang phục vụ")) {
-						String tenKhach = hoaDon_DAO.getTenKhachHangTheoBan(banMoi.getMaBan());
-						banMoi.setTenKhachHang(tenKhach != null && !tenKhach.isEmpty() ? tenKhach : "Khách lẻ");
-					} else if (trangThaiGoc.equals("Bàn đang chờ") || (trangThaiGoc.equals("Bàn đang trống") && mapDatTruoc.containsKey(banMoi.getMaBan()))) {
-						banMoi.setTrangThai("Bàn đang chờ");
-						banMoi.setTenKhachHang(mapDatTruoc.getOrDefault(banMoi.getMaBan(), "Khách đặt trước"));
-					}
-				}
-
-				listMoiToanBo.add(banMoi);
-
-				if (mapBanUI.containsKey(banMoi.getMaBan())) {
-					JPanel panelUI = mapBanUI.get(banMoi.getMaBan());
-					capNhatGiaoDienMotBan(panelUI, banMoi);
-
-					for(BanAn bCu : danhSachBan) {
-						if(bCu.getMaBan().equals(banMoi.getMaBan())) {
-							bCu.setTrangThai(banMoi.getTrangThai());
-							bCu.setTenKhachHang(banMoi.getTenKhachHang());
-							break;
-						}
+			if (mapDatTruocHomNay != null && !mapDatTruocHomNay.isEmpty()) {
+				List<BanAn> allBanDB = banAn_DAO.docDanhSachBan();
+				for (BanAn b : allBanDB) {
+					// Nếu DB đang trống nhưng hôm nay có lịch đặt -> Ép thành Đang chờ
+					if (b.getTrangThai().equals("Bàn đang trống") && mapDatTruocHomNay.containsKey(b.getMaBan())) {
+						// Gọi RMI cập nhật DB để các Client khác đồng bộ
+						banAn_DAO.capNhatTrangThaiBan(b.getMaBan(), "Bàn đang chờ");
 					}
 				}
 			}
-
-			this.danhSachBanTongCuaNgay = listMoiToanBo;
-
-			capNhatSoLuongBan();
-		} catch (Exception e) {
-			e.printStackTrace();
+			return null;
 		}
-	}
+
+		@Override
+		protected void done() {
+			// Gọi lại hàm lọc để refresh giao diện hiển thị ngay lập tức
+			locDuLieuBan();
+		}
+	};
+	worker.execute();
+}
 
 	private void capNhatSoLuongBan() {
 		if (this.danhSachBanTongCuaNgay == null) return;

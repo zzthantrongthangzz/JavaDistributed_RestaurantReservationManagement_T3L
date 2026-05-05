@@ -69,9 +69,10 @@ public class PhieuDatBan_DAO {
         LocalDateTime ldtStart = new java.sql.Timestamp(start).toLocalDateTime();
         LocalDateTime ldtEnd = new java.sql.Timestamp(end).toLocalDateTime();
 
+        // ĐÃ FIX: Dời mệnh đề WHERE lên sát dưới MATCH gốc
         String cypher = "MATCH (p:PhieuDatBan {trangThai: 'Đang chờ'})-[:GOM_BAN]->(b:BanAn) " +
-                "OPTIONAL MATCH (p)-[:DAT_BOI]->(k:KhachHang) " +
                 "WHERE p.thoiGianDat >= $start AND p.thoiGianDat <= $end " +
+                "OPTIONAL MATCH (p)-[:DAT_BOI]->(k:KhachHang) " +
                 "RETURN b.maBan AS maBan, coalesce(k.hoTen, 'Khách đặt trước') AS hoTen";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("start", ldtStart, "end", ldtEnd));
