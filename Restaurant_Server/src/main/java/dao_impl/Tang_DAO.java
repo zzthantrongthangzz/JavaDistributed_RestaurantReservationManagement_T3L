@@ -25,8 +25,9 @@ public class Tang_DAO {
         return danhSachTang;
     }
 
+    // ĐÃ FIX: Thêm trim() vào thuộc tính để so sánh chính xác
     public Tang timTangTheoTen(String tenTang) {
-        String cypher = "MATCH (t:Tang {tenTang: $ten}) RETURN t.maTang AS maTang, t.tenTang AS tenTang";
+        String cypher = "MATCH (t:Tang) WHERE trim(t.tenTang) = trim($ten) RETURN t.maTang AS maTang, t.tenTang AS tenTang";
         try (Session session = DBConnect.getSession()) {
             Result result = session.run(cypher, Values.parameters("ten", tenTang));
             if (result.hasNext()) {
@@ -49,7 +50,8 @@ public class Tang_DAO {
     }
 
     public boolean themTang(Tang tang) {
-        String cypher = "CREATE (t:Tang {maTang: $ma, tenTang: $ten})";
+        // ĐÃ FIX: Trim thuộc tính trước khi tạo mới
+        String cypher = "CREATE (t:Tang {maTang: trim($ma), tenTang: trim($ten)})";
         try (Session session = DBConnect.getSession()) {
             session.run(cypher, Values.parameters("ma", tang.getMaTang(), "ten", tang.getTenTang()));
             return true;
